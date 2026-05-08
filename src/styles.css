@@ -226,7 +226,7 @@ code, .counter { font-family: var(--mono); }
   box-shadow: var(--shadow);
   border-radius: clamp(8px, 2vw, 18px);
   width: 100%;
-  max-width: 1400px;
+  /* max-width: 1400px; */
   margin: 0 auto;
 }
 
