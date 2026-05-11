@@ -29,93 +29,50 @@ export default function RichTextEditor({ content, onChange, placeholder }) {
   const Button = ({ active, onClick, title, children, disabled }) => (
     <button
       type="button"
-      className={`btn btn-sm ${active ? "btn-secondary" : "btn-outline-secondary"}`}
+      className={`btn btn-sm rte-btn ${active ? "btn-secondary" : "btn-outline-secondary"}`}
       onClick={onClick}
       disabled={disabled}
       title={title}
-      style={{ padding: "0.2rem 0.5rem", fontSize: "0.85rem" }}
     >
       {children}
     </button>
   );
 
   return (
-    <div
-      className="border rounded overflow-hidden"
-      style={{ borderColor: "var(--border)" }}
-    >
-      <div
-        className="d-flex gap-1 p-2 border-bottom flex-wrap"
-        style={{ background: "var(--bg)" }}
-      >
-        <Button
-          active={isActive("bold")}
-          onClick={() => toggle("toggleBold")}
-          title="Negrita"
-        >
+    <div className="b-card rounded overflow-hidden">
+      <div className="rte-toolbar">
+        <Button active={isActive("bold")} onClick={() => toggle("toggleBold")} title="Negrita">
           <strong>B</strong>
         </Button>
-        <Button
-          active={isActive("italic")}
-          onClick={() => toggle("toggleItalic")}
-          title="Cursiva"
-        >
+        <Button active={isActive("italic")} onClick={() => toggle("toggleItalic")} title="Cursiva">
           <em>I</em>
         </Button>
-        <Button
-          active={isActive("strike")}
-          onClick={() => toggle("toggleStrike")}
-          title="Tachado"
-        >
+        <Button active={isActive("strike")} onClick={() => toggle("toggleStrike")} title="Tachado">
           <s>S</s>
         </Button>
-        <span className="text-muted mx-1" style={{ opacity: 0.3 }}>|</span>
-        <Button
-          active={isActive("heading", { level: 2 })}
-          onClick={() => toggle("toggleHeading", { level: 2 })}
-          title="Título H2"
-        >
+        <span className="rte-separator">|</span>
+        <Button active={isActive("heading", { level: 2 })} onClick={() => toggle("toggleHeading", { level: 2 })} title="Título H2">
           H2
         </Button>
-        <Button
-          active={isActive("paragraph")}
-          onClick={() => toggle("setParagraph")}
-          title="Párrafo"
-        >
+        <Button active={isActive("paragraph")} onClick={() => toggle("setParagraph")} title="Párrafo">
           P
         </Button>
-        <span className="text-muted mx-1" style={{ opacity: 0.3 }}>|</span>
-        <Button
-          active={isActive("bulletList")}
-          onClick={() => toggle("toggleBulletList")}
-          title="Lista viñetas"
-        >
+        <span className="rte-separator">|</span>
+        <Button active={isActive("bulletList")} onClick={() => toggle("toggleBulletList")} title="Lista viñetas">
           • Lista
         </Button>
-        <Button
-          active={isActive("orderedList")}
-          onClick={() => toggle("toggleOrderedList")}
-          title="Lista numerada"
-        >
+        <Button active={isActive("orderedList")} onClick={() => toggle("toggleOrderedList")} title="Lista numerada">
           1. Lista
         </Button>
-        <span className="text-muted mx-1" style={{ opacity: 0.3 }}>|</span>
-        <Button
-          onClick={() => toggle("undo")}
-          disabled={!editor.can().chain().focus().undo().run()}
-          title="Deshacer"
-        >
+        <span className="rte-separator">|</span>
+        <Button onClick={() => toggle("undo")} disabled={!editor.can().chain().focus().undo().run()} title="Deshacer">
           ↩
         </Button>
-        <Button
-          onClick={() => toggle("redo")}
-          disabled={!editor.can().chain().focus().redo().run()}
-          title="Rehacer"
-        >
+        <Button onClick={() => toggle("redo")} disabled={!editor.can().chain().focus().redo().run()} title="Rehacer">
           ↪
         </Button>
       </div>
-      <div className="p-2" style={{ minHeight: "120px" }}>
+      <div className="rte-content">
         <EditorContent editor={editor} />
       </div>
       <style>{`

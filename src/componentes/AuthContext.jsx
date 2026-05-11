@@ -8,8 +8,8 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const login = (rut) => {
-    const u = { rut };
+  const login = (rut, nombre, rol, email) => {
+    const u = { rut, nombre, rol, email: email || "" };
     setUser(u);
     localStorage.setItem("donaton_user", JSON.stringify(u));
   };
@@ -19,8 +19,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("donaton_user");
   };
 
+  const updateUser = (data) => {
+    const updated = { ...user, ...data };
+    setUser(updated);
+    localStorage.setItem("donaton_user", JSON.stringify(updated));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuth: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isAuth: !!user }}>
       {children}
     </AuthContext.Provider>
   );

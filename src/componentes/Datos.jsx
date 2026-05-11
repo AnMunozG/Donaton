@@ -65,6 +65,39 @@ export const centrosData = [
     ],
     estado: "Activo",
   },
+  {
+    id: "CA-005",
+    nombre: "Centro de Acopio Concepción",
+    region: "Biobío",
+    direccion: "Av. Costanera 555, Concepción",
+    coordenadas: { lat: -36.8270, lng: -73.0503 },
+    encargado: "Daniela Vergara",
+    telefono: "+56 9 4321 0987",
+    capacidadTotal: 4500,
+    capacidadUsada: 1200,
+    inventario: [
+      { tipo: "Alimentos", cantidad: "600 kg" },
+      { tipo: "Pañales e infantiles", cantidad: "200 unidades" },
+    ],
+    estado: "Activo",
+  },
+  {
+    id: "CA-006",
+    nombre: "Centro de Acopio La Serena",
+    region: "Coquimbo",
+    direccion: "Av. Juan Bohón 888, La Serena",
+    coordenadas: { lat: -29.9027, lng: -71.2520 },
+    encargado: "Mauricio Olivares",
+    telefono: "+56 9 3210 9876",
+    capacidadTotal: 3000,
+    capacidadUsada: 1800,
+    inventario: [
+      { tipo: "Alimentos", cantidad: "750 kg" },
+      { tipo: "Ropa y abrigo", cantidad: "12 cajas" },
+      { tipo: "Artículos de higiene", cantidad: "80 kits" },
+    ],
+    estado: "Activo",
+  },
 ];
 
 export const donacionesEjemplo = [
@@ -87,78 +120,52 @@ export const donacionesEjemplo = [
     }
   },
   {
-    id: "DON-002",
+    id: "DON-011",
     tipo: "Ropa y abrigo",
-    cantidad: "15",
-    unidad: "prendas",
-    origen: "Municipalidad de Maipú",
-    centroId: "CA-003",
-    centro: "Maipú",
-    fecha: "2026-04-03",
-    estado: "En tránsito",
-    detalles: {
-      categoria: "Abrigo",
-      tallas: ["S", "M", "L", "XL"],
-      genero: "Unisex",
-      estadoPrenda: "Nueva",
-      material: "Poliéster y algodón",
-      temporada: "Invierno"
-    }
-  },
-  {
-    id: "DON-003",
-    tipo: "Insumos médicos",
-    cantidad: "20",
-    unidad: "unidades",
-    origen: "Persona particular",
-    centroId: "CA-002",
-    centro: "Puente Alto",
-    fecha: "2026-04-05",
-    estado: "En acopio",
-    detalles: {
-      tipoInsumo: "Material de curación",
-      descripcion: "Vendas, gasas y esparadrapos",
-      fechaVencimiento: "2028-06-30",
-      esterilizado: true,
-      marca: "3M",
-      lote: "MED-2026-04"
-    }
-  },
-  {
-    id: "DON-004",
-    tipo: "Artículos de higiene",
     cantidad: "30",
-    unidad: "kits",
-    origen: "Fundación Aplicar",
+    unidad: "prendas",
+    origen: "Voluntarios Recoleta",
+    centroId: "CA-006",
+    centro: "Recoleta",
+    fecha: "2026-04-15",
+    estado: "En acopio",
+    detalles: { categoria: "Abrigo", tallas: ["Única"], genero: "Unisex", estadoPrenda: "Usada en buen estado", material: "Algodón" }
+  },
+  {
+    id: "DON-012",
+    tipo: "Alimentos no perecibles",
+    cantidad: "10",
+    unidad: "kg",
+    origen: "222222222",
     centroId: "CA-001",
     centro: "Santiago Centro",
-    fecha: "2026-04-07",
+    fecha: "2026-05-01",
     estado: "En acopio",
-    detalles: {
-      tipoKit: "Higiene personal completo",
-      contenido: ["Jabón", "Shampoo", "Pasta dental", "Toalla", "Pañales"],
-      destinatario: "Familias con niños",
-      marca: "Varias"
-    }
+    detalles: { tipoAlimento: "Granos y legumbres", fechaVencimiento: "2027-12-31", condicionesAlmacenamiento: "Lugar seco", tipoEnvase: "Bolsa sellada" }
   },
   {
-    id: "DON-005",
-    tipo: "Ropa y abrigo",
-    cantidad: "25",
-    unidad: "prendas",
-    origen: "Empresa Textil",
-    centroId: "CA-004",
-    centro: "Valparaíso",
-    fecha: "2026-04-08",
-    estado: "En tránsito",
-    detalles: {
-      categoria: "Ropa interior térmica",
-      tallas: ["XS", "S", "M"],
-      genero: "Femenino",
-      estadoPrenda: "Nueva",
-      material: "Algodón térmico",
-      temporada: "Invierno"
-    }
+    id: "DON-013",
+    tipo: "Artículos de higiene",
+    cantidad: "5",
+    unidad: "kits",
+    origen: "222222222",
+    centroId: "CA-002",
+    centro: "Puente Alto",
+    fecha: "2026-04-28",
+    estado: "Entregado",
+    detalles: { tipoKit: "Higiene personal básico", contenido: ["Jabón", "Shampoo", "Pasta dental"], destinatario: "Adultos mayores", marca: "Varias" }
+  },
+  {
+    id: "DON-014",
+    tipo: "Donación Monetaria",
+    cantidad: "50000",
+    unidad: "$",
+    origen: "222222222",
+    centroId: "CA-001",
+    centro: "Santiago Centro",
+    fecha: "2026-04-20",
+    estado: "Entregado",
+    detalles: {}
   },
 ];
 
@@ -166,15 +173,16 @@ export const necesidadesEjemplo = [
   {
     id: "NEC-001",
     recurso: "Alimentos no perecibles",
-    cantidad: "200",
+    cantidad: "15",
+    donado: "13",
+    descripcion: "Las familias damnificadas por incendios perdieron todas sus provisiones y requieren alimentos básicos para cubrir las próximas semanas.",
     unidad: "kg",
-    ubicacion: "Sector Las Rosas, Concepción",
-    coordenadas: { lat: -36.8262, lng: -73.0498 },
     fecha: "2026-04-05",
     urgencia: "Alta",
     estado: "Asignado",
     centroId: "CA-001",
-    reportadoPor: "Municipalidad de Concepción",
+    centro: "Centro de Acopio Santiago Centro",
+    reportadoPor: "Municipalidad de Santiago Centro",
     detalles: {
       tipoAlimento: "Granos, legumbres y aceite",
       beneficiarios: "Familias damnificadas por incendios",
@@ -183,15 +191,16 @@ export const necesidadesEjemplo = [
   },
   {
     id: "NEC-002",
-    recurso: "Frazadas y ropa de abrigo",
-    cantidad: "50",
-    unidad: "unidades",
-    ubicacion: "Albergue Municipal, Talca",
-    coordenadas: { lat: -35.4264, lng: -71.6553 },
+    recurso: "Ropa y abrigo",
+    cantidad: "15",
+    donado: "5",
+    unidad: "prendas",
+    descripcion: "Con la llegada del invierno, las personas mayores en el albergue municipal no cuentan con abrigo suficiente para las bajas temperaturas.",
     fecha: "2026-04-04",
     urgencia: "Media",
     estado: "Asignado",
     centroId: "CA-002",
+    centro: "Centro de Acopio Puente Alto",
     reportadoPor: "Voluntario en terreno",
     detalles: {
       tallasNecesarias: ["S", "M", "L", "XL"],
@@ -202,15 +211,16 @@ export const necesidadesEjemplo = [
   },
   {
     id: "NEC-003",
-    recurso: "Medicamentos básicos",
+    recurso: "Insumos médicos",
     cantidad: "30",
+    donado: "25",
     unidad: "unidades",
-    ubicacion: "Campamento El Pino, Valparaíso",
-    coordenadas: { lat: -33.0458, lng: -71.6197 },
+    descripcion: "El centro médico local ha agotado su stock de medicamentos esenciales y requiere reposición urgente para atender a las familias del campamento.",
     fecha: "2026-04-03",
     urgencia: "Alta",
     estado: "Pendiente",
-    centroId: null,
+    centroId: "CA-004",
+    centro: "Centro de Acopio Valparaíso",
     reportadoPor: "Centro médico local",
     detalles: {
       tipoMedicamento: "Analgésicos, antibióticos y antipiréticos",
@@ -221,14 +231,15 @@ export const necesidadesEjemplo = [
   {
     id: "NEC-004",
     recurso: "Artículos de higiene",
-    cantidad: "80",
+    cantidad: "20",
+    donado: "20",
     unidad: "kits",
-    ubicacion: "Sector Cerro Alegre, Valparaíso",
-    coordenadas: { lat: -33.0472, lng: -71.6167 },
+    descripcion: "Niños y adultos mayores en situación de calle necesitan kits de higiene para mantener condiciones sanitarias dignas.",
     fecha: "2026-04-02",
     urgencia: "Baja",
     estado: "Cubierto",
     centroId: "CA-004",
+    centro: "Centro de Acopio Valparaíso",
     reportadoPor: "Voluntario en terreno",
     detalles: {
       contenidoKit: ["Jabón", "Shampoo", "Pasta dental", "Toallas húmedas"],
@@ -239,19 +250,97 @@ export const necesidadesEjemplo = [
   {
     id: "NEC-005",
     recurso: "Alimentos no perecibles",
-    cantidad: "120",
+    cantidad: "20",
+    donado: "3",
     unidad: "kg",
-    ubicacion: "Población San Joaquín, Santiago",
-    coordenadas: { lat: -33.4935, lng: -70.6322 },
+    descripcion: "Las familias con niños pequeños del sector necesitan leche en polvo y cereales para asegurar la alimentación infantil diaria.",
     fecha: "2026-04-06",
     urgencia: "Alta",
     estado: "Asignado",
     centroId: "CA-001",
+    centro: "Centro de Acopio Santiago Centro",
     reportadoPor: "Junta de vecinos",
     detalles: {
       tipoAlimento: "Leche en polvo, enlatados y cereales",
       beneficiarios: "Familias con niños pequeños",
       fechaEstimadaEntrega: "2026-04-12"
+    }
+  },
+  {
+    id: "NEC-006",
+    recurso: "Artículos de higiene",
+    cantidad: "40",
+    donado: "36",
+    descripcion: "En los albergues hay bebés y niños pequeños que requieren pañales desechables para mantener condiciones de higiene básicas.",
+    unidad: "unidades",
+    fecha: "2026-04-08",
+    urgencia: "Alta",
+    estado: "Pendiente",
+    centroId: "CA-005",
+    centro: "Centro de Acopio Concepción",
+    reportadoPor: "Fundación Crecer",
+    detalles: {
+      tipoArticulo: "Pañales desechables",
+      beneficiarios: "Bebés y niños pequeños en albergues",
+      tallasSolicitadas: ["Recién nacido", "S", "M"]
+    }
+  },
+  {
+    id: "NEC-007",
+    recurso: "Ropa y abrigo",
+    cantidad: "25",
+    donado: "21",
+    unidad: "prendas",
+    descripcion: "Las recientes lluvias torrenciales dejaron a cientos de familias damnificadas que necesitan frazadas y ropa de abrigo con urgencia.",
+    fecha: "2026-04-09",
+    urgencia: "Alta",
+    estado: "Pendiente",
+    centroId: "CA-006",
+    centro: "Centro de Acopio La Serena",
+    reportadoPor: "Municipalidad de La Serena",
+    detalles: {
+      tallasNecesarias: ["M", "L", "XL"],
+      tipoPrenda: "Frazadas, chalecos y parkas",
+      beneficiarios: "Familias damnificadas por lluvias",
+      temporada: "Invierno"
+    }
+  },
+  {
+    id: "NEC-008",
+    recurso: "Alimentos no perecibles",
+    cantidad: "30",
+    donado: "15",
+    unidad: "kg",
+    descripcion: "Los adultos mayores del sector viven solos y requieren alimentos no perecibles para complementar su alimentación diaria.",
+    fecha: "2026-04-09",
+    urgencia: "Media",
+    estado: "Asignado",
+    centroId: "CA-006",
+    centro: "Centro de Acopio La Serena",
+    reportadoPor: "Junta de vecinos Cerro Grande",
+    detalles: {
+      tipoAlimento: "Enlatados, pastas y aceite",
+      beneficiarios: "Adultos mayores del sector",
+      fechaEstimadaEntrega: "2026-04-15"
+    }
+  },
+  {
+    id: "NEC-009",
+    recurso: "Artículos de higiene",
+    cantidad: "15",
+    donado: "5",
+    unidad: "kits",
+    descripcion: "Las familias realojadas tras los desbordes necesitan kits de higiene para restablecer sus condiciones sanitarias básicas.",
+    fecha: "2026-04-10",
+    urgencia: "Baja",
+    estado: "Pendiente",
+    centroId: "CA-006",
+    centro: "Centro de Acopio La Serena",
+    reportadoPor: "Voluntario en terreno",
+    detalles: {
+      contenidoKit: ["Jabón", "Shampoo", "Pasta dental", "Toalla", "Pañales"],
+      destinatario: "Familias realojadas",
+      frecuencia: "Entrega única"
     }
   },
 ];
@@ -317,7 +406,6 @@ export const camposPorTipo = {
     { name: "fechaVencimiento", label: "Fecha de vencimiento", type: "date" },
     { name: "condicionesAlmacenamiento", label: "Condiciones de almacenamiento", type: "select", options: ["Temperatura ambiente", "Refrigerado", "Lugar seco", "No aplica"] },
     { name: "tipoEnvase", label: "Tipo de envase", type: "select", options: ["Bolsa sellada", "Lata", "Caja", "Botella", "Otro"] },
-    { name: "aptoConsumo", label: "¿Apto para consumo humano?", type: "select", options: ["Sí", "No", "No especificado"] },
   ],
   "Insumos médicos": [
     { name: "tipoInsumo", label: "Tipo de insumo", type: "select", options: ["Medicamentos", "Material de curación", "Equipos médicos", "Insumos de protección", "Oxígeno y respiración"] },
@@ -385,8 +473,8 @@ export const categoriasDonacion = [
 
 // Cuentas de prueba para Login
 export const cuentas = [
-  { rut: "123456789", password: "admin" },
-  { rut: "987654321", password: "user" },
+  { rut: "111111111", password: "admin1234", rol: "admin", nombre: "Admin Donatón", email: "admin@donaton.cl" },
+  { rut: "222222222", password: "user1234", rol: "user", nombre: "Usuario Ejemplo", email: "usuario@donaton.cl" },
 ];
 
 export const team = [
@@ -435,9 +523,9 @@ export const reportes = [
 ];
 
 export const gobernanza = [
-  { nombre: "Angel Exzequiel Muñoz González", cargo: "Lider Corporativo", img: null },
-  { nombre: "Yasser Antonio Yamil Illanes", cargo: "Lider de Operaciones y Logistica", img: null },
-  { nombre: "Martin Ignacio Pizarro Estay", cargo: "Lider de Relaciones Públicas", img: null },
+  { nombre: "Angel Exzequiel Muñoz González", cargo: "Lider Corporativo", img: 'https://i.imgflip.com/9e4vwk.jpg' },
+  { nombre: "Yasser Antonio Yamil Illanes", cargo: "Lider de Operaciones y Logistica", img: 'https://i.ytimg.com/vi/amp6D_XRH3I/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAC8O1bG0zD7RxQ6nG6d50a7j1dIQ' },
+  { nombre: "Martin Ignacio Pizarro Estay", cargo: "Lider de Relaciones Públicas", img: 'https://media.tenor.com/ThwiQuVpaicAAAAM/cat-licking-a-lollipop-and-being-super-cool.gif' },
 ];
 
 export const pasosFuncionamiento = [
@@ -460,3 +548,65 @@ export const CHART_COLORS = ["#DD4444", "#F48080", "#3AB795", "#194B4F"];
 
 export const urgenciaColorMap = { Alta: "danger", Media: "warning", Baja: "secondary" };
 export const estadoNecColorMap = { Pendiente: "danger", Asignado: "warning", Cubierto: "success" };
+
+// ── LocalStorage persistence ──────────────────────────────
+
+const P = "donaton_";
+
+export function seedLocalStorage() {
+  if (localStorage.getItem(P + "seeded")) return;
+  localStorage.setItem(P + "centros", JSON.stringify(centrosData));
+  localStorage.setItem(P + "donaciones", JSON.stringify(donacionesEjemplo));
+  localStorage.setItem(P + "necesidades", JSON.stringify(necesidadesEjemplo));
+  localStorage.setItem(P + "envios", JSON.stringify(enviosEjemplo));
+  localStorage.setItem(P + "cuentas", JSON.stringify(cuentas));
+  localStorage.setItem(P + "user_needs", JSON.stringify([]));
+  localStorage.setItem(P + "user_need_counter", "0");
+  localStorage.setItem(P + "seeded", "true");
+}
+
+export function loadFromStorage(key) {
+  const raw = localStorage.getItem(P + key);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export function saveToStorage(key, data) {
+  localStorage.setItem(P + key, JSON.stringify(data));
+}
+
+// ── User-submitted needs (localStorage-backed) ────────────
+
+export function agregarNecesidadUsuario(data) {
+  const needs = loadFromStorage("user_needs") || [];
+  const counter = parseInt(localStorage.getItem(P + "user_need_counter") || "0", 10) + 1;
+  localStorage.setItem(P + "user_need_counter", String(counter));
+  const necesidad = {
+    id: `USR-NEC-${String(counter).padStart(3, "0")}`,
+    ...data,
+    donado: "0",
+    urgencia: "",
+    estado: "Pendiente",
+    fecha: new Date().toISOString().split("T")[0],
+  };
+  needs.push(necesidad);
+  saveToStorage("user_needs", needs);
+  return necesidad;
+}
+
+export function getNecesidadesUsuario() {
+  return loadFromStorage("user_needs") || [];
+}
+
+export function eliminarNecesidadUsuario(id) {
+  const needs = loadFromStorage("user_needs") || [];
+  saveToStorage("user_needs", needs.filter((n) => n.id !== id));
+}
+
+export function actualizarNecesidadUsuario(id, data) {
+  const needs = loadFromStorage("user_needs") || [];
+  const idx = needs.findIndex((n) => n.id === id);
+  if (idx === -1) return null;
+  Object.assign(needs[idx], data);
+  saveToStorage("user_needs", needs);
+  return needs[idx];
+}

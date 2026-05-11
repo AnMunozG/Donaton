@@ -11,13 +11,7 @@ export const DonatonLogo = ({ variante = "pequeño", width, height }) => {
         <text
           x="150"
           y="160"
-          style={{
-            fontFamily: "Segoe UI, Arial, sans-serif",
-            fontWeight: 700,
-            fontSize: "72px",
-            fill: "#dd4444",
-            letterSpacing: "2px",
-          }}
+          className="logo-titulo-banner"
         >
           Donatón
         </text>
@@ -36,12 +30,7 @@ export const DonatonLogo = ({ variante = "pequeño", width, height }) => {
         <text
           x="150"
           y="210"
-          style={{
-            fontFamily: "Segoe UI, Arial, sans-serif",
-            fontSize: "22px",
-            fill: "#F48080",
-            opacity: 0.7,
-          }}
+          className="logo-subtitulo"
         >
           Coordinación de ayuda humanitaria
         </text>
@@ -59,13 +48,7 @@ export const DonatonLogo = ({ variante = "pequeño", width, height }) => {
       <text
         x="40"
         y="60"
-        style={{
-          fontFamily: "Segoe UI, Arial, sans-serif",
-          fontWeight: 700,
-          fontSize: "34px",
-          fill: "#dd4444",
-          letterSpacing: "1px",
-        }}
+        className="logo-titulo-small"
       >
         Donatón
       </text>

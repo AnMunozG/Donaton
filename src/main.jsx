@@ -5,6 +5,8 @@ import './styles.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { seedLocalStorage } from './componentes/Datos.jsx'
+seedLocalStorage()
 
 import Inicio from './paginas/Inicio.jsx'
 import Header from './componentes/Header.jsx'
@@ -18,31 +20,40 @@ import BackOffice from './paginas/BackOffice.jsx'
 import Transparencia from './paginas/Transparencia.jsx'
 import Importante from './assets/Importante.jsx'
 import Login from './paginas/Login.jsx'
+import Perfil from './paginas/Perfil.jsx'
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 import { AuthProvider } from './componentes/AuthContext.jsx'
 import ProtectedRoute from './componentes/ProtectedRoute.jsx'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter>
+const router = createBrowserRouter([
+  {
+    element: (
       <AuthProvider>
         <Header />
-        <Routes>
-          <Route path="/" element={<Inicio />} />
-          <Route path="/nosotros" element={<Nosotros />} />
-          <Route path="/centros" element={<Centros />} />
-          <Route path="/donacion" element={<Donacion />} />
-          <Route path="/necesidades" element={<Necesidades />} />
-          <Route path="/registro" element={<Registro />} />
-          <Route path="/dashboard" element={<ProtectedRoute><BackOffice /></ProtectedRoute>} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/transparencia" element={<Transparencia />} />
-          <Route path="/222" element={<Importante />} />
-          <Route path="*" element={<h1 className="text-center mt-5">404 - Página no encontrada</h1>} />
-        </Routes>
+        <Outlet />
         <Footer />
       </AuthProvider>
-    </BrowserRouter>
+    ),
+    children: [
+      { index: true, element: <Inicio /> },
+      { path: "nosotros", element: <Nosotros /> },
+      { path: "centros", element: <Centros /> },
+      { path: "donacion", element: <Donacion /> },
+      { path: "necesidades", element: <Necesidades /> },
+      { path: "registro", element: <Registro /> },
+      { path: "dashboard", element: <ProtectedRoute requiredRole="admin"><BackOffice /></ProtectedRoute> },
+      { path: "login", element: <Login /> },
+      { path: "perfil", element: <ProtectedRoute><Perfil /></ProtectedRoute> },
+      { path: "transparencia", element: <Transparencia /> },
+      { path: "222", element: <Importante /> },
+      { path: "*", element: <h1 className="text-center mt-5">404 - Página no encontrada</h1> },
+    ]
+  }
+])
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <RouterProvider router={router} />
   </StrictMode>
 )

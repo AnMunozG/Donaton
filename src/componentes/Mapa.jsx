@@ -14,7 +14,7 @@ function MapController({ center, zoom }) {
 export default function Mapa({ centros, seleccionado, onSelect }) {
   const center = seleccionado?.coordenadas 
     ? { lat: seleccionado.coordenadas.lat, lng: seleccionado.coordenadas.lng }
-    : { lat: -33.4489, lng: -70.6693 }; // Santiago por defecto
+    : { lat: -33.4489, lng: -70.6693 };
 
   return (
     <div className="mapa-container">
@@ -26,7 +26,7 @@ export default function Mapa({ centros, seleccionado, onSelect }) {
           streetViewControl={false}
           fullscreenControl={false}
           mapId="donaton-map"
-          style={{ width: '100%', height: '100%' }}
+          className="mapa-full"
         >
           <MapController center={center} zoom={seleccionado ? 14 : 12} />
           {centros.map((centro) => (
