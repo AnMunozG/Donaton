@@ -657,7 +657,7 @@ footer .border-top-section {
 /* ── CENTROS: panel de detalle ────────────────────────────── */
 .lista-centros {
   overflow-y: auto;
-  max-height: 800px;
+  min-height: 800px;
 }
 
 @media (max-width: 991px) {
