@@ -148,11 +148,11 @@ La configuración principal se encuentra en `backend_logistica/settings.py`. Alg
 
 ## 👤 Autor
 - AnMunozG
- - GitHub: @AnMunozG
+    - GitHub: @AnMunozG
 - yasser-duoc
- - GitHub: @yasser-duoc
+    - GitHub: @yasser-duoc
 - MartinIgnaci0
- - GitHub: MartinIgnaci0
+    - GitHub: MartinIgnaci0
 
 ## 🤝 Contribuciones
 
