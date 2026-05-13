@@ -1,28 +1,14 @@
-from django.conf import settings
-from .base import RedisCircuitBreaker, _request_with_cb
-
-notif_cb = RedisCircuitBreaker("notificaciones")
+from .base import ServiceClient
 
 
-async def enviar_email(destino: str, asunto: str, mensaje: str) -> dict:
-    url = getattr(settings, "NOTIFICACIONES_URL", None)
-    if not url:
-        return {"estado": "simulado"}
-    return await _request_with_cb(
-        notif_cb,
-        f"{url}/email",
-        {"destino": destino, "asunto": asunto, "mensaje": mensaje},
-        {"estado": "pendiente"},
-    )
+class NotificacionClient(ServiceClient):
+    """Cliente para el microservicio de Notificaciones."""
 
+    def __init__(self):
+        super().__init__("NOTIFICACIONES_URL", "notificaciones")
 
-async def enviar_sms(destino: str, mensaje: str) -> dict:
-    url = getattr(settings, "NOTIFICACIONES_URL", None)
-    if not url:
-        return {"estado": "simulado"}
-    return await _request_with_cb(
-        notif_cb,
-        f"{url}/sms",
-        {"destino": destino, "mensaje": mensaje},
-        {"estado": "pendiente"},
-    )
+    async def enviar_email(self, destino: str, asunto: str, mensaje: str) -> dict:
+        return await self.post("/email", {"destino": destino, "asunto": asunto, "mensaje": mensaje})
+
+    async def enviar_sms(self, destino: str, mensaje: str) -> dict:
+        return await self.post("/sms", {"destino": destino, "mensaje": mensaje})

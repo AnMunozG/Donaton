@@ -1,25 +1,17 @@
-from django.conf import settings
-from .base import RedisCircuitBreaker, _request_with_cb
-
-pago_cb = RedisCircuitBreaker("pagos_gateway")
+from .base import ServiceClient
 
 
-async def cobrar(monto: float, origen: str, descripcion: str = "") -> dict:
-    return await _request_with_cb(
-        pago_cb,
-        getattr(settings, "PAGOS_URL", None),
-        {"monto": monto, "origen": origen, "descripcion": descripcion},
-        {"estado": "pendiente_confirmacion", "monto": monto, "origen": origen},
-    )
+class PagoClient(ServiceClient):
+    """Cliente para el microservicio de Pagos."""
 
+    def __init__(self):
+        super().__init__("PAGOS_URL", "pagos")
 
-async def reembolsar(monto: float, origen: str) -> dict:
-    url = getattr(settings, "PAGOS_URL", None)
-    if not url:
-        return {"estado": "simulado", "monto": monto}
-    return await _request_with_cb(
-        pago_cb,
-        f"{url}/reembolso",
-        {"monto": monto, "origen": origen},
-        {"estado": "pendiente"},
-    )
+    async def cobrar(self, monto: float, origen: str, descripcion: str = "") -> dict:
+        return await self.post("/cobrar", {"monto": monto, "origen": origen, "descripcion": descripcion})
+
+    async def reembolsar(self, monto: float, origen: str) -> dict:
+        return await self.post("/reembolso", {"monto": monto, "origen": origen})
+
+    async def listar_transacciones(self, params: dict = None) -> dict:
+        return await self.get("/transacciones", params=params)

@@ -1,13 +1,45 @@
-import json
+import json, logging
 from datetime import datetime, timezone
-from typing import Callable, Any
+from typing import Any, Optional
 
+import httpx
 from django.conf import settings
 
-try:
-    import redis.asyncio as aioredis
-except ImportError:
-    aioredis = None
+logger = logging.getLogger(__name__)
+
+
+class ServiceClient:
+    """Cliente HTTP base con circuit breaker integrado para consumir microservicios."""
+
+    def __init__(self, base_url_key: str, service_name: str, timeout: int = 10):
+        self.base_url = getattr(settings, base_url_key, "")
+        self.service_name = service_name
+        self.timeout = timeout
+
+    async def _request(self, method: str, path: str, **kwargs) -> dict:
+        if not self.base_url:
+            return {"estado": "simulado", "service": self.service_name, "path": path}
+
+        url = f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.request(method, url, **kwargs)
+            resp.raise_for_status()
+            return resp.json()
+
+    async def get(self, path: str, params: Optional[dict] = None) -> dict:
+        return await self._request("GET", path, params=params)
+
+    async def post(self, path: str, data: Optional[dict] = None) -> dict:
+        return await self._request("POST", path, json=data or {})
+
+    async def put(self, path: str, data: Optional[dict] = None) -> dict:
+        return await self._request("PUT", path, json=data or {})
+
+    async def patch(self, path: str, data: Optional[dict] = None) -> dict:
+        return await self._request("PATCH", path, json=data or {})
+
+    async def delete(self, path: str) -> dict:
+        return await self._request("DELETE", path)
 
 
 class RedisCircuitBreaker:
@@ -22,7 +54,9 @@ class RedisCircuitBreaker:
     async def _get_redis(self):
         if self._redis is None:
             redis_url = getattr(settings, "REDIS_URL", "redis://localhost:6379/0")
-            if not aioredis:
+            try:
+                import redis.asyncio as aioredis
+            except ImportError:
                 raise RuntimeError("redis[asyncio] no está instalado")
             self._redis = aioredis.from_url(redis_url, decode_responses=True)
         return self._redis
@@ -38,7 +72,7 @@ class RedisCircuitBreaker:
         r = await self._get_redis()
         await r.set(f"cb:{self.name}", json.dumps(s))
 
-    async def call(self, fn: Callable, *args, **kwargs) -> Any:
+    async def call(self, fn, *args, **kwargs) -> Any:
         state = await self._get_state()
         now = datetime.now(timezone.utc).timestamp()
 
@@ -71,23 +105,9 @@ class RedisCircuitBreaker:
         return (await self._get_state())["state"]
 
 
-async def _request_with_cb(cb: RedisCircuitBreaker, url: str, data: dict, fallback: dict) -> dict:
-    """Helper para clients: llama con circuit breaker, retorna fallback si falla."""
-    import httpx, logging
-    logger = logging.getLogger(__name__)
-
-    if not url:
-        logger.info(f"URL no configurada para {cb.name}, simulando")
-        return {"estado": "simulado", **data}
-
-    async def _do():
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(url, json=data)
-            resp.raise_for_status()
-            return resp.json()
-
+async def request_with_fallback(client: ServiceClient, method: str, path: str, fallback: dict, **kwargs) -> dict:
     try:
-        return await cb.call(_do)
+        return await client._request(method, path, **kwargs)
     except Exception as e:
-        logger.warning(f"{cb.name} falló: {e}")
+        logger.warning(f"{client.service_name}/{path} falló: {e}")
         return fallback

@@ -89,4 +89,5 @@ class HealthOut(Schema):
     db: str
     redis: str
     circuit_breakers: dict
+    servicios: dict = {}
     version: str

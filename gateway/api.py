@@ -12,6 +12,7 @@ from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, Don
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, EnvioOut, EnvioCreate, EnvioUpdate, HealthOut)
 from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service
+from .clients import pago_client, notif_client, donaciones_client, inventario_client, logistica_client, catalogos_client
 
 
 class AuthBearer(HttpBearer):
@@ -45,14 +46,29 @@ def on_generic_error(request, exc):
 
 @api.get("/health", auth=None, response=HealthOut)
 async def health(request):
-    db_status = "ok"
-    try:
-        from django.db import connection
-        await connection.ensure_connection()
-    except Exception:
-        db_status = "error"
+    async def check(client: str, url_key: str):
+        url = getattr(settings, url_key, "")
+        if not url:
+            return "no configurado"
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=3) as c:
+                resp = await c.get(f"{url.rstrip('/')}/health")
+                return "ok" if resp.is_success else "error"
+        except Exception:
+            return "error"
 
-    redis_status, cb_status = "no configurado", {}
+    servicios = {
+        "donaciones": await check("donaciones", "DONACIONES_URL"),
+        "inventario": await check("inventario", "INVENTARIO_URL"),
+        "logistica": await check("logistica", "LOGISTICA_URL"),
+        "catalogos": await check("catalogos", "CATALOGOS_URL"),
+        "pagos": await check("pagos", "PAGOS_URL"),
+        "notificaciones": await check("notificaciones", "NOTIFICACIONES_URL"),
+    }
+
+    redis_status = "no configurado"
+    cb_status = {}
     if redis_url := getattr(settings, "REDIS_URL", None):
         try:
             import redis.asyncio as aioredis, json
@@ -65,7 +81,8 @@ async def health(request):
             await r.aclose()
         except Exception:
             redis_status = "error"
-    return {"db": db_status, "redis": redis_status, "circuit_breakers": cb_status, "version": "1.0.0"}
+
+    return {"db": "n/a (BFF sin BD de dominio)", "redis": redis_status, "circuit_breakers": cb_status, "servicios": servicios, "version": "1.0.0"}
 
 
 # ── Auth ──
@@ -165,17 +182,11 @@ async def activar_necesidad(request, code: str):
 
 @api.get("/necesidades/{code}/propuestas", response=list[PropuestaOut])
 async def list_propuestas(request, code: str):
-    return [PropuestaOut(code=p.code, necesidad_code=p.necesidad.code,
-        usuario_rut=p.usuario.rut, usuario_nombre=p.usuario.nombre,
-        mensaje=p.mensaje, estado=p.estado, created_at=p.created_at, updated_at=p.updated_at)
-        for p in await necesidad_service.list_propuestas(code)]
+    return await necesidad_service.list_propuestas(code)
 
 @api.post("/propuestas", response={201: PropuestaOut})
 async def create_propuesta(request, body: PropuestaCreate):
-    p = await necesidad_service.crear_propuesta(body.necesidad_code, body.mensaje, rut=request.user["rut"])
-    return PropuestaOut(code=p.code, necesidad_code=p.necesidad.code,
-        usuario_rut=p.usuario.rut, usuario_nombre=p.usuario.nombre,
-        mensaje=p.mensaje, estado=p.estado, created_at=p.created_at, updated_at=p.updated_at)
+    return await necesidad_service.crear_propuesta(body.necesidad_code, body.mensaje, rut=request.user["rut"])
 
 
 # ── Catálogos ──

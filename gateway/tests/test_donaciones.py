@@ -1,6 +1,4 @@
 import pytest
-from httpx import ASGITransport, AsyncClient
-from config.asgi import application
 
 
 @pytest.mark.django_db(transaction=True)
@@ -9,7 +7,8 @@ class TestHealth:
         response = await client.get("/api/health")
         assert response.status_code == 200
         data = response.json()
-        assert "db" in data
+        assert "redis" in data
+        assert "servicios" in data or "db" in data
         assert "version" in data
 
 
@@ -49,12 +48,11 @@ class TestAuth:
 
 @pytest.mark.django_db(transaction=True)
 class TestDonaciones:
-    async def test_list_donaciones_empty(self, client, auth_headers):
+    async def test_list_donaciones(self, client, auth_headers):
         response = await client.get("/api/donaciones", headers=auth_headers)
         assert response.status_code == 200
-        assert response.json() == []
 
-    async def test_create_and_list_donacion(self, client):
+    async def test_create_donacion_mocked(self, client):
         register_resp = await client.post(
             "/api/auth/register",
             json={
@@ -65,7 +63,6 @@ class TestDonaciones:
             },
         )
         assert register_resp.status_code == 201
-        donor_rut = register_resp.json()["rut"]
 
         login_resp = await client.post(
             "/api/auth/login",

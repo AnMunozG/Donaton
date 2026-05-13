@@ -51,6 +51,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# ── Solo auth local: Cuenta — el resto de datos vive en microservicios ──
 DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
@@ -84,13 +85,18 @@ CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,
 # ── JWT ──
 JWT_SECRET = os.getenv("JWT_SECRET", SECRET_KEY)
 
-# ── Redis ──
+# ── Redis (circuit breaker, caché, bus de eventos) ──
 REDIS_URL = os.getenv("REDIS_URL", "")
 
-# ── URLs de microservicios externos ──
+# ── Microservicios externos ──
+# Cada microservicio tiene su propia BD y su propia API.
+# El BFF solo orquesta, transforma y enruta.
+DONACIONES_URL = os.getenv("DONACIONES_URL", "")
+INVENTARIO_URL = os.getenv("INVENTARIO_URL", "")
+LOGISTICA_URL = os.getenv("LOGISTICA_URL", "")
+CATALOGOS_URL = os.getenv("CATALOGOS_URL", "")
 PAGOS_URL = os.getenv("PAGOS_URL", "")
 NOTIFICACIONES_URL = os.getenv("NOTIFICACIONES_URL", "")
-USUARIOS_URL = os.getenv("USUARIOS_URL", "")
 
 # ── Logging ──
 LOGGING = {

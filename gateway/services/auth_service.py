@@ -4,7 +4,7 @@ from django.conf import settings
 from asgiref.sync import sync_to_async
 
 from ..models import Cuenta
-from ..schemas.auth import LoginIn, RegisterIn, UserOut, UserUpdateIn
+from ..schemas.auth import LoginIn, RegisterIn, UserUpdateIn
 from ..exceptions import AuthError, ValidationError, NotFoundError
 
 
@@ -18,16 +18,6 @@ def _create_token(cuenta: Cuenta) -> str:
     }
     secret = getattr(settings, "JWT_SECRET", settings.SECRET_KEY)
     return jwt.encode(payload, secret, algorithm="HS256")
-
-
-def _decode_token(token: str) -> dict:
-    secret = getattr(settings, "JWT_SECRET", settings.SECRET_KEY)
-    try:
-        return jwt.decode(token, secret, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        raise AuthError("Token expirado")
-    except jwt.InvalidTokenError:
-        raise AuthError("Token inválido")
 
 
 async def login(data: LoginIn) -> dict:
@@ -97,7 +87,3 @@ async def update_profile(rut: str, data: UserUpdateIn) -> Cuenta:
         await sync_to_async(cuenta.save)(update_fields=update_fields)
 
     return cuenta
-
-
-async def list_all() -> list[Cuenta]:
-    return [c async for c in Cuenta.objects.all()]

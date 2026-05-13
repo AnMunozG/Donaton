@@ -1,58 +1,85 @@
-from datetime import date
-from ..models import TipoRecurso, Unidad, Equipo, Gobernanza, Hito, Valor, Reporte, Envio, Centro, Donacion
-from ..exceptions import NotFoundError
+from ..clients import catalogos_client, logistica_client, inventario_client
 from ..schemas.static import EnvioOut
-from asgiref.sync import sync_to_async
+from ..exceptions import NotFoundError
 
 
-def _envio_to_out(e: Envio) -> EnvioOut:
+def _envio_to_out(data: dict) -> EnvioOut:
     return EnvioOut(
-        id=e.code, donacionId=e.donacion.code if e.donacion else None,
-        centroId=e.centro.code, centro=e.centro.nombre,
-        destino=e.destino, transportista=e.transportista, estado=e.estado,
-        fechaSalida=e.fecha_salida.isoformat() if e.fecha_salida else None,
-        fechaEntrega=e.fecha_entrega.isoformat() if e.fecha_entrega else None,
+        id=data.get("code") or data.get("id", ""),
+        donacionId=data.get("donacionId"),
+        centroId=data.get("centroId", ""),
+        centro=data.get("centro", ""),
+        destino=data.get("destino", ""),
+        fechaSalida=data.get("fechaSalida"),
+        fechaEntrega=data.get("fechaEntrega"),
+        estado=data.get("estado", "Pendiente despacho"),
+        transportista=data.get("transportista", ""),
     )
 
 
-async def get_tipos_recurso(): return [t async for t in TipoRecurso.objects.filter(activo=True)]
-async def get_unidades(): return [u async for u in Unidad.objects.all()]
-async def get_equipo(): return [e async for e in Equipo.objects.filter(activo=True)]
-async def get_gobernanza(): return [g async for g in Gobernanza.objects.all()]
-async def get_hitos(): return [h async for h in Hito.objects.all()]
-async def get_valores(): return [v async for v in Valor.objects.all()]
-async def get_reportes(): return [r async for r in Reporte.objects.all()]
+async def get_tipos_recurso():
+    return await catalogos_client.listar_tipos_recurso()
+
+
+async def get_unidades():
+    return await catalogos_client.listar_unidades()
+
+
+async def get_equipo():
+    return await catalogos_client.listar_equipo()
+
+
+async def get_gobernanza():
+    return await catalogos_client.listar_gobernanza()
+
+
+async def get_hitos():
+    return await catalogos_client.listar_hitos()
+
+
+async def get_valores():
+    return await catalogos_client.listar_valores()
+
+
+async def get_reportes():
+    return await catalogos_client.listar_reportes()
+
 
 async def get_envios() -> list[EnvioOut]:
-    return [_envio_to_out(e) async for e in Envio.objects.all().select_related("donacion", "centro")]
+    data = await logistica_client.listar_envios()
+    return [_envio_to_out(e) for e in data]
+
 
 async def get_envio(code: str) -> EnvioOut:
-    try:
-        return _envio_to_out(await Envio.objects.select_related("donacion", "centro").aget(code=code))
-    except Envio.DoesNotExist:
+    data = await logistica_client.obtener_envio(code)
+    if not data or "error" in data:
         raise NotFoundError("Envío no encontrado")
+    return _envio_to_out(data)
 
-async def create_envio(data) -> EnvioOut:
-    centro = await Centro.objects.aget(code=data.centroId)
-    donacion = await Donacion.objects.aget(code=data.donacionId) if data.donacionId else None
-    envio = Envio(donacion=donacion, centro=centro, destino=data.destino, transportista=data.transportista)
-    await sync_to_async(envio.save)()
-    return _envio_to_out(envio)
 
-async def update_envio(code: str, data) -> EnvioOut:
-    try:
-        envio = await Envio.objects.select_related("donacion", "centro").aget(code=code)
-    except Envio.DoesNotExist:
-        raise NotFoundError("Envío no encontrado")
-    if data.estado is not None:
-        envio.estado = data.estado
-    if data.fechaSalida is not None:
-        envio.fecha_salida = date.fromisoformat(data.fechaSalida) if data.fechaSalida else None
-    if data.fechaEntrega is not None:
-        envio.fecha_entrega = date.fromisoformat(data.fechaEntrega) if data.fechaEntrega else None
-    if data.transportista is not None:
-        envio.transportista = data.transportista
-    if data.destino is not None:
-        envio.destino = data.destino
-    await sync_to_async(envio.save)()
-    return _envio_to_out(envio)
+async def create_envio(body) -> EnvioOut:
+    payload = {
+        "donacionId": body.donacionId,
+        "centroId": body.centroId,
+        "destino": body.destino,
+        "fechaSalida": body.fechaSalida,
+        "transportista": body.transportista,
+    }
+    data = await logistica_client.crear_envio(payload)
+    return _envio_to_out(data)
+
+
+async def update_envio(code: str, body) -> EnvioOut:
+    payload = {}
+    if body.estado is not None:
+        payload["estado"] = body.estado
+    if body.fechaSalida is not None:
+        payload["fechaSalida"] = body.fechaSalida
+    if body.fechaEntrega is not None:
+        payload["fechaEntrega"] = body.fechaEntrega
+    if body.transportista is not None:
+        payload["transportista"] = body.transportista
+    if body.destino is not None:
+        payload["destino"] = body.destino
+    data = await logistica_client.actualizar_envio(code, payload)
+    return _envio_to_out(data)
