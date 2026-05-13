@@ -16,15 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-# Importamos el motor de Ninja que creamos en gateway/api.py
-from gateway.views import api 
+from gateway.api import api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
-    # Esto registra AUTOMÁTICAMENTE:
-    # 1. POST -> /api/auth/login
-    # 2. GET  -> /api/dashboard
-    # 3. Docs -> /api/docs (El Swagger para Ángel)
-    path('api/', api.urls), 
+    path('api/', api.urls),
 ]

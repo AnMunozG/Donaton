@@ -1,0 +1,217 @@
+from ninja import NinjaAPI
+from ninja.security import HttpBearer
+from ninja.errors import ValidationError as NinjaValidationError
+import jwt
+from django.conf import settings
+from typing import Optional
+
+from .exceptions import BffError
+from .schemas.auth import LoginIn, LoginOut, RegisterIn, UserOut, UserUpdateIn
+from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut
+from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, DonacionStatsOut
+from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
+from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, EnvioOut, EnvioCreate, EnvioUpdate, HealthOut)
+from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service
+
+
+class AuthBearer(HttpBearer):
+    async def authenticate(self, request, token):
+        try:
+            payload = jwt.decode(token, getattr(settings, "JWT_SECRET", settings.SECRET_KEY), algorithms=["HS256"])
+            request.user = payload
+            return payload
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            return None
+
+
+api = NinjaAPI(title="Donatón BFF", version="1.0.0", auth=AuthBearer(),
+    openapi_extra={"info": {"description": "BFF para donaton-frontend"}})
+
+
+@api.exception_handler(BffError)
+def on_bff_error(request, exc):
+    return api.create_response(request, {"error": exc.message}, status=exc.status)
+
+@api.exception_handler(NinjaValidationError)
+def on_validation_error(request, exc):
+    return api.create_response(request, {"error": str(exc)}, status=422)
+
+@api.exception_handler(Exception)
+def on_generic_error(request, exc):
+    return api.create_response(request, {"error": "Error interno del servidor"}, status=500)
+
+
+# ── Health ──
+
+@api.get("/health", auth=None, response=HealthOut)
+async def health(request):
+    db_status = "ok"
+    try:
+        from django.db import connection
+        await connection.ensure_connection()
+    except Exception:
+        db_status = "error"
+
+    redis_status, cb_status = "no configurado", {}
+    if redis_url := getattr(settings, "REDIS_URL", None):
+        try:
+            import redis.asyncio as aioredis, json
+            r = aioredis.from_url(redis_url, decode_responses=True)
+            await r.ping()
+            redis_status = "ok"
+            for cb in ["pagos_gateway", "notificaciones"]:
+                raw = await r.get(f"cb:{cb}")
+                cb_status[cb] = json.loads(raw).get("state", "closed") if raw else "closed"
+            await r.aclose()
+        except Exception:
+            redis_status = "error"
+    return {"db": db_status, "redis": redis_status, "circuit_breakers": cb_status, "version": "1.0.0"}
+
+
+# ── Auth ──
+
+def _user_out(cuenta):
+    return UserOut(rut=cuenta.rut, nombre=cuenta.nombre, email=cuenta.email, rol=cuenta.rol,
+        telefono=cuenta.telefono, direccion=cuenta.direccion, activo=cuenta.activo,
+        created_at=cuenta.created_at, updated_at=cuenta.updated_at)
+
+@api.post("/auth/login", auth=None, response=LoginOut)
+async def login(request, body: LoginIn):
+    return await auth_service.login(body)
+
+@api.post("/auth/register", auth=None, response={201: UserOut})
+async def register(request, body: RegisterIn):
+    return _user_out(await auth_service.register(body))
+
+@api.get("/auth/me", response=UserOut)
+async def me(request):
+    return _user_out(await auth_service.get_profile(request.user["rut"]))
+
+@api.put("/auth/me", response=UserOut)
+async def update_me(request, body: UserUpdateIn):
+    return _user_out(await auth_service.update_profile(request.user["rut"], body))
+
+
+# ── Centros ──
+
+@api.get("/centros", response=list[CentroOut])
+async def list_centros(request):
+    return await centro_service.list_all()
+
+@api.get("/centros/{code}", response=CentroOut)
+async def get_centro(request, code: str):
+    return await centro_service.get_by_code(code)
+
+@api.post("/centros", auth=None, response={201: CentroOut})
+async def create_centro(request, body: CentroCreate):
+    return await centro_service.create(body)
+
+@api.put("/centros/{code}", response=CentroOut)
+async def update_centro(request, code: str, body: CentroUpdate):
+    return await centro_service.update(code, body)
+
+@api.get("/centros/{code}/stats", response=CentroStatsOut)
+async def get_centro_stats(request, code: str):
+    return await centro_service.get_stats(code)
+
+
+# ── Donaciones ──
+
+@api.get("/donaciones", response=list[DonacionOut])
+async def list_donaciones(request, estado: Optional[str] = None, centro_code: Optional[str] = None, tipo: Optional[str] = None):
+    return await donacion_service.list_all(estado=estado, centro_code=centro_code, tipo=tipo)
+
+@api.get("/donaciones/{code}", response=DonacionOut)
+async def get_donacion(request, code: str):
+    return await donacion_service.get_by_code(code)
+
+@api.post("/donaciones", response={201: DonacionOut})
+async def create_donacion(request, body: DonacionCreate):
+    return await donacion_service.create(body, rut=request.user["rut"])
+
+@api.patch("/donaciones/{code}/estado", response=DonacionOut)
+async def update_donacion_estado(request, code: str, body: DonacionUpdate):
+    return await donacion_service.update_estado(code, body.estado)
+
+@api.get("/donaciones/stats/resumen", response=DonacionStatsOut)
+async def get_donacion_stats(request):
+    return await donacion_service.get_stats()
+
+
+# ── Necesidades ──
+
+@api.get("/necesidades", response=list[NecesidadOut])
+async def list_necesidades(request, estado: Optional[str] = None, centro_code: Optional[str] = None, urgencia: Optional[str] = None):
+    return await necesidad_service.list_all(estado=estado, centro_code=centro_code, urgencia=urgencia)
+
+@api.get("/necesidades/{code}", response=NecesidadOut)
+async def get_necesidad(request, code: str):
+    return await necesidad_service.get_by_code(code)
+
+@api.post("/necesidades", response={201: NecesidadOut})
+async def create_necesidad(request, body: NecesidadCreate):
+    return await necesidad_service.create(body, rut=request.user["rut"])
+
+@api.put("/necesidades/{code}", response=NecesidadOut)
+async def update_necesidad(request, code: str, body: NecesidadUpdate):
+    return await necesidad_service.update(code, body)
+
+@api.post("/necesidades/{code}/activar", response=NecesidadOut)
+async def activar_necesidad(request, code: str):
+    return await necesidad_service.activar(code)
+
+
+# ── Propuestas ──
+
+@api.get("/necesidades/{code}/propuestas", response=list[PropuestaOut])
+async def list_propuestas(request, code: str):
+    return [PropuestaOut(code=p.code, necesidad_code=p.necesidad.code,
+        usuario_rut=p.usuario.rut, usuario_nombre=p.usuario.nombre,
+        mensaje=p.mensaje, estado=p.estado, created_at=p.created_at, updated_at=p.updated_at)
+        for p in await necesidad_service.list_propuestas(code)]
+
+@api.post("/propuestas", response={201: PropuestaOut})
+async def create_propuesta(request, body: PropuestaCreate):
+    p = await necesidad_service.crear_propuesta(body.necesidad_code, body.mensaje, rut=request.user["rut"])
+    return PropuestaOut(code=p.code, necesidad_code=p.necesidad.code,
+        usuario_rut=p.usuario.rut, usuario_nombre=p.usuario.nombre,
+        mensaje=p.mensaje, estado=p.estado, created_at=p.created_at, updated_at=p.updated_at)
+
+
+# ── Catálogos ──
+
+@api.get("/static/tipos-recurso", response=list[TipoRecursoOut], auth=None)
+async def list_tipos_recurso(request): return await static_service.get_tipos_recurso()
+
+@api.get("/static/unidades", response=list[UnidadOut], auth=None)
+async def list_unidades(request): return await static_service.get_unidades()
+
+@api.get("/static/equipo", response=list[EquipoOut], auth=None)
+async def list_equipo(request): return await static_service.get_equipo()
+
+@api.get("/static/gobernanza", response=list[GobernanzaOut], auth=None)
+async def list_gobernanza(request): return await static_service.get_gobernanza()
+
+@api.get("/static/hitos", response=list[HitoOut], auth=None)
+async def list_hitos(request): return await static_service.get_hitos()
+
+@api.get("/static/valores", response=list[ValorOut], auth=None)
+async def list_valores(request): return await static_service.get_valores()
+
+@api.get("/static/reportes", response=list[ReporteOut], auth=None)
+async def list_reportes(request): return await static_service.get_reportes()
+
+
+# ── Envíos ──
+
+@api.get("/envios", response=list[EnvioOut], auth=None)
+async def list_envios(request): return await static_service.get_envios()
+
+@api.get("/envios/{code}", response=EnvioOut, auth=None)
+async def get_envio(request, code: str): return await static_service.get_envio(code)
+
+@api.post("/envios", auth=None, response={201: EnvioOut})
+async def create_envio(request, body: EnvioCreate): return await static_service.create_envio(body)
+
+@api.patch("/envios/{code}", auth=None, response=EnvioOut)
+async def update_envio(request, code: str, body: EnvioUpdate): return await static_service.update_envio(code, body)
