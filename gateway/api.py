@@ -12,7 +12,7 @@ from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, Don
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, EnvioOut, EnvioCreate, EnvioUpdate, HealthOut)
 from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service
-from .clients import pago_client, notif_client, donaciones_client, inventario_client, logistica_client, catalogos_client
+from .clients import usuarios_client
 
 
 class AuthBearer(HttpBearer):
@@ -46,51 +46,32 @@ def on_generic_error(request, exc):
 
 @api.get("/health", auth=None, response=HealthOut)
 async def health(request):
-    async def check(client: str, url_key: str):
+    async def check(client, url_key):
         url = getattr(settings, url_key, "")
         if not url:
             return "no configurado"
         try:
             import httpx
             async with httpx.AsyncClient(timeout=3) as c:
-                resp = await c.get(f"{url.rstrip('/')}/health")
-                return "ok" if resp.is_success else "error"
+                resp = await c.get(f"{url.rstrip('/')}/api/", params={})
+                return "ok" if resp.status_code < 500 else "error"
         except Exception:
             return "error"
 
     servicios = {
-        "donaciones": await check("donaciones", "DONACIONES_URL"),
-        "inventario": await check("inventario", "INVENTARIO_URL"),
+        "usuarios": await check("usuarios", "USUARIOS_URL"),
         "logistica": await check("logistica", "LOGISTICA_URL"),
-        "catalogos": await check("catalogos", "CATALOGOS_URL"),
-        "pagos": await check("pagos", "PAGOS_URL"),
-        "notificaciones": await check("notificaciones", "NOTIFICACIONES_URL"),
     }
-
-    redis_status = "no configurado"
-    cb_status = {}
-    if redis_url := getattr(settings, "REDIS_URL", None):
-        try:
-            import redis.asyncio as aioredis, json
-            r = aioredis.from_url(redis_url, decode_responses=True)
-            await r.ping()
-            redis_status = "ok"
-            for cb in ["pagos_gateway", "notificaciones"]:
-                raw = await r.get(f"cb:{cb}")
-                cb_status[cb] = json.loads(raw).get("state", "closed") if raw else "closed"
-            await r.aclose()
-        except Exception:
-            redis_status = "error"
-
-    return {"db": "n/a (BFF sin BD de dominio)", "redis": redis_status, "circuit_breakers": cb_status, "servicios": servicios, "version": "1.0.0"}
+    return {
+        "db": "n/a (BFF sin BD de dominio)",
+        "redis": "no configurado",
+        "circuit_breakers": {},
+        "servicios": servicios,
+        "version": "1.0.0",
+    }
 
 
 # ── Auth ──
-
-def _user_out(cuenta):
-    return UserOut(rut=cuenta.rut, nombre=cuenta.nombre, email=cuenta.email, rol=cuenta.rol,
-        telefono=cuenta.telefono, direccion=cuenta.direccion, activo=cuenta.activo,
-        created_at=cuenta.created_at, updated_at=cuenta.updated_at)
 
 @api.post("/auth/login", auth=None, response=LoginOut)
 async def login(request, body: LoginIn):
@@ -98,15 +79,15 @@ async def login(request, body: LoginIn):
 
 @api.post("/auth/register", auth=None, response={201: UserOut})
 async def register(request, body: RegisterIn):
-    return _user_out(await auth_service.register(body))
+    return await auth_service.register(body)
 
 @api.get("/auth/me", response=UserOut)
 async def me(request):
-    return _user_out(await auth_service.get_profile(request.user["rut"]))
+    return await auth_service.get_profile(request.user["rut"])
 
 @api.put("/auth/me", response=UserOut)
 async def update_me(request, body: UserUpdateIn):
-    return _user_out(await auth_service.update_profile(request.user["rut"], body))
+    return await auth_service.update_profile(request.user["rut"], body)
 
 
 # ── Centros ──

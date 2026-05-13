@@ -2,20 +2,52 @@ from .base import ServiceClient
 
 
 class LogisticaClient(ServiceClient):
-    """Cliente para el microservicio de Logística."""
+    """Cliente para el microservicio de Logística (puerto 8001).
+
+    Endpoints expuestos (vía DRF ModelViewSet):
+      GET/POST     /api/productos/
+      GET/PUT/DEL  /api/productos/{id}/
+      GET/POST     /api/centros/
+      GET/PUT/DEL  /api/centros/{id}/
+      GET/POST     /api/inventario/
+      GET/PUT/DEL  /api/inventario/{id}/
+    """
 
     def __init__(self):
         super().__init__("LOGISTICA_URL", "logistica")
 
-    async def listar_envios(self, params: dict = None) -> list:
-        resp = await self.get("/envios", params=params)
-        return resp if isinstance(resp, list) else resp.get("data", [])
+    # ── Productos ──
 
-    async def obtener_envio(self, code: str) -> dict:
-        return await self.get(f"/envios/{code}")
+    async def listar_productos(self, params: dict = None) -> list:
+        resp = await self.get("/api/productos/", params=params)
+        return resp if isinstance(resp, list) else resp.get("results", [])
 
-    async def crear_envio(self, data: dict) -> dict:
-        return await self.post("/envios", data)
+    async def obtener_producto(self, id_: int) -> dict:
+        return await self.get(f"/api/productos/{id_}/")
 
-    async def actualizar_envio(self, code: str, data: dict) -> dict:
-        return await self.patch(f"/envios/{code}", data)
+    # ── Centros ──
+
+    async def listar_centros(self, params: dict = None) -> list:
+        resp = await self.get("/api/centros/", params=params)
+        return resp if isinstance(resp, list) else resp.get("results", [])
+
+    async def obtener_centro(self, id_: int) -> dict:
+        return await self.get(f"/api/centros/{id_}/")
+
+    async def crear_centro(self, data: dict) -> dict:
+        return await self.post("/api/centros/", data)
+
+    async def actualizar_centro(self, id_: int, data: dict) -> dict:
+        return await self.put(f"/api/centros/{id_}/", data)
+
+    async def eliminar_centro(self, id_: int) -> dict:
+        return await self.delete(f"/api/centros/{id_}/")
+
+    # ── Inventario ──
+
+    async def listar_inventario(self, params: dict = None) -> list:
+        resp = await self.get("/api/inventario/", params=params)
+        return resp if isinstance(resp, list) else resp.get("results", [])
+
+    async def obtener_inventario(self, id_: int) -> dict:
+        return await self.get(f"/api/inventario/{id_}/")

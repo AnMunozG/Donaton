@@ -1,7 +1,5 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
-from asgiref.sync import sync_to_async
-
 from config.asgi import application
 
 
@@ -20,56 +18,43 @@ async def client():
 
 @pytest.fixture
 async def auth_headers(client):
-    from gateway.models import Cuenta
-    from gateway.services.auth_service import _create_token
+    """Simula un JWT válido con rut para endpoints autenticados."""
+    from datetime import datetime, timedelta, timezone
+    import jwt
+    from django.conf import settings
 
-    @sync_to_async
-    def create_cuenta():
-        cuenta, _ = Cuenta.objects.get_or_create(
-            rut="99.999.999-9",
-            defaults={
-                "nombre": "Test User",
-                "email": "test@test.cl",
-                "password": "pbkdf2_sha256$...",
-                "rol": "admin",
-            },
-        )
-        return cuenta
-
-    cuenta = await create_cuenta()
-    token = _create_token(cuenta)
+    payload = {
+        "rut": "99.999.999-9",
+        "nombre": "Test User",
+        "email": "test@test.cl",
+        "rol": "admin",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+    }
+    secret = getattr(settings, "JWT_SECRET", settings.SECRET_KEY)
+    token = jwt.encode(payload, secret, algorithm="HS256")
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture(autouse=True)
 def mock_http_clients(monkeypatch):
-    """Mockear todos los clientes HTTP para que no hagan llamadas reales."""
+    """Mockear todos los clientes HTTP para evitar llamadas reales a microservicios."""
+
+    async def mock_return(*args, **kwargs):
+        return {}
 
     async def mock_list(*args, **kwargs):
         return []
 
-    async def mock_get(*args, **kwargs):
-        return {}
-
-    async def mock_post(*args, **kwargs):
-        return {}
-
-    async def mock_put(*args, **kwargs):
-        return {}
-
-    async def mock_patch(*args, **kwargs):
-        return {}
-
-    for client_path in [
-        "gateway.clients.donaciones_client",
-        "gateway.clients.inventario_client",
-        "gateway.clients.logistica_client",
-        "gateway.clients.catalogos_client",
-        "gateway.clients.pago_client",
-        "gateway.clients.notif_client",
+    for path, mock_fn in [
+        ("gateway.clients.usuarios_client", mock_return),
+        ("gateway.clients.logistica_client", mock_return),
+        ("gateway.clients.pago_client", mock_return),
+        ("gateway.clients.notif_client", mock_return),
+        ("gateway.clients.catalogos_client", mock_return),
     ]:
-        monkeypatch.setattr(f"{client_path}.get", mock_get)
-        monkeypatch.setattr(f"{client_path}.post", mock_post)
-        monkeypatch.setattr(f"{client_path}.put", mock_put)
-        monkeypatch.setattr(f"{client_path}.patch", mock_patch)
-        monkeypatch.setattr(f"{client_path}._request", mock_get)
+        monkeypatch.setattr(f"{path}.get", mock_list)
+        monkeypatch.setattr(f"{path}.post", mock_return)
+        monkeypatch.setattr(f"{path}.put", mock_return)
+        monkeypatch.setattr(f"{path}.patch", mock_return)
+        monkeypatch.setattr(f"{path}.delete", mock_return)
+        monkeypatch.setattr(f"{path}._request", mock_return)

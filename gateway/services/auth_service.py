@@ -1,89 +1,114 @@
 import jwt
-from datetime import datetime, timedelta, timezone
 from django.conf import settings
-from asgiref.sync import sync_to_async
-
-from ..models import Cuenta
+from ..clients import usuarios_client
 from ..schemas.auth import LoginIn, RegisterIn, UserUpdateIn
-from ..exceptions import AuthError, ValidationError, NotFoundError
+from ..exceptions import AuthError, ValidationError
 
 
-def _create_token(cuenta: Cuenta) -> str:
-    payload = {
-        "rut": cuenta.rut,
-        "nombre": cuenta.nombre,
-        "email": cuenta.email,
-        "rol": cuenta.rol,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=24),
-    }
+def _decode_token(token: str) -> dict:
     secret = getattr(settings, "JWT_SECRET", settings.SECRET_KEY)
-    return jwt.encode(payload, secret, algorithm="HS256")
+    try:
+        return jwt.decode(token, secret, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise AuthError("Token expirado")
+    except jwt.InvalidTokenError:
+        raise AuthError("Token inválido")
 
 
 async def login(data: LoginIn) -> dict:
-    try:
-        cuenta = await Cuenta.objects.aget(rut=data.rut)
-    except Cuenta.DoesNotExist:
+    token_resp = await usuarios_client.login(data.rut, data.password)
+    if "error" in token_resp or "access" not in token_resp:
         raise AuthError("RUT o contraseña incorrectos")
 
-    if not await sync_to_async(cuenta.check_password)(data.password):
-        raise AuthError("RUT o contraseña incorrectos")
+    access_token = token_resp["access"]
+    payload = _decode_token(access_token)
+    user_id = payload.get("user_id")
 
-    if not cuenta.activo:
-        raise AuthError("Cuenta desactivada")
+    user = await usuarios_client.obtener_usuario(user_id)
+    if not user or "error" in user:
+        raise AuthError("Error al obtener perfil")
 
-    token = _create_token(cuenta)
+    nombre = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
     return {
-        "rut": cuenta.rut,
-        "nombre": cuenta.nombre,
-        "email": cuenta.email,
-        "rol": cuenta.rol,
-        "token": token,
+        "rut": user.get("rut", data.rut),
+        "nombre": nombre or user.get("username", ""),
+        "email": user.get("email", ""),
+        "rol": "donante",  # TODO: cuando usuarios service tenga roles
+        "token": access_token,
     }
 
 
-async def register(data: RegisterIn) -> Cuenta:
-    existe = await Cuenta.objects.filter(rut=data.rut).aexists()
-    if existe:
-        raise ValidationError("El RUT ya está registrado")
-
-    existe_email = await Cuenta.objects.filter(email=data.email).aexists()
-    if existe_email:
-        raise ValidationError("El email ya está registrado")
-
-    cuenta = Cuenta(
+async def register(data: RegisterIn) -> dict:
+    resp = await usuarios_client.registrar(
         rut=data.rut,
-        nombre=data.nombre,
         email=data.email,
-        telefono=data.telefono,
-        direccion=data.direccion,
+        first_name=data.nombre,
+        last_name="",
+        password=data.password,
     )
-    cuenta.set_password(data.password)
-    await sync_to_async(cuenta.save)()
-    return cuenta
+    if "error" in resp:
+        raise ValidationError(resp.get("error", "Error al registrar"))
+    if "mensaje" in resp and "siguiente_paso" in resp:
+        pass
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    return {
+        "rut": resp.get("rut", data.rut),
+        "nombre": data.nombre,
+        "email": data.email,
+        "rol": "donante",
+        "telefono": "",
+        "direccion": "",
+        "activo": True,
+        "created_at": resp.get("date_joined") or now,
+        "updated_at": resp.get("date_joined") or now,
+    }
 
 
-async def get_profile(rut: str) -> Cuenta:
-    try:
-        return await Cuenta.objects.aget(rut=rut)
-    except Cuenta.DoesNotExist:
-        raise NotFoundError("Cuenta no encontrada")
+async def get_profile(rut: str) -> dict:
+    users = await usuarios_client.listar_usuarios()
+    if isinstance(users, list):
+        user = next((u for u in users if u.get("rut") == rut), None)
+        if user:
+            return _user_from_usuarios(user)
+    raise AuthError("Usuario no encontrado")
 
 
-async def update_profile(rut: str, data: UserUpdateIn) -> Cuenta:
-    try:
-        cuenta = await Cuenta.objects.aget(rut=rut)
-    except Cuenta.DoesNotExist:
-        raise NotFoundError("Cuenta no encontrada")
+async def update_profile(rut: str, data: UserUpdateIn) -> dict:
+    users = await usuarios_client.listar_usuarios()
+    user = None
+    for u in (users or []):
+        if u.get("rut") == rut:
+            user = u
+            break
+    if not user:
+        raise AuthError("Usuario no encontrado")
 
-    update_fields = []
-    for field in ["nombre", "email", "telefono", "direccion"]:
-        value = getattr(data, field, None)
-        if value is not None:
-            setattr(cuenta, field, value)
-            update_fields.append(field)
+    payload = {}
+    if data.nombre is not None:
+        payload["first_name"] = data.nombre
+    if data.email is not None:
+        payload["email"] = data.email
 
-    if update_fields:
-        await sync_to_async(cuenta.save)(update_fields=update_fields)
+    if payload:
+        updated = await usuarios_client._request("PATCH", f"/api/usuarios/{user['id']}/", json=payload)
+        return _user_from_usuarios(updated)
+    return _user_from_usuarios(user)
 
-    return cuenta
+
+def _user_from_usuarios(user: dict) -> dict:
+    from datetime import datetime, timezone
+    nombre = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+    date_joined = user.get("date_joined") or datetime.now(timezone.utc)
+    return {
+        "rut": user.get("rut", ""),
+        "nombre": nombre or user.get("username", ""),
+        "email": user.get("email", ""),
+        "rol": "donante",
+        "telefono": "",
+        "direccion": "",
+        "activo": user.get("is_active", True),
+        "created_at": date_joined,
+        "updated_at": date_joined,
+    }
