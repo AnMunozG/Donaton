@@ -1,6 +1,28 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+vi.mock('axios', async (importActual) => {
+  const actual = await importActual();
+  const mockAxios = {
+    ...actual,
+    default: {
+      ...actual.default,
+      create: () => ({
+        get: vi.fn().mockResolvedValue([]),
+        post: vi.fn().mockResolvedValue({}),
+        put: vi.fn().mockResolvedValue({}),
+        delete: vi.fn().mockResolvedValue({}),
+        request: vi.fn().mockResolvedValue({ data: {} }),
+        interceptors: {
+          request: { use: vi.fn(), eject: vi.fn(), clear: vi.fn() },
+          response: { use: vi.fn(), eject: vi.fn(), clear: vi.fn() },
+        },
+      }),
+    },
+  };
+  return mockAxios;
+});
+
 const store = {};
 const localStorageMock = {
   getItem: vi.fn((key) => store[key] ?? null),

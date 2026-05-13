@@ -8,15 +8,17 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const login = (rut, nombre, rol, email) => {
+  const login = (rut, nombre, rol, email, token) => {
     const u = { rut, nombre, rol, email: email || "" };
     setUser(u);
     localStorage.setItem("donaton_user", JSON.stringify(u));
+    if (token) localStorage.setItem("donaton_token", token);
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("donaton_user");
+    localStorage.removeItem("donaton_token");
   };
 
   const updateUser = (data) => {
