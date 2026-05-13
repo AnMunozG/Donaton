@@ -34,7 +34,6 @@ export default function Inicio() {
   return (
     <div className="inicio">
 
-      {/* Banner */}
       <div className="hero-banner hero-banner-pagina" style={{ backgroundImage: `url(${bannerInicioImg})` }}>
         <div className="hero-banner-content">
           <DonatonLogo variante="banner" />
@@ -56,7 +55,6 @@ export default function Inicio() {
 
       <div className="content-surface">
 
-      {/* Transparencia */}
       <div className="mb-5 p-4 rounded-4 b-card-accent bg-surface">
         <div className="row align-items-center">
           <div className="col-md-8">
@@ -77,7 +75,6 @@ export default function Inicio() {
         </div>
       </div>
 
-      {/* Imagen y Estadísticas */}
       <div className="row g-4 mb-5 align-items-center">
         <div className="col-md-5">
           <div className="img-placeholder rounded-4"
@@ -103,7 +100,6 @@ export default function Inicio() {
         </div>
       </div>
 
-      {/* Carrusel infinito e imagen */}
       <div className="row g-4 mb-5 align-items-center">
         <div className="col-md-7">
           <h2 className="fw-bold mb-1">¿Qué puedes donar?</h2>
@@ -131,7 +127,6 @@ export default function Inicio() {
         </div>
       </div>
 
-      {/* Proyectos activos */}
       {activas.length > 0 && (
         <div className="mb-5">
           <h2 className="fw-bold mb-1">Proyectos activos</h2>
@@ -180,7 +175,6 @@ export default function Inicio() {
         </div>
       )}
 
-      {/* ── CÓMO FUNCIONA ── */}
       <div className="mb-5">
         <h2 className="fw-bold mb-1">¿Cómo funciona Donatón?</h2>
         <p className="mb-4 c-muted">
@@ -202,7 +196,6 @@ export default function Inicio() {
         </div>
       </div>
 
-      {/* ── CTA ── */}
       <div className="cta-section mb-3">
         <h2 className="fw-bold mb-2 c-white">¿Listo para marcar la diferencia?</h2>
         <p className="mb-4 c-pale-red">

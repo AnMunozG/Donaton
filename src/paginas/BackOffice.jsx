@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { validarRequerido, validarEnteroPositivo, validarRut, validarForm, formatearRut, limpiarRut } from "../componentes/Validaciones.js";
+import { validarRequerido, validarEnteroPositivo, validarRut, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -139,17 +139,21 @@ export default function BackOffice() {
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
     if (entity === "donacion") {
+      const centroSel = centros.find((c) => c.id === form.centroId);
+      const data = { ...form, centro: centroSel ? centroSel.nombre : form.centro || "" };
       if (editItem) {
-        await actualizarDonacion(editItem.id, form);
+        await actualizarDonacion(editItem.id, data);
       } else {
-        await crearDonacion(form);
+        await crearDonacion(data);
       }
       getDonaciones().then(setDonaciones);
     } else if (entity === "necesidad") {
+      const centroSelNec = centros.find((c) => c.id === form.centroId);
+      const data = { ...form, centro: centroSelNec ? centroSelNec.nombre : form.centro || "" };
       if (editItem) {
-        await actualizarNecesidad(editItem.id, form);
+        await actualizarNecesidad(editItem.id, data);
       } else {
-        await crearNecesidad(form);
+        await crearNecesidad(data);
       }
       getNecesidades().then(setNecesidades);
     } else if (entity === "centro") {
@@ -177,6 +181,27 @@ export default function BackOffice() {
   const handleUrgenciaChange = async (id, value) => {
     await actualizarNecesidad(id, { urgencia: value });
     getNecesidades().then(setNecesidades);
+  };
+
+  const handleActivarNecesidad = async (userNeed) => {
+    if (!userNeed.urgencia) {
+      alert("Debe asignar un nivel de urgencia antes de activar la necesidad.");
+      return;
+    }
+    await crearNecesidad({
+      recurso: userNeed.recurso,
+      cantidad: userNeed.cantidad,
+      unidad: userNeed.unidad,
+      urgencia: userNeed.urgencia,
+      estado: "Pendiente",
+      centroId: userNeed.centroId,
+      centro: userNeed.centro || "",
+      reportadoPor: userNeed.reportadoPor,
+      descripcion: userNeed.descripcion || "",
+    });
+    eliminarNecesidadUsuario(userNeed.id);
+    getNecesidades().then(setNecesidades);
+    setUserNecKey((k) => k + 1);
   };
 
   const BadgeEstado = ({ estado }) => (
@@ -211,12 +236,7 @@ export default function BackOffice() {
           <nav className="bo-nav">
             {tabs.map((tab) => (
               <button key={tab.id}
-                className="bo-nav-btn"
-                style={{
-                  background: activeTab === tab.id ? "var(--primary)" : undefined,
-                  color: activeTab === tab.id ? "#fff" : undefined,
-                  borderLeft: activeTab === tab.id ? "3px solid #fff" : undefined,
-                }}
+                className={`bo-nav-btn${activeTab === tab.id ? " active" : ""}`}
                 onClick={() => setActiveTab(tab.id)}>
                 <i className={`bi ${tab.icon}`}></i>
                 <span>{tab.label}</span>
@@ -450,6 +470,10 @@ export default function BackOffice() {
                                 <td>{n.reportadoPor}</td>
                                 <td>
                                   <div className="d-flex gap-1">
+                                    <button className="btn btn-sm btn-outline-success py-0 px-1" title="Activar"
+                                      onClick={() => handleActivarNecesidad(n)}>
+                                      <i className="bi bi-check-lg"></i>
+                                    </button>
                                     <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar"
                                       onClick={() => { eliminarNecesidadUsuario(n.id); setUserNecKey((k) => k + 1); }}>
                                       <i className="bi bi-trash"></i>
@@ -569,7 +593,7 @@ export default function BackOffice() {
                           <td>
                             <div className="d-flex align-items-center gap-2">
                               <div className="bo-progress">
-                                <div className="bo-progress-bar" style={{ width: `${pct}%`, background: pct > 80 ? "#DD4444" : pct > 50 ? "#FFC107" : "#3AB795" }}></div>
+                                <div className="bo-progress-bar" style={{ width: `${pct}%`, background: capacidadColor(pct) }}></div>
                               </div>
                               <small className="c-muted">{pct}%</small>
                             </div>

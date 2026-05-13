@@ -74,3 +74,9 @@ export function validarForm(form, reglas) {
   }
   return errores;
 }
+
+export function capacidadColor(pct) {
+  if (pct >= 85) return "#DD4444";
+  if (pct >= 60) return "#FFC107";
+  return "#3AB795";
+}

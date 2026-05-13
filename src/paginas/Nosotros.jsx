@@ -16,7 +16,6 @@ export default function Nosotros() {
   return (
     <div className="nosotros">
 
-      {/* HERO */}
       <div className="nos-hero" style={{ backgroundImage: `url(${bannerImg})` }}>
         <div className="nos-hero-content">
           <span className="banner-pill mb-3">QUIÉNES SOMOS</span>
@@ -29,7 +28,6 @@ export default function Nosotros() {
 
       <div className="content-surface">
 
-      {/* IMAGEN + MISIÓN */}
       <div className="row g-4 mb-5 align-items-center">
         <div className="col-lg-5">
           <img src="https://www.agcid.gob.cl/images/08_comu25.png" alt="Nuestra misión en acción" className="nos-image" />
@@ -51,7 +49,6 @@ export default function Nosotros() {
         </div>
       </div>
 
-      {/* HISTORIA / HITOS */}
       <div className="mb-5">
         <div className="text-center mb-4">
           <h2 className="fw-bold mb-1 c-heading">Nuestra historia</h2>
@@ -68,7 +65,6 @@ export default function Nosotros() {
         </div>
       </div>
 
-      {/* IMAGEN 2 */}
       <div className="mb-5">
         <div className="row g-3">
           <div className="col-md-6">
@@ -82,7 +78,6 @@ export default function Nosotros() {
         </div>
       </div>
 
-      {/* VALORES */}
       <div className="mb-5">
         <div className="text-center mb-4">
           <h2 className="fw-bold mb-1 c-heading">Nuestros principios</h2>
@@ -103,7 +98,6 @@ export default function Nosotros() {
         </div>
       </div>
 
-      {/* EQUIPO */}
       <div className="mb-2">
         <div className="text-center mb-4">
           <h2 className="fw-bold mb-1 c-heading">Equipo de desarrollo</h2>

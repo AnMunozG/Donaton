@@ -1,8 +1,3 @@
-// API Service Layer
-// Currently reads/writes localStorage for persistence.
-// When the Django REST Framework backend is ready, replace each function body
-// with a real fetch() call to the corresponding endpoint.
-
 import {
   tiposRecurso,
   unidadesPorTipo,

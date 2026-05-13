@@ -19,7 +19,6 @@ export default function Transparencia() {
   return (
     <div className="transparencia-page">
 
-      {/* HERO */}
       <section className="tp-hero" style={{ backgroundImage: `url(${banner3Img})` }}>
         <div className="tp-hero-content">
           <div className="tp-badge">COMPROMISO PÚBLICO</div>
@@ -41,7 +40,6 @@ export default function Transparencia() {
 
       <div className="content-surface">
 
-      {/* IMPACTO EN NÚMEROS */}
       <section id="impacto" className="tp-section">
         <div className="tp-container">
           <div className="text-center mb-5">
@@ -67,7 +65,6 @@ export default function Transparencia() {
         </div>
       </section>
 
-      {/* DISTRIBUCIÓN DE FONDOS */}
       <section className="tp-section tp-section-alt">
         <div className="tp-container">
           <div className="row align-items-center g-5">
@@ -120,7 +117,6 @@ export default function Transparencia() {
         </div>
       </section>
 
-      {/* REPORTES Y DOCUMENTOS */}
       <section id="reportes" className="tp-section">
         <div className="tp-container">
           <div className="text-center mb-5">
@@ -150,7 +146,6 @@ export default function Transparencia() {
         </div>
       </section>
 
-      {/* GOBERNANZA */}
       <section className="tp-section tp-section-alt">
         <div className="tp-container">
           <div className="text-center mb-5">
@@ -180,7 +175,6 @@ export default function Transparencia() {
         </div>
       </section>
 
-      {/* COMPROMISO */}
       <section className="tp-section">
         <div className="tp-container">
           <div className="tp-commitment-card text-center">

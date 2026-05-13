@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getTiposRecurso, getUnidadesPorTipo, getCentros } from "../api.js";
 import { agregarNecesidadUsuario } from "../componentes/Datos.jsx";
 import RichTextEditor from "../componentes/RichTextEditor";
@@ -15,6 +15,11 @@ export default function Necesidades() {
   });
   const [enviado, setEnviado] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const enviadoTimer = useRef(null);
+
+  useEffect(() => {
+    return () => clearTimeout(enviadoTimer.current);
+  }, []);
 
   useEffect(() => {
     getTiposRecurso().then(setTiposRecurso);
@@ -55,7 +60,8 @@ export default function Necesidades() {
     });
     setEnviado(true);
     setFormErrors({});
-    setTimeout(() => setEnviado(false), 4000);
+    clearTimeout(enviadoTimer.current);
+    enviadoTimer.current = setTimeout(() => setEnviado(false), 4000);
     setForm({ recurso: "", cantidad: "", unidad: "", descripcion: "", reportadoPor: "", centroAcopio: "" });
   };
 

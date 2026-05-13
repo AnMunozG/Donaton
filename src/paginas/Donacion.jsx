@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useBlocker } from "react-router-dom";
 import { getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo, getCentros, crearDonacion } from "../api.js";
 import RichTextEditor from "../componentes/RichTextEditor";
-import { validarRut, validarRequerido, validarEnteroPositivo, validarForm, formatearRut, limpiarRut } from "../componentes/Validaciones.js";
+import { validarRut, validarRequerido, validarEnteroPositivo, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
 
 export default function Donacion() {
   const [tiposRecurso, setTiposRecurso] = useState([]);
@@ -18,6 +18,11 @@ export default function Donacion() {
   const [enviado, setEnviado] = useState(false);
   const [pagado, setPagado] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const enviadoTimer = useRef(null);
+
+  useEffect(() => {
+    return () => clearTimeout(enviadoTimer.current);
+  }, []);
 
   const validarFormulario = () => {
     const reglas = [
@@ -101,16 +106,18 @@ export default function Donacion() {
     setForm({ ...form, detalles: { ...form.detalles, [name]: value } });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validarFormulario()) return;
-    crearDonacion({
+    const centroSel = centros.find((c) => c.id === form.centroId);
+    await crearDonacion({
       tipo: form.tipo,
       cantidad: form.cantidad,
       unidad: form.unidad,
       origen: form.origen,
       tipoOrigen: form.tipoOrigen,
       centroId: form.centroId,
+      centro: centroSel ? centroSel.nombre : "",
       notas: form.notas,
       detalles: form.detalles,
       direccion: form.direccion,
@@ -121,7 +128,8 @@ export default function Donacion() {
     setEnviado(true);
     setPagado(false);
     setFormErrors({});
-    setTimeout(() => setEnviado(false), 4000);
+    clearTimeout(enviadoTimer.current);
+    enviadoTimer.current = setTimeout(() => setEnviado(false), 4000);
     setForm({ tipo: "", cantidad: "", unidad: "", origen: "", tipoOrigen: "persona", centroId: "", notas: "", detalles: {}, direccion: "", direccionDetalle: "", fechaRetiro: "" });
   };
 
@@ -293,7 +301,7 @@ export default function Donacion() {
                   const centro = centros.find((c) => c.id === form.centroId);
                   if (!centro) return null;
                   const pct = Math.round((centro.capacidadUsada / centro.capacidadTotal) * 100);
-                  const color = pct >= 85 ? "#DD4444" : pct >= 60 ? "#FFC107" : "#3AB795";
+                  const color = capacidadColor(pct);
                   return (
                     <div className="mt-2 small p-2 rounded-3 bg-page b-card">
                       <i className="bi bi-geo-alt-fill me-1 c-accent"></i>

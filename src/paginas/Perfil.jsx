@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../componentes/AuthContext";
 import { getDonaciones, actualizarCuenta } from "../api.js";
@@ -9,6 +9,12 @@ export default function Perfil() {
   const [donaciones, setDonaciones] = useState([]);
   const [editando, setEditando] = useState(false);
   const [guardado, setGuardado] = useState(false);
+  const guardadoTimer = useRef(null);
+
+  useEffect(() => {
+    return () => clearTimeout(guardadoTimer.current);
+  }, []);
+
   const [form, setForm] = useState({ nombre: "", email: "", password: "", confirmacion: "" });
   const [formErrors, setFormErrors] = useState({});
 
@@ -17,11 +23,11 @@ export default function Perfil() {
     getDonaciones().then((lista) => {
       setDonaciones(lista.filter((d) => d.origen === user.rut).reverse());
     });
-  }, [isAuth, user.rut]);
+  }, [isAuth, user?.rut]);
 
   useEffect(() => {
     if (editando) setForm({ nombre: user.nombre || "", email: user.email || "", password: "", confirmacion: "" });
-  }, [editando, user.nombre, user.email]);
+  }, [editando, user?.nombre, user?.email]);
 
   if (!isAuth) return <Navigate to="/login" replace />;
 
@@ -55,7 +61,8 @@ export default function Perfil() {
       updateUser(data);
       setGuardado(true);
       setEditando(false);
-      setTimeout(() => setGuardado(false), 3000);
+      clearTimeout(guardadoTimer.current);
+      guardadoTimer.current = setTimeout(() => setGuardado(false), 3000);
     } catch {
       setFormErrors({ general: "Error al guardar" });
     }

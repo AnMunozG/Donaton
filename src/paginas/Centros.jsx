@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getCentros, getNecesidades, urgenciaColorMap, estadoNecColorMap } from "../api.js";
+import { capacidadColor } from "../componentes/Validaciones.js";
 import Mapa from "../componentes/Mapa";
 import banner2Img from "../assets/Banner2.png";
 
@@ -27,7 +28,6 @@ export default function Centros() {
   return (
     <div className="centros">
 
-      {/* BANNER */}
       <div className="banner-centros" style={{ backgroundImage: `url(${banner2Img})` }}>
         <div className="banner-content-wrapper">
           <span className="banner-pill banner-pill-small mb-2">
@@ -42,7 +42,6 @@ export default function Centros() {
 
       <div className="content-surface">
 
-      {/* FILTROS */}
       <div className="d-flex gap-2 flex-wrap mb-4">
         {regiones.map((r) => (
           <button key={r}
@@ -55,12 +54,11 @@ export default function Centros() {
 
       <div className="row g-4">
 
-        {/* LISTA */}
         <div className="col-12 col-lg-4 d-flex flex-column">
           <div className="card-surface rounded-4 p-3 d-flex flex-column gap-3 lista-centros">
             {centrosFiltrados.map((c) => {
               const pct = Math.round((c.capacidadUsada / c.capacidadTotal) * 100);
-              const barColor = pct >= 85 ? "#DD4444" : pct >= 60 ? "#FFC107" : "#3AB795";
+              const barColor = capacidadColor(pct);
               const necesidadesCount = necesidades.filter((n) => n.centroId === c.id).length;
 
               return (
@@ -104,7 +102,6 @@ export default function Centros() {
           </div>
         </div>
 
-        {/* MAPA + DETALLE */}
         <div className="col-12 col-lg-8">
           <div className="mb-3">
             <Mapa centros={centrosFiltrados} seleccionado={seleccionado} onSelect={setSeleccionado} />

@@ -75,15 +75,6 @@ export default function RichTextEditor({ content, onChange, placeholder }) {
       <div className="rte-content">
         <EditorContent editor={editor} />
       </div>
-      <style>{`
-        .ProseMirror { outline: none; min-height: 100px; }
-        .ProseMirror p { margin: 0 0 0.5rem 0; }
-        .ProseMirror ul, .ProseMirror ol { padding-left: 1.5rem; }
-        .ProseMirror h2 { font-size: 1.25rem; margin: 1rem 0 0.5rem 0; font-weight: 600; }
-        .ProseMirror p.is-editor-empty:first-child::before { 
-          color: #adb5bd; content: attr(data-placeholder); float: left; height: 0; pointer-events: none; 
-        }
-      `}</style>
     </div>
   );
 }
