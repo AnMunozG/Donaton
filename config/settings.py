@@ -79,11 +79,20 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ── CORS ──
-CORS_ALLOW_ALL_ORIGINS = DEBUG
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost:8000").split(",")
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = ["*"]
 
-# ── JWT (misma clave que el microservicio de Usuarios para validar tokens) ──
+# ── JWT del BFF (para crear tokens que entiende el frontend) ──
 JWT_SECRET = os.getenv("BFF_JWT_SECRET", SECRET_KEY)
+
+# ── Secretos de los microservicios (para que el BFF cree tokens de sistema) ──
+# Cada microservicio usa SimpleJWT que firma con su SECRET_KEY por defecto.
+# El BFF crea tokens de sistema firmados con esas mismas claves,
+# así los microservicios los aceptan sin modificaciones.
+LOGISTICA_JWT_SECRET = os.getenv("LOGISTICA_JWT_SECRET", "")
+LOGISTICA_SYSTEM_USER_ID = int(os.getenv("LOGISTICA_SYSTEM_USER_ID", "1"))
+USUARIOS_JWT_SECRET = os.getenv("USUARIOS_JWT_SECRET", "")
 
 # ── Redis (circuit breaker, caché, bus de eventos) ──
 REDIS_URL = os.getenv("REDIS_URL", "")

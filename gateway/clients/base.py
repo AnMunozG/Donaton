@@ -16,30 +16,33 @@ class ServiceClient:
         self.service_name = service_name
         self.timeout = timeout
 
-    async def _request(self, method: str, path: str, **kwargs) -> dict:
+    async def _request(self, method: str, path: str, token: str = None, **kwargs) -> dict:
         if not self.base_url:
             return {"estado": "simulado", "service": self.service_name, "path": path}
 
         url = f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
+        headers = kwargs.pop("headers", {})
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.request(method, url, **kwargs)
+            resp = await client.request(method, url, headers=headers, **kwargs)
             resp.raise_for_status()
             return resp.json()
 
-    async def get(self, path: str, params: Optional[dict] = None) -> dict:
-        return await self._request("GET", path, params=params)
+    async def get(self, path: str, params: Optional[dict] = None, token: str = None) -> dict:
+        return await self._request("GET", path, token=token, params=params)
 
-    async def post(self, path: str, data: Optional[dict] = None) -> dict:
-        return await self._request("POST", path, json=data or {})
+    async def post(self, path: str, data: Optional[dict] = None, token: str = None) -> dict:
+        return await self._request("POST", path, token=token, json=data or {})
 
-    async def put(self, path: str, data: Optional[dict] = None) -> dict:
-        return await self._request("PUT", path, json=data or {})
+    async def put(self, path: str, data: Optional[dict] = None, token: str = None) -> dict:
+        return await self._request("PUT", path, token=token, json=data or {})
 
-    async def patch(self, path: str, data: Optional[dict] = None) -> dict:
-        return await self._request("PATCH", path, json=data or {})
+    async def patch(self, path: str, data: Optional[dict] = None, token: str = None) -> dict:
+        return await self._request("PATCH", path, token=token, json=data or {})
 
-    async def delete(self, path: str) -> dict:
-        return await self._request("DELETE", path)
+    async def delete(self, path: str, token: str = None) -> dict:
+        return await self._request("DELETE", path, token=token)
 
 
 class RedisCircuitBreaker:

@@ -4,19 +4,14 @@ from .base import ServiceClient
 class UsuariosClient(ServiceClient):
     """Cliente para el microservicio de Usuarios (puerto 8000).
 
-    Endpoints:
-      POST   /api/usuarios/        — registro
-      GET    /api/usuarios/         — listar (requiere auth)
-      GET    /api/usuarios/{id}/    — detalle
-      PUT    /api/usuarios/{id}/    — actualizar
-      POST   /api/login/            — obtener JWT (access + refresh)
-      POST   /api/token/refresh/    — refrescar access token
+    Algunos endpoints requieren JWT Bearer token (obtenido vía /api/login/).
+    El BFF almacena ese token dentro de su propio JWT como campo 'uat'.
     """
 
     def __init__(self):
         super().__init__("USUARIOS_URL", "usuarios")
 
-    # ── Registro ──
+    # ── Públicos (AllowAny) ──
 
     async def registrar(self, rut: str, email: str, first_name: str, last_name: str, password: str) -> dict:
         return await self.post("/api/usuarios/", {
@@ -27,19 +22,17 @@ class UsuariosClient(ServiceClient):
             "password": password,
         })
 
-    # ── Login ──
-
     async def login(self, rut: str, password: str) -> dict:
         return await self.post("/api/login/", {"rut": rut, "password": password})
 
-    async def refresh_token(self, refresh: str) -> dict:
-        return await self.post("/api/token/refresh/", {"refresh": refresh})
+    # ── Requieren token de Usuarios (IsAuthenticated) ──
 
-    # ── Perfil ──
+    async def obtener_usuario(self, user_id: int, token: str = None) -> dict:
+        return await self.get(f"/api/usuarios/{user_id}/", token=token)
 
-    async def obtener_usuario(self, user_id: int) -> dict:
-        return await self.get(f"/api/usuarios/{user_id}/")
-
-    async def listar_usuarios(self, params: dict = None) -> list:
-        resp = await self.get("/api/usuarios/", params=params)
+    async def listar_usuarios(self, params: dict = None, token: str = None) -> list:
+        resp = await self.get("/api/usuarios/", params=params, token=token)
         return resp if isinstance(resp, list) else resp.get("results", [])
+
+    async def actualizar_usuario(self, user_id: int, data: dict, token: str = None) -> dict:
+        return await self.patch(f"/api/usuarios/{user_id}/", data=data, token=token)

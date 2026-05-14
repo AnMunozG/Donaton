@@ -83,11 +83,11 @@ async def register(request, body: RegisterIn):
 
 @api.get("/auth/me", response=UserOut)
 async def me(request):
-    return await auth_service.get_profile(request.user["rut"])
+    return await auth_service.get_profile(request.user["rut"], uat=request.user.get("uat"))
 
 @api.put("/auth/me", response=UserOut)
 async def update_me(request, body: UserUpdateIn):
-    return await auth_service.update_profile(request.user["rut"], body)
+    return await auth_service.update_profile(request.user["rut"], body, uat=request.user.get("uat"))
 
 
 # ── Centros ──
