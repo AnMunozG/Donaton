@@ -127,10 +127,10 @@ export default function Inicio() {
         </div>
       </div>
 
-      {activas.length > 0 && (
-        <div className="mb-5">
-          <h2 className="fw-bold mb-1">Proyectos activos</h2>
-          <p className="mb-4 c-muted">Necesidades reportadas en terreno que requieren tu ayuda.</p>
+      <div className="mb-5">
+        <h2 className="fw-bold mb-1">Proyectos activos</h2>
+        <p className="mb-4 c-muted">Necesidades reportadas en terreno que requieren tu ayuda.</p>
+        {activas.length > 0 ? (
           <div className="row g-3">
             {activas.map((n) => {
               const total = Number(n.cantidad);
@@ -172,8 +172,13 @@ export default function Inicio() {
               );
             })}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-5">
+            <i className="bi bi-inbox fs-1 c-muted d-block mb-2"></i>
+            <p className="c-muted mb-0">Ningún proyecto visible ahora mismo...</p>
+          </div>
+        )}
+      </div>
 
       <div className="mb-5">
         <h2 className="fw-bold mb-1">¿Cómo funciona Donatón?</h2>

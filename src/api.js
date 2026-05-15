@@ -55,57 +55,26 @@ function extraerArray(resp) {
   return [];
 }
 
-// ── Centros ──────────────────────────────────────────────────
+// ── Centros (solo API — Logistica) ───────────────────────────
 
 export async function getCentros() {
-  try {
-    const data = extraerArray(await centrosService.getAll());
-    const mock = loadFromStorage("centros") || [];
-    return data.map((api) => {
-      const m = mock.find((c) => c.nombre === api.nombre);
-      if (!m) return api;
-      const merged = { ...m };
-      for (const k of Object.keys(api)) {
-        if (api[k] !== null && api[k] !== undefined && api[k] !== "") merged[k] = api[k];
-      }
-      merged.id = m.id;
-      if (api.coordenadas && (api.coordenadas.lat || api.coordenadas.lng)) merged.coordenadas = api.coordenadas;
-      return merged;
-    });
-  } catch { return loadFromStorage("centros") || []; }
+  return extraerArray(await centrosService.getAll());
 }
 
 export async function getCentroById(id) {
-  try { const r = await centrosService.getById(id); return r; } catch { const list = loadFromStorage("centros") || []; return list.find((c) => c.id === id) || null; }
+  return centrosService.getById(id);
 }
 
 export async function crearCentro(data) {
-  try { return await centrosService.create(data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("centros") || [];
-    const nums = list.map((c) => { const m = c.id?.match(/\d+/); return m ? parseInt(m[0], 10) : 0; }).filter((n) => !isNaN(n));
-    const max = nums.length ? Math.max(...nums) : 0;
-    const nuevo = { id: `CA-${String(max + 1).padStart(3, "0")}`, inventario: [], ...data };
-    list.push(nuevo); saveToStorage("centros", list); return nuevo;
-  }
+  return centrosService.create(data);
 }
 
 export async function actualizarCentro(id, data) {
-  try { return await centrosService.update(id, data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("centros") || [];
-    const idx = list.findIndex((c) => c.id === id);
-    if (idx === -1) throw new Error("Centro not found");
-    Object.assign(list[idx], data); saveToStorage("centros", list); return list[idx];
-  }
+  return centrosService.update(id, data);
 }
 
 export async function eliminarCentro(id) {
-  try { return await centrosService.delete(id); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("centros") || [];
-    saveToStorage("centros", list.filter((c) => c.id !== id));
-  }
+  return centrosService.delete(id);
 }
 
 // ── Donaciones ───────────────────────────────────────────────
@@ -187,13 +156,8 @@ export async function getEnvios() {
 // ── Auth ─────────────────────────────────────────────────────
 
 export async function login(rut, password) {
-  try { return await api.post("/auth/login", { rut, password }); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const lista = loadFromStorage("cuentas") || cuentas;
-    const cuenta = lista.find((c) => c.rut === rut && c.password === password);
-    if (!cuenta) throw new Error("Credenciales inválidas");
-    return { rut, nombre: cuenta.nombre, rol: cuenta.rol, email: cuenta.email || "", token: "mock-token" };
-  }
+  const res = await api.post("/auth/login", { rut, password });
+  return res;
 }
 
 export async function crearCuenta(rut, data) {
