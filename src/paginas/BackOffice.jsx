@@ -11,6 +11,7 @@ import {
   crearCentro, actualizarCentro, eliminarCentro,
   estadoColor, CHART_COLORS,
 } from "../api.js";
+import { centrosService } from "../servicios/centros.js";
 import { getNecesidadesUsuario, eliminarNecesidadUsuario, actualizarNecesidadUsuario } from "../componentes/Datos.jsx";
 
 const tabs = [
@@ -581,10 +582,17 @@ export default function BackOffice() {
                     {centros.map((c) => {
                       const pct = Math.round((c.capacidadUsada / c.capacidadTotal) * 100);
                       const isSelected = centroSeleccionado?.id === c.id;
+                      const handleSelect = async () => {
+                        if (isSelected) { setCentroSeleccionado(null); return; }
+                        try {
+                          const inv = await centrosService.getInventario(c.id);
+                          setCentroSeleccionado({ ...c, inventario: inv });
+                        } catch { setCentroSeleccionado({ ...c, inventario: [] }); }
+                      };
                       return (
                         <tr key={c.id}
                           className={isSelected ? "bo-row-selected" : "bo-row"}
-                          onClick={() => setCentroSeleccionado(isSelected ? null : c)}>
+                          onClick={handleSelect}>
                           <td><span className="bo-id">{c.id}</span></td>
                           <td className="fw-medium">{c.nombre}</td>
                           <td>{c.region}</td>

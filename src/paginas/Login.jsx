@@ -92,10 +92,9 @@ export default function Login() {
                   ¿No tienes cuenta? <a href="/registro" className="auth-link">Regístrate aquí</a>
                 </small>
               </div>
-
               <div className="auth-divider text-center">
                 <small className="c-muted">
-                  <strong className="c-heading">Prueba:</strong> Admin: 111111111 / admin1234 | User: 222222222 / user1234
+                  <strong className="c-heading">Prueba:</strong> Admin: 111111111 / admin1234
                 </small>
               </div>
             </div>

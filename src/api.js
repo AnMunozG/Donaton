@@ -23,6 +23,10 @@ import {
   estadoNecColorMap,
   loadFromStorage,
   saveToStorage,
+  getNecesidadesUsuario as getUserNeeds,
+  agregarNecesidadUsuario as addUserNeed,
+  eliminarNecesidadUsuario as removeUserNeed,
+  actualizarNecesidadUsuario as updateUserNeed,
 } from "./componentes/Datos.jsx";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -41,14 +45,38 @@ function isNetworkError(err) {
   return !err.response || err.code === "ERR_NETWORK" || err.code === "ECONNABORTED";
 }
 
+function extraerArray(resp) {
+  if (Array.isArray(resp)) return resp;
+  if (resp && typeof resp === "object") {
+    for (const key of ["centros", "data", "results", "items", "records"]) {
+      if (Array.isArray(resp[key])) return resp[key];
+    }
+  }
+  return [];
+}
+
 // ── Centros ──────────────────────────────────────────────────
 
 export async function getCentros() {
-  try { return await centrosService.getAll(); } catch (e) { if (!isNetworkError(e)) throw e; return loadFromStorage("centros") || []; }
+  try {
+    const data = extraerArray(await centrosService.getAll());
+    const mock = loadFromStorage("centros") || [];
+    return data.map((api) => {
+      const m = mock.find((c) => c.nombre === api.nombre);
+      if (!m) return api;
+      const merged = { ...m };
+      for (const k of Object.keys(api)) {
+        if (api[k] !== null && api[k] !== undefined && api[k] !== "") merged[k] = api[k];
+      }
+      merged.id = m.id;
+      if (api.coordenadas && (api.coordenadas.lat || api.coordenadas.lng)) merged.coordenadas = api.coordenadas;
+      return merged;
+    });
+  } catch { return loadFromStorage("centros") || []; }
 }
 
 export async function getCentroById(id) {
-  try { return await centrosService.getById(id); } catch (e) { if (!isNetworkError(e)) throw e; const list = loadFromStorage("centros") || []; return list.find((c) => c.id === id) || null; }
+  try { const r = await centrosService.getById(id); return r; } catch { const list = loadFromStorage("centros") || []; return list.find((c) => c.id === id) || null; }
 }
 
 export async function crearCentro(data) {
@@ -83,7 +111,7 @@ export async function eliminarCentro(id) {
 // ── Donaciones ───────────────────────────────────────────────
 
 export async function getDonaciones() {
-  try { return await donacionesService.getAll(); } catch (e) { if (!isNetworkError(e)) throw e; return loadFromStorage("donaciones") || []; }
+  try { return extraerArray(await donacionesService.getAll()); } catch { return loadFromStorage("donaciones") || []; }
 }
 
 export async function crearDonacion(data) {
@@ -115,10 +143,10 @@ export async function eliminarDonacion(id) {
   }
 }
 
-// ── Necesidades ──────────────────────────────────────────────
+// ── Necesidades (API + localStorage) ─────────────────────────
 
 export async function getNecesidades() {
-  try { return await necesidadesService.getAll(); } catch (e) { if (!isNetworkError(e)) throw e; return loadFromStorage("necesidades") || []; }
+  try { return extraerArray(await necesidadesService.getAll()); } catch { return loadFromStorage("necesidades") || []; }
 }
 
 export async function crearNecesidad(data) {
@@ -150,10 +178,10 @@ export async function eliminarNecesidad(id) {
   }
 }
 
-// ── Envíos ───────────────────────────────────────────────────
+// ── Envíos (API + localStorage) ──────────────────────────────
 
 export async function getEnvios() {
-  return [];
+  try { return extraerArray(await api.get("/envios")); } catch { return loadFromStorage("envios") || []; }
 }
 
 // ── Auth ─────────────────────────────────────────────────────
