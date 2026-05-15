@@ -90,7 +90,7 @@ JWT_SECRET = os.getenv("BFF_JWT_SECRET", SECRET_KEY)
 # Cada microservicio usa SimpleJWT que firma con su SECRET_KEY por defecto.
 # El BFF crea tokens de sistema firmados con esas mismas claves,
 # así los microservicios los aceptan sin modificaciones.
-LOGISTICA_JWT_SECRET = os.getenv("LOGISTICA_JWT_SECRET", "")
+LOGISTICA_JWT_SECRET = os.getenv("LOGISTICA_JWT_SECRET", "django-insecure-@m&^v!tvs!+c5$cq(%)mo2frpt2hhw5=4()$d93i%1^qr1e8%l")
 LOGISTICA_SYSTEM_USER_ID = int(os.getenv("LOGISTICA_SYSTEM_USER_ID", "1"))
 USUARIOS_JWT_SECRET = os.getenv("USUARIOS_JWT_SECRET", "")
 

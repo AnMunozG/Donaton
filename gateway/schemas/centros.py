@@ -16,11 +16,11 @@ class InventarioItem(Schema):
 class CentroCreate(Schema):
     nombre: str
     region: str = "Metropolitana"
-    direccion: str
+    direccion: str = ""
     telefono: str = ""
+    encargado: str = ""
     coordenadas: Optional[Coordenadas] = None
     capacidadTotal: int = 0
-    encargado_rut: Optional[str] = None
 
 
 class CentroUpdate(Schema):
@@ -28,6 +28,7 @@ class CentroUpdate(Schema):
     region: Optional[str] = None
     direccion: Optional[str] = None
     telefono: Optional[str] = None
+    encargado: Optional[str] = None
     coordenadas: Optional[Coordenadas] = None
     capacidadTotal: Optional[int] = None
     inventario: Optional[list[InventarioItem]] = None

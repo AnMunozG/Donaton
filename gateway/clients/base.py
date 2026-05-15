@@ -26,8 +26,13 @@ class ServiceClient:
             headers["Authorization"] = f"Bearer {token}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.request(method, url, headers=headers, **kwargs)
-            resp.raise_for_status()
-            return resp.json()
+            try:
+                body = resp.json()
+            except Exception:
+                body = {"error": f"HTTP {resp.status_code}"}
+            if resp.is_error:
+                return {"error": body.get("detail") or body.get("error") or f"HTTP {resp.status_code}", "status": resp.status_code}
+            return body
 
     async def get(self, path: str, params: Optional[dict] = None, token: str = None) -> dict:
         return await self._request("GET", path, token=token, params=params)

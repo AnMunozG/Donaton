@@ -34,6 +34,7 @@ class LogisticaClient(ServiceClient):
             "token_type": "access",
             "exp": now + timedelta(hours=24),
             "iat": now,
+            "jti": f"system-{system_user_id}-{int(now.timestamp())}",
             "user_id": system_user_id,
         }
         self._system_token = jwt.encode(payload, secret, algorithm="HS256")
@@ -41,7 +42,7 @@ class LogisticaClient(ServiceClient):
         return self._system_token
 
     async def _request(self, method: str, path: str, **kwargs) -> dict:
-        token = kwargs.pop("token", self._get_system_token())
+        token = kwargs.pop("token", None) or self._get_system_token()
         return await super()._request(method, path, token=token, **kwargs)
 
     # ── Productos ──
@@ -66,7 +67,7 @@ class LogisticaClient(ServiceClient):
         return await self.post("/api/centros/", data)
 
     async def actualizar_centro(self, id_: int, data: dict) -> dict:
-        return await self.put(f"/api/centros/{id_}/", data)
+        return await self.patch(f"/api/centros/{id_}/", data)
 
     async def eliminar_centro(self, id_: int) -> dict:
         return await self.delete(f"/api/centros/{id_}/")

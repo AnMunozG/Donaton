@@ -7,7 +7,7 @@ from typing import Optional
 
 from .exceptions import BffError
 from .schemas.auth import LoginIn, LoginOut, RegisterIn, UserOut, UserUpdateIn
-from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut
+from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem
 from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, DonacionStatsOut
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, EnvioOut, EnvioCreate, EnvioUpdate, HealthOut)
@@ -85,18 +85,18 @@ async def register(request, body: RegisterIn):
 async def me(request):
     return await auth_service.get_profile(request.user["rut"], uat=request.user.get("uat"))
 
-@api.put("/auth/me", response=UserOut)
-async def update_me(request, body: UserUpdateIn):
+@api.put("/auth/profile", response=UserOut)
+async def update_profile(request, body: UserUpdateIn):
     return await auth_service.update_profile(request.user["rut"], body, uat=request.user.get("uat"))
 
 
 # ── Centros ──
 
-@api.get("/centros", response=list[CentroOut])
+@api.get("/centros", auth=None, response=list[CentroOut])
 async def list_centros(request):
     return await centro_service.list_all()
 
-@api.get("/centros/{code}", response=CentroOut)
+@api.get("/centros/{code}", auth=None, response=CentroOut)
 async def get_centro(request, code: str):
     return await centro_service.get_by_code(code)
 
@@ -108,18 +108,22 @@ async def create_centro(request, body: CentroCreate):
 async def update_centro(request, code: str, body: CentroUpdate):
     return await centro_service.update(code, body)
 
-@api.get("/centros/{code}/stats", response=CentroStatsOut)
+@api.get("/centros/{code}/stats", auth=None, response=CentroStatsOut)
 async def get_centro_stats(request, code: str):
     return await centro_service.get_stats(code)
+
+@api.get("/centros/{code}/inventario", auth=None, response=list[InventarioItem])
+async def get_centro_inventario(request, code: str):
+    return await centro_service.get_inventario(code)
 
 
 # ── Donaciones ──
 
-@api.get("/donaciones", response=list[DonacionOut])
+@api.get("/donaciones", auth=None, response=list[DonacionOut])
 async def list_donaciones(request, estado: Optional[str] = None, centro_code: Optional[str] = None, tipo: Optional[str] = None):
     return await donacion_service.list_all(estado=estado, centro_code=centro_code, tipo=tipo)
 
-@api.get("/donaciones/{code}", response=DonacionOut)
+@api.get("/donaciones/{code}", auth=None, response=DonacionOut)
 async def get_donacion(request, code: str):
     return await donacion_service.get_by_code(code)
 
@@ -131,18 +135,18 @@ async def create_donacion(request, body: DonacionCreate):
 async def update_donacion_estado(request, code: str, body: DonacionUpdate):
     return await donacion_service.update_estado(code, body.estado)
 
-@api.get("/donaciones/stats/resumen", response=DonacionStatsOut)
+@api.get("/donaciones/stats/resumen", auth=None, response=DonacionStatsOut)
 async def get_donacion_stats(request):
     return await donacion_service.get_stats()
 
 
 # ── Necesidades ──
 
-@api.get("/necesidades", response=list[NecesidadOut])
+@api.get("/necesidades", auth=None, response=list[NecesidadOut])
 async def list_necesidades(request, estado: Optional[str] = None, centro_code: Optional[str] = None, urgencia: Optional[str] = None):
     return await necesidad_service.list_all(estado=estado, centro_code=centro_code, urgencia=urgencia)
 
-@api.get("/necesidades/{code}", response=NecesidadOut)
+@api.get("/necesidades/{code}", auth=None, response=NecesidadOut)
 async def get_necesidad(request, code: str):
     return await necesidad_service.get_by_code(code)
 
@@ -161,7 +165,7 @@ async def activar_necesidad(request, code: str):
 
 # ── Propuestas ──
 
-@api.get("/necesidades/{code}/propuestas", response=list[PropuestaOut])
+@api.get("/necesidades/{code}/propuestas", auth=None, response=list[PropuestaOut])
 async def list_propuestas(request, code: str):
     return await necesidad_service.list_propuestas(code)
 

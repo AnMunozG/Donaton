@@ -6,14 +6,17 @@ from ..schemas.auth import LoginIn, RegisterIn, UserUpdateIn
 from ..exceptions import AuthError, ValidationError
 
 
+def _rol_from_user(user: dict) -> str:
+    return "admin" if user.get("is_staff", False) else "donante"
+
+
 def _crear_bff_token(user: dict, uat: str = "") -> str:
-    """Crea el JWT del BFF con la info que necesita el frontend + uat."""
     nombre = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
     payload = {
         "rut": user.get("rut", ""),
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
-        "rol": "donante",
+        "rol": _rol_from_user(user),
         "uat": uat,
         "exp": datetime.now(timezone.utc) + timedelta(hours=24),
     }
@@ -49,7 +52,7 @@ async def login(data: LoginIn) -> dict:
         "rut": user.get("rut", ""),
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
-        "rol": "donante",
+        "rol": _rol_from_user(user),
         "token": bff_token,
     }
 
@@ -124,7 +127,7 @@ def _user_from_usuarios(user: dict) -> dict:
         "rut": user.get("rut", ""),
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
-        "rol": "donante",
+        "rol": _rol_from_user(user),
         "telefono": "",
         "direccion": "",
         "activo": user.get("is_active", True),
