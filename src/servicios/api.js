@@ -22,10 +22,12 @@ api.interceptors.request.use(
 );
 
 // Interceptor para responses
+const authPaths = ["/auth/login", "/auth/register"];
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || "";
+    if (error.response?.status === 401 && !authPaths.some((p) => url.includes(p))) {
       localStorage.removeItem('donaton_token');
       localStorage.removeItem('donaton_user');
       window.location.href = '/login';
