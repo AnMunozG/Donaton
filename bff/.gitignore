@@ -1,0 +1,38 @@
+# --- Entornos Virtuales ---
+venv/
+env/
+ENV/
+.venv/
+bin/
+lib/
+share/
+Include/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# --- Django ---
+db.sqlite3
+db.sqlite3-journal
+local_settings.py
+media/
+staticfiles/
+static/
+
+# --- VS Code y otros Editores ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# --- Variables de Entorno ---
+.env
+
+# --- Logs y Temporales ---
+*.log
+*.tmp
