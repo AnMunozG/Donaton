@@ -10,7 +10,7 @@ from .schemas.auth import LoginIn, LoginOut, RegisterIn, UserOut, UserUpdateIn
 from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem
 from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, DonacionStatsOut
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
-from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, EnvioOut, EnvioCreate, EnvioUpdate, HealthOut)
+from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut)
 from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service
 from .clients import usuarios_client
 
@@ -23,6 +23,14 @@ class AuthBearer(HttpBearer):
             return payload
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             return None
+
+
+class AdminBearer(AuthBearer):
+    async def authenticate(self, request, token):
+        payload = await super().authenticate(request, token)
+        if payload and payload.get("rol") == "admin":
+            return payload
+        return None
 
 
 api = NinjaAPI(title="Donatón BFF", version="1.0.0", auth=AuthBearer(),
@@ -100,7 +108,7 @@ async def list_centros(request):
 async def get_centro(request, code: str):
     return await centro_service.get_by_code(code)
 
-@api.post("/centros", auth=None, response={201: CentroOut})
+@api.post("/centros", auth=AdminBearer(), response={201: CentroOut})
 async def create_centro(request, body: CentroCreate):
     return await centro_service.create(body)
 
@@ -198,16 +206,3 @@ async def list_valores(request): return await static_service.get_valores()
 async def list_reportes(request): return await static_service.get_reportes()
 
 
-# ── Envíos ──
-
-@api.get("/envios", response=list[EnvioOut], auth=None)
-async def list_envios(request): return await static_service.get_envios()
-
-@api.get("/envios/{code}", response=EnvioOut, auth=None)
-async def get_envio(request, code: str): return await static_service.get_envio(code)
-
-@api.post("/envios", auth=None, response={201: EnvioOut})
-async def create_envio(request, body: EnvioCreate): return await static_service.create_envio(body)
-
-@api.patch("/envios/{code}", auth=None, response=EnvioOut)
-async def update_envio(request, code: str, body: EnvioUpdate): return await static_service.update_envio(code, body)

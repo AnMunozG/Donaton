@@ -345,41 +345,7 @@ export const necesidadesEjemplo = [
   },
 ];
 
-export const enviosEjemplo = [
-  {
-    id: "ENV-001",
-    donacionId: "DON-001",
-    centroId: "CA-001",
-    centro: "Santiago Centro",
-    destino: "Sector Las Rosas, Concepción",
-    fechaSalida: "2026-04-02",
-    fechaEntrega: "2026-04-03",
-    estado: "Entregado",
-    transportista: "Flota Donatón Norte",
-  },
-  {
-    id: "ENV-002",
-    donacionId: "DON-002",
-    centroId: "CA-003",
-    centro: "Maipú",
-    destino: "Albergue Municipal, Talca",
-    fechaSalida: "2026-04-04",
-    fechaEntrega: null,
-    estado: "En tránsito",
-    transportista: "Flota Donatón Sur",
-  },
-  {
-    id: "ENV-003",
-    donacionId: "DON-003",
-    centroId: "CA-002",
-    centro: "Puente Alto",
-    destino: "Campamento El Pino, Valparaíso",
-    fechaSalida: null,
-    fechaEntrega: null,
-    estado: "Pendiente despacho",
-    transportista: null,
-  },
-];
+
 
 export const tiposRecurso = [
   "Alimentos no perecibles",
@@ -558,7 +524,7 @@ export function seedLocalStorage() {
   localStorage.setItem(P + "centros", JSON.stringify(centrosData));
   localStorage.setItem(P + "donaciones", JSON.stringify(donacionesEjemplo));
   localStorage.setItem(P + "necesidades", JSON.stringify(necesidadesEjemplo));
-  localStorage.setItem(P + "envios", JSON.stringify(enviosEjemplo));
+
   localStorage.setItem(P + "cuentas", JSON.stringify(cuentas));
   localStorage.setItem(P + "user_needs", JSON.stringify([]));
   localStorage.setItem(P + "user_need_counter", "0");

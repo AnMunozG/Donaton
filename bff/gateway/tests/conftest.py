@@ -48,9 +48,7 @@ def mock_http_clients(monkeypatch):
     for path, mock_fn in [
         ("gateway.clients.usuarios_client", mock_return),
         ("gateway.clients.logistica_client", mock_return),
-        ("gateway.clients.pago_client", mock_return),
-        ("gateway.clients.notif_client", mock_return),
-        ("gateway.clients.catalogos_client", mock_return),
+        ("gateway.clients.donaciones_client", mock_return),
     ]:
         monkeypatch.setattr(f"{path}.get", mock_list)
         monkeypatch.setattr(f"{path}.post", mock_return)

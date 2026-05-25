@@ -56,7 +56,3 @@ class TestEndpointsSinMicroservicio:
         assert response.status_code == 200
         assert response.json() == []
 
-    async def test_list_envios_empty(self, client):
-        response = await client.get("/api/envios")
-        assert response.status_code == 200
-        assert response.json() == []

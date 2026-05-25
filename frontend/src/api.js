@@ -29,18 +29,6 @@ import {
   actualizarNecesidadUsuario as updateUserNeed,
 } from "./componentes/Datos.jsx";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-
-async function request(endpoint, options = {}) {
-  const token = localStorage.getItem("donaton_token");
-  const headers = { "Content-Type": "application/json", ...options.headers };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error de red");
-  return data;
-}
-
 function isNetworkError(err) {
   return !err.response || err.code === "ERR_NETWORK" || err.code === "ECONNABORTED";
 }
@@ -147,12 +135,6 @@ export async function eliminarNecesidad(id) {
   }
 }
 
-// ── Envíos (API + localStorage) ──────────────────────────────
-
-export async function getEnvios() {
-  try { return extraerArray(await api.get("/envios")); } catch { return loadFromStorage("envios") || []; }
-}
-
 // ── Auth ─────────────────────────────────────────────────────
 
 export async function login(rut, password) {
@@ -204,4 +186,3 @@ export async function getHitos() { return Promise.resolve(hitos); }
 // ── Constantes exportadas directamente ────────────────────────
 
 export { estadoColor, CHART_COLORS, urgenciaColorMap, estadoNecColorMap };
-export default request;

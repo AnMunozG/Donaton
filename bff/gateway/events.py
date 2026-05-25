@@ -104,9 +104,3 @@ async def publish_centro_actualizado(centro_code: str, estado: str):
         "data": {"code": centro_code, "estado": estado},
     })
 
-
-async def publish_envio_creado(envio_code: str, centro_code: str, destino: str):
-    await event_bus.publish("logistica", {
-        "type": "envio.creado",
-        "data": {"code": envio_code, "centro_code": centro_code, "destino": destino},
-    })

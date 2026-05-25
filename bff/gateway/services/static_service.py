@@ -1,5 +1,4 @@
 from ..clients import logistica_client
-from ..schemas.static import EnvioOut
 from ..exceptions import NotFoundError
 
 
@@ -34,18 +33,3 @@ async def get_valores():
 async def get_reportes():
     return []
 
-
-async def get_envios() -> list[EnvioOut]:
-    return []
-
-
-async def get_envio(code: str) -> EnvioOut:
-    raise NotFoundError("Microservicio de envíos no implementado")
-
-
-async def create_envio(body) -> EnvioOut:
-    raise NotFoundError("Microservicio de envíos no implementado")
-
-
-async def update_envio(code: str, body) -> EnvioOut:
-    raise NotFoundError("Microservicio de envíos no implementado")

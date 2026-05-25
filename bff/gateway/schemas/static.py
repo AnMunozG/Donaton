@@ -57,34 +57,6 @@ class ReporteOut(Schema):
     color: str
 
 
-class EnvioOut(Schema):
-    id: str  # code
-    donacionId: Optional[str] = None
-    centroId: str
-    centro: str
-    destino: str
-    fechaSalida: Optional[str] = None
-    fechaEntrega: Optional[str] = None
-    estado: str
-    transportista: str
-
-
-class EnvioCreate(Schema):
-    donacionId: Optional[str] = None
-    centroId: str
-    destino: str
-    fechaSalida: Optional[str] = None
-    transportista: str = ""
-
-
-class EnvioUpdate(Schema):
-    estado: Optional[str] = None
-    fechaSalida: Optional[str] = None
-    fechaEntrega: Optional[str] = None
-    transportista: Optional[str] = None
-    destino: Optional[str] = None
-
-
 class HealthOut(Schema):
     db: str
     redis: str
