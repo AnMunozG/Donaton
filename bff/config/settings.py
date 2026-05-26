@@ -98,7 +98,7 @@ USUARIOS_JWT_SECRET = os.getenv("USUARIOS_JWT_SECRET", "")
 REDIS_URL = os.getenv("REDIS_URL", "")
 
 # ── Microservicios ──
-USUARIOS_URL = os.getenv("USUARIOS_URL", "http://localhost:8000")
+USUARIOS_URL = os.getenv("USUARIOS_URL", "http://localhost:8002")
 LOGISTICA_URL = os.getenv("LOGISTICA_URL", "http://localhost:8001")
 
 # ── Logging ──

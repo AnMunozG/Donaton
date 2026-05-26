@@ -46,8 +46,8 @@ Servicios disponibles:
 | Frontend | http://localhost |
 | BFF API  | http://localhost:8080/api |
 | BFF Admin| http://localhost:8080/admin |
-| Usuarios API | http://localhost:8000/api/ |
-| Usuarios Docs | http://localhost:8000/api/docs/ |
+| Usuarios API | http://localhost:8002/api/ |
+| Usuarios Docs | http://localhost:8002/api/docs/ |
 | Logística API | http://localhost:8001/api/ |
 | Logística Docs | http://localhost:8001/api/docs/ |
 

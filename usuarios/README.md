@@ -49,9 +49,9 @@ python manage.py runserver
 Documentacion de la API
 Una vez iniciado el servidor, las interfaces estan disponibles en:
 
-Swagger UI: http://127.0.0.1:8000/api/docs/
+Swagger UI: http://127.0.0.1:8002/api/docs/
 
-Redoc: http://127.0.0.1:8000/api/redoc/
+Redoc: http://127.0.0.1:8002/api/redoc/
 
 Seguridad
 La API implementa autenticacion por cabeceras Authorization: Bearer . Los endpoints protegidos requieren un token de acceso valido generado a partir del login.
