@@ -86,7 +86,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.getenv('DB_NAME', 'backend_logistica'),
         'USER': os.getenv('DB_USER', 'root'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'admin'),
         'HOST': os.getenv('DB_HOST', '127.0.0.1'),
         'PORT': os.getenv('DB_PORT', '3306'),
         'OPTIONS': {
@@ -156,7 +156,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'API Logística Donatón',
-    'DESCRIPTION': 'Sistema de gestión de inventario y centros de acopio para ayuda humanitaria.',
+    'DESCRIPTION': 'Sistema de gestión de centros de acopio para ayuda humanitaria.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }

@@ -5,20 +5,43 @@ from ..events import publish_centro_actualizado
 
 
 def _to_out(data: dict) -> CentroOut:
-    lat = data.get("latitud")
-    lng = data.get("longitud")
+    centro_id = data.get("idCentro") or data.get("id") or ""
+
+    lat_raw = data.get("latitud")
+    lng_raw = data.get("longitud")
+    coordenadas_obj = None
+    
+    if lat_raw is not None and lng_raw is not None and lat_raw != "" and lng_raw != "":
+        try:
+            coordenadas_obj = Coordenadas(lat=float(lat_raw), lng=float(lng_raw))
+        except (ValueError, TypeError):
+            coordenadas_obj = None
+
+    inventario_raw = data.get("inventario", []) or []
+    inventario_mapeado = []
+    
+    if isinstance(inventario_raw, list):
+        for item in inventario_raw:
+            if isinstance(item, dict):
+                inventario_mapeado.append(
+                    InventarioItem(
+                        tipo=str(item.get("item") or item.get("tipo") or ""),
+                        cantidad=str(item.get("cantidad", "0"))
+                    )
+                )
+
     return CentroOut(
-        id=str(data.get("id", "")),
-        nombre=data.get("nombre", ""),
-        region=data.get("region", ""),
-        direccion=data.get("direccion", ""),
-        coordenadas=Coordenadas(lat=float(lat), lng=float(lng)) if lat is not None and lng is not None else None,
-        encargado=data.get("encargado") or None,
-        telefono=data.get("telefono", ""),
-        capacidadTotal=data.get("capacidadTotal", 0),
-        capacidadUsada=float(data.get("capacidadUsada", 0)),
-        inventario=[],
-        estado=data.get("estado", "Activo"),
+        id=str(centro_id),
+        nombre=str(data.get("nombre", "")),
+        region=str(data.get("region", "")),
+        direccion=str(data.get("direccion", "")),
+        coordenadas=coordenadas_obj,
+        encargado=data.get("encargado") if data.get("encargado") else None,
+        telefono=str(data.get("telefono", "")),
+        capacidadTotal=int(data.get("capacidadTotal", 0)),
+        capacidadUsada=float(data.get("capacidadUsada", 0.0)),
+        inventario=inventario_mapeado,
+        estado=str(data.get("estado", "Activo")),
     )
 
 
@@ -47,6 +70,7 @@ async def create(body) -> CentroOut:
         "encargado": getattr(body, "encargado", ""),
         "capacidadTotal": body.capacidadTotal,
         "capacidadUsada": 0,
+        "inventario": [],
         "estado": "Activo",
     }
     if body.coordenadas:
@@ -65,23 +89,18 @@ async def update(code: str, body) -> CentroOut:
         raise NotFoundError("Centro no encontrado")
 
     payload = {}
-    if body.nombre is not None:
-        payload["nombre"] = body.nombre
-    if body.region is not None:
-        payload["region"] = body.region
-    if getattr(body, "direccion", None) is not None:
-        payload["direccion"] = body.direccion
-    if getattr(body, "telefono", None) is not None:
-        payload["telefono"] = body.telefono
-    if getattr(body, "encargado", None) is not None:
-        payload["encargado"] = body.encargado
-    if hasattr(body, "capacidadTotal") and body.capacidadTotal is not None:
-        payload["capacidadTotal"] = body.capacidadTotal
+    if body.nombre is not None: payload["nombre"] = body.nombre
+    if body.region is not None: payload["region"] = body.region
+    if getattr(body, "direccion", None) is not None: payload["direccion"] = body.direccion
+    if getattr(body, "telefono", None) is not None: payload["telefono"] = body.telefono
+    if getattr(body, "encargado", None) is not None: payload["encargado"] = body.encargado
+    if hasattr(body, "capacidadTotal") and body.capacidadTotal is not None: payload["capacidadTotal"] = body.capacidadTotal
+    if hasattr(body, "capacidadUsada") and body.capacidadUsada is not None: payload["capacidadUsada"] = body.capacidadUsada
+    if hasattr(body, "inventario") and body.inventario is not None: payload["inventario"] = body.inventario # Soporta actualizar el JSON directo
     if body.coordenadas is not None:
         payload["latitud"] = body.coordenadas.lat
         payload["longitud"] = body.coordenadas.lng
-    if getattr(body, "estado", None) is not None:
-        payload["estado"] = body.estado
+    if getattr(body, "estado", None) is not None: payload["estado"] = body.estado
 
     data = await logistica_client.actualizar_centro(id_, payload)
     if "error" in data or "detail" in data:
@@ -92,19 +111,27 @@ async def update(code: str, body) -> CentroOut:
 
 
 async def get_inventario(code: str) -> list[InventarioItem]:
+    """
+    CORREGIDO: Ya no consulta la tabla intermedia obsoleta.
+    Obtiene el centro y lee directamente el JSONField interno de inventario.
+    """
     try:
         id_ = int(code)
     except ValueError:
         raise NotFoundError("Centro no encontrado")
 
-    items = await logistica_client.listar_inventario(params={"centro": id_})
-    result = []
-    for item in items if isinstance(items, list) else []:
-        result.append(InventarioItem(
-            tipo=item.get("productoNombre", str(item.get("producto", ""))),
-            cantidad=str(item.get("cantidad", "0")),
-        ))
-    return result
+    data = await logistica_client.obtener_centro(id_)
+    if not data or "error" in data or "detail" in data:
+        raise NotFoundError("Centro no encontrado")
+
+    inventario_raw = data.get("inventario", []) or []
+    
+    return [
+        InventarioItem(
+            tipo=item.get("item", ""),
+            cantidad=str(item.get("cantidad", "0"))
+        ) for item in inventario_raw
+    ]
 
 
 async def get_stats(code: str) -> CentroStatsOut:
