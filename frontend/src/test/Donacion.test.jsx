@@ -3,8 +3,6 @@ import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "../componentes/AuthContext";
 import Donacion from "../paginas/Donacion";
-import { seedLocalStorage } from "../componentes/Datos";
-
 function TestWrapper({ children }) {
   const router = createMemoryRouter([{ path: "*", element: <AuthProvider>{children}</AuthProvider> }]);
   return <RouterProvider router={router} />;
@@ -13,7 +11,6 @@ function TestWrapper({ children }) {
 describe("Donacion", () => {
   beforeEach(() => {
     localStorage.clear();
-    seedLocalStorage();
   });
 
   it("renderiza el título de gestión de donaciones", async () => {

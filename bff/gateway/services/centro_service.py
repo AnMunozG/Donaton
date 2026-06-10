@@ -61,17 +61,25 @@ async def get_by_code(code: str) -> CentroOut:
     return _to_out(data)
 
 
+def _calcular_estado(capacidad_total: int, capacidad_usada: int) -> str:
+    if capacidad_total > 0 and (capacidad_usada / capacidad_total) >= 0.85:
+        return "Capacidad crítica"
+    return "Activo"
+
+
 async def create(body) -> CentroOut:
+    cap_total = body.capacidadTotal
+    cap_usada = getattr(body, "capacidadUsada", 0)
     payload = {
         "nombre": body.nombre,
         "region": body.region,
         "direccion": getattr(body, "direccion", ""),
         "telefono": getattr(body, "telefono", ""),
         "encargado": getattr(body, "encargado", ""),
-        "capacidadTotal": body.capacidadTotal,
-        "capacidadUsada": 0,
+        "capacidadTotal": cap_total,
+        "capacidadUsada": cap_usada,
         "inventario": [],
-        "estado": "Activo",
+        "estado": _calcular_estado(cap_total, cap_usada),
     }
     if body.coordenadas:
         payload["latitud"] = body.coordenadas.lat
@@ -89,18 +97,37 @@ async def update(code: str, body) -> CentroOut:
         raise NotFoundError("Centro no encontrado")
 
     payload = {}
-    if body.nombre is not None: payload["nombre"] = body.nombre
-    if body.region is not None: payload["region"] = body.region
-    if getattr(body, "direccion", None) is not None: payload["direccion"] = body.direccion
-    if getattr(body, "telefono", None) is not None: payload["telefono"] = body.telefono
-    if getattr(body, "encargado", None) is not None: payload["encargado"] = body.encargado
-    if hasattr(body, "capacidadTotal") and body.capacidadTotal is not None: payload["capacidadTotal"] = body.capacidadTotal
-    if hasattr(body, "capacidadUsada") and body.capacidadUsada is not None: payload["capacidadUsada"] = body.capacidadUsada
-    if hasattr(body, "inventario") and body.inventario is not None: payload["inventario"] = body.inventario # Soporta actualizar el JSON directo
+    if body.nombre is not None:
+        payload["nombre"] = body.nombre
+    if body.region is not None:
+        payload["region"] = body.region
+    if getattr(body, "direccion", None) is not None:
+        payload["direccion"] = body.direccion
+    if getattr(body, "telefono", None) is not None:
+        payload["telefono"] = body.telefono
+    if getattr(body, "encargado", None) is not None:
+        payload["encargado"] = body.encargado
+    if hasattr(body, "capacidadTotal") and body.capacidadTotal is not None:
+        payload["capacidadTotal"] = body.capacidadTotal
+    if hasattr(body, "capacidadUsada") and body.capacidadUsada is not None:
+        payload["capacidadUsada"] = body.capacidadUsada
+    if hasattr(body, "inventario") and body.inventario is not None:
+        payload["inventario"] = body.inventario
     if body.coordenadas is not None:
         payload["latitud"] = body.coordenadas.lat
         payload["longitud"] = body.coordenadas.lng
-    if getattr(body, "estado", None) is not None: payload["estado"] = body.estado
+    if getattr(body, "estado", None) is not None:
+        payload["estado"] = body.estado
+
+    cap_total = payload.get("capacidadTotal")
+    cap_usada = payload.get("capacidadUsada")
+    if cap_total is not None or cap_usada is not None:
+        if cap_total is None or cap_usada is None:
+            current = await logistica_client.obtener_centro(id_)
+            if current and "error" not in current:
+                cap_total = cap_total if cap_total is not None else current.get("capacidadTotal", 0)
+                cap_usada = cap_usada if cap_usada is not None else current.get("capacidadUsada", 0)
+        payload["estado"] = _calcular_estado(cap_total or 0, cap_usada or 0)
 
     data = await logistica_client.actualizar_centro(id_, payload)
     if "error" in data or "detail" in data:

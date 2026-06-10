@@ -57,6 +57,45 @@ class ReporteOut(Schema):
     color: str
 
 
+class RegionOut(Schema):
+    nombre: str
+
+
+class CategoriaDonacionOut(Schema):
+    code: str
+    nombre: str
+    icono: str
+    descripcion: str
+
+
+class PasoFuncionamientoOut(Schema):
+    code: str
+    paso: int
+    titulo: str
+    descripcion: str
+
+
+class ImpactoStatsOut(Schema):
+    code: str
+    valor: str
+    label: str
+    icono: str
+
+
+class DistribucionFondosOut(Schema):
+    code: str
+    label: str
+    porcentaje: int
+
+
+class CampoOut(Schema):
+    name: str
+    label: str
+    type: str
+    options: Optional[list[str]] = None
+    placeholder: Optional[str] = None
+
+
 class HealthOut(Schema):
     db: str
     redis: str

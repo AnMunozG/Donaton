@@ -5,8 +5,7 @@ import './styles.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { seedLocalStorage } from './componentes/Datos.jsx'
-seedLocalStorage()
+
 
 import Inicio from './paginas/Inicio.jsx'
 import Header from './componentes/Header.jsx'

@@ -3,50 +3,83 @@ import { donacionesService } from "./servicios/donaciones.js";
 import { necesidadesService } from "./servicios/necesidades.js";
 import api from "./servicios/api.js";
 
-import {
-  tiposRecurso,
-  unidadesPorTipo,
-  camposPorTipo,
-  categoriasDonacion,
-  pasosFuncionamiento,
-  impactoStats,
-  distribucionFondos,
-  reportes,
-  gobernanza,
-  team,
-  valores,
-  hitos,
-  cuentas,
-  estadoColor,
-  CHART_COLORS,
-  urgenciaColorMap,
-  estadoNecColorMap,
-  loadFromStorage,
-  saveToStorage,
-  getNecesidadesUsuario as getUserNeeds,
-  agregarNecesidadUsuario as addUserNeed,
-  eliminarNecesidadUsuario as removeUserNeed,
-  actualizarNecesidadUsuario as updateUserNeed,
-} from "./componentes/Datos.jsx";
+// ── Colores y constantes ─────────────────────────────────
 
-function isNetworkError(err) {
-  return !err.response || err.code === "ERR_NETWORK" || err.code === "ECONNABORTED";
+export const estadoColor = {
+  "Entregado": "#3AB795",
+  "En tránsito": "#0dcaf0",
+  "En acopio": "#FFC107",
+  "Pendiente": "#DD4444",
+  "Asignado": "#0d6efd",
+  "Cubierto": "#3AB795",
+};
+
+export const CHART_COLORS = ["#DD4444", "#F48080", "#3AB795", "#194B4F"];
+
+export const urgenciaColorMap = { Alta: "danger", Media: "warning", Baja: "secondary" };
+export const estadoNecColorMap = { Pendiente: "danger", Asignado: "warning", Cubierto: "success" };
+
+// ── Catálogos / Estáticos (desde BFF) ────────────────────
+
+async function fetchStatic(url) {
+  const res = await api.get(url);
+  return res;
 }
 
-function extraerArray(resp) {
-  if (Array.isArray(resp)) return resp;
-  if (resp && typeof resp === "object") {
-    for (const key of ["centros", "data", "results", "items", "records"]) {
-      if (Array.isArray(resp[key])) return resp[key];
-    }
-  }
-  return [];
+export async function getTiposRecurso() {
+  const data = await fetchStatic("/static/tipos-recurso");
+  return data.map((t) => t.nombre);
+}
+
+export async function getUnidadesPorTipo() {
+  return fetchStatic("/static/unidades-por-tipo");
+}
+
+export async function getCamposPorTipo() {
+  return fetchStatic("/static/campos-por-tipo");
+}
+
+export async function getCategoriasDonacion() {
+  return fetchStatic("/static/categorias-donacion");
+}
+
+export async function getPasosFuncionamiento() {
+  return fetchStatic("/static/pasos-funcionamiento");
+}
+
+export async function getImpactoStats() {
+  return fetchStatic("/static/impacto-stats");
+}
+
+export async function getDistribucionFondos() {
+  return fetchStatic("/static/distribucion-fondos");
+}
+
+export async function getReportes() {
+  return fetchStatic("/static/reportes");
+}
+
+export async function getGobernanza() {
+  return fetchStatic("/static/gobernanza");
+}
+
+export async function getTeam() {
+  return fetchStatic("/static/equipo");
+}
+
+export async function getValores() {
+  return fetchStatic("/static/valores");
+}
+
+export async function getHitos() {
+  return fetchStatic("/static/hitos");
 }
 
 // ── Centros (solo API — Logistica) ───────────────────────────
 
 export async function getCentros() {
-  return extraerArray(await centrosService.getAll());
+  const data = await centrosService.getAll();
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getCentroById(id) {
@@ -68,121 +101,78 @@ export async function eliminarCentro(id) {
 // ── Donaciones ───────────────────────────────────────────────
 
 export async function getDonaciones() {
-  try { return extraerArray(await donacionesService.getAll()); } catch { return loadFromStorage("donaciones") || []; }
+  const data = await donacionesService.getAll();
+  return Array.isArray(data) ? data : [];
 }
 
 export async function crearDonacion(data) {
-  try { return await donacionesService.create(data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("donaciones") || [];
-    const nums = list.map((d) => { const m = d.id?.match(/\d+/); return m ? parseInt(m[0], 10) : 0; }).filter((n) => !isNaN(n));
-    const max = nums.length ? Math.max(...nums) : 0;
-    const nuevo = { id: `DON-${String(max + 1).padStart(3, "0")}`, ...data, estado: data.estado || "En acopio" };
-    list.push(nuevo); saveToStorage("donaciones", list); return nuevo;
-  }
+  return donacionesService.create(data);
+}
+
+export async function actualizarEstadoDonacion(id, estado) {
+  return donacionesService.update(id, { estado });
 }
 
 export async function actualizarDonacion(id, data) {
-  try { return await donacionesService.update(id, data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("donaciones") || [];
-    const idx = list.findIndex((d) => d.id === id);
-    if (idx === -1) throw new Error("Donacion not found");
-    Object.assign(list[idx], data); saveToStorage("donaciones", list); return list[idx];
-  }
+  return actualizarEstadoDonacion(id, data.estado);
 }
 
 export async function eliminarDonacion(id) {
-  try { return await donacionesService.delete(id); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("donaciones") || [];
-    saveToStorage("donaciones", list.filter((d) => d.id !== id));
-  }
+  return donacionesService.delete(id);
 }
 
-// ── Necesidades (API + localStorage) ─────────────────────────
+// ── Necesidades ──────────────────────────────────────────────
 
 export async function getNecesidades() {
-  try { return extraerArray(await necesidadesService.getAll()); } catch { return loadFromStorage("necesidades") || []; }
+  const data = await necesidadesService.getAll();
+  return Array.isArray(data) ? data : [];
 }
 
 export async function crearNecesidad(data) {
-  try { return await necesidadesService.create(data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("necesidades") || [];
-    const nums = list.map((n) => { const m = n.id?.match(/\d+/); return m ? parseInt(m[0], 10) : 0; }).filter((n) => !isNaN(n));
-    const max = nums.length ? Math.max(...nums) : 0;
-    const nuevo = { id: `NEC-${String(max + 1).padStart(3, "0")}`, ...data, donado: "0", estado: data.estado || "Pendiente" };
-    list.push(nuevo); saveToStorage("necesidades", list); return nuevo;
-  }
+  return necesidadesService.create(data);
 }
 
 export async function actualizarNecesidad(id, data) {
-  try { return await necesidadesService.update(id, data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("necesidades") || [];
-    const idx = list.findIndex((n) => n.id === id);
-    if (idx === -1) throw new Error("Necesidad not found");
-    Object.assign(list[idx], data); saveToStorage("necesidades", list); return list[idx];
-  }
+  return necesidadesService.update(id, data);
 }
 
 export async function eliminarNecesidad(id) {
-  try { return await necesidadesService.delete(id); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("necesidades") || [];
-    saveToStorage("necesidades", list.filter((n) => n.id !== id));
+  return necesidadesService.delete(id);
+}
+
+// ── Necesidades ciudadanas ───────────────────────────────────
+
+export async function getNecesidadesUsuario() {
+  try {
+    const data = await api.get("/necesidades/ciudadanas");
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
   }
+}
+
+export async function agregarNecesidadUsuario(data) {
+  return api.post("/necesidades/ciudadanas", data);
+}
+
+export async function eliminarNecesidadUsuario(id) {
+  await api.delete(`/necesidades/ciudadanas/${id}`);
+}
+
+export async function actualizarNecesidadUsuario(id, data) {
+  return api.patch(`/necesidades/ciudadanas/${id}`, data);
 }
 
 // ── Auth ─────────────────────────────────────────────────────
 
 export async function login(rut, password) {
-  const res = await api.post("/auth/login", { rut, password });
-  return res;
+  return api.post("/auth/login", { rut, password });
 }
 
 export async function crearCuenta(rut, data) {
-  try { return await api.post("/auth/register", { rut, ...data }); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const lista = loadFromStorage("cuentas") || [...cuentas];
-    if (lista.find((c) => c.rut === rut)) throw new Error("RUT ya registrado");
-    const nueva = { rut, ...data, rol: "user" };
-    lista.push(nueva); saveToStorage("cuentas", lista); return nueva;
-  }
+  return api.post("/auth/register", { rut, ...data });
 }
 
 export async function actualizarCuenta(rut, data) {
-  try { return await api.put("/auth/profile", data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const lista = loadFromStorage("cuentas") || [...cuentas];
-    const idx = lista.findIndex((c) => c.rut === rut);
-    if (idx === -1) throw new Error("Cuenta no encontrada");
-    Object.assign(lista[idx], data); saveToStorage("cuentas", lista); return lista[idx];
-  }
+  return api.put("/auth/profile", data);
 }
-
-// ── Catálogos / Estáticos ───────────────────────────────────
-
-export async function getTiposRecurso() { return Promise.resolve(tiposRecurso); }
-export async function getUnidadesPorTipo() { return Promise.resolve(unidadesPorTipo); }
-export async function getCamposPorTipo() { return Promise.resolve(camposPorTipo); }
-export async function getCategoriasDonacion() { return Promise.resolve(categoriasDonacion); }
-export async function getPasosFuncionamiento() { return Promise.resolve(pasosFuncionamiento); }
-
-// ── Transparencia ────────────────────────────────────────────
-
-export async function getImpactoStats() { return Promise.resolve(impactoStats); }
-export async function getDistribucionFondos() { return Promise.resolve(distribucionFondos); }
-export async function getReportes() { return Promise.resolve(reportes); }
-export async function getGobernanza() { return Promise.resolve(gobernanza); }
-
-// ── Nosotros ─────────────────────────────────────────────────
-
-export async function getTeam() { return Promise.resolve(team); }
-export async function getValores() { return Promise.resolve(valores); }
-export async function getHitos() { return Promise.resolve(hitos); }
-
-// ── Constantes exportadas directamente ────────────────────────
-
-export { estadoColor, CHART_COLORS, urgenciaColorMap, estadoNecColorMap };

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { getTiposRecurso, getUnidadesPorTipo, getCentros } from "../api.js";
-import { agregarNecesidadUsuario } from "../componentes/Datos.jsx";
+import { getTiposRecurso, getUnidadesPorTipo, getCentros, agregarNecesidadUsuario } from "../api.js";
 import RichTextEditor from "../componentes/RichTextEditor";
 import { validarRequerido, validarEnteroPositivo, validarForm } from "../componentes/Validaciones.js";
 

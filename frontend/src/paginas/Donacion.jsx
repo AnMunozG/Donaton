@@ -115,14 +115,8 @@ export default function Donacion() {
       cantidad: form.cantidad,
       unidad: form.unidad,
       origen: form.origen,
-      tipoOrigen: form.tipoOrigen,
       centroId: form.centroId,
-      centro: centroSel ? centroSel.nombre : "",
-      notas: form.notas,
       detalles: form.detalles,
-      direccion: form.direccion,
-      direccionDetalle: form.direccionDetalle,
-      fechaRetiro: form.fechaRetiro,
       fecha: new Date().toISOString().split("T")[0],
     });
     setEnviado(true);

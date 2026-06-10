@@ -3,10 +3,10 @@ from django.db import migrations
 
 def crear_admin(apps, schema_editor):
     Usuario = apps.get_model('api_servicio', 'Usuario')
-    if not Usuario.objects.filter(rut='11111111-1').exists():
+    if not Usuario.objects.filter(rut='111111111').exists():
         Usuario.objects.create_user(
-            rut='11111111-1',
-            username='11111111-1',
+            rut='111111111',
+            username='111111111',
             first_name='Usuario',
             last_name='1',
             email='admin@donaton.cl',
