@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
-    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -124,8 +123,6 @@ TIME_ZONE = 'America/Santiago'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 
@@ -137,7 +134,6 @@ STATIC_URL = 'static/'
 from datetime import timedelta
 
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
@@ -153,10 +149,3 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True
-
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'API Logística Donatón',
-    'DESCRIPTION': 'Sistema de gestión de inventario y centros de acopio para ayuda humanitaria.',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-}

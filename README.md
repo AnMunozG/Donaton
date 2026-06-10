@@ -5,12 +5,12 @@ Plataforma web de donaciones transparentes que conecta donantes, municipalidades
 ## Arquitectura
 
 ```
-┌──────────┐     ┌─────────────────────────────────────┐     ┌──────────────┐
-│ Frontend │────▶│              BFF (API Gateway)       │────▶│  Usuarios    │
-│ (React)  │     │        Django + Django Ninja        │     │  (Django)    │
-│  :80     │     │               :8080                  │     │  :8000       │
+┌──────────┐     ┌─────────────────────────────────────┐     ┌───────────────┐
+│ Frontend │────▶│              BFF (API Gateway)       │────▶│  Usuarios   │
+│ (React)  │     │        Django + Django Ninja        │     │  (Django)     │
+│  :80     │     │               :8080                  │     │  :8002       │
 └──────────┘     │                                      │     ├──────────────┤
-                 │  - Auth (login/register/profile)      │────▶│  Logística   │
+                 │  - Auth (login/register/profile)      │────▶│  Logística  |
                  │  - Centros CRUD + inventario          │     │  (Django)    │
                  │  - Donaciones (placeholder)           │     │  :8001       │
                  │  - Necesidades (placeholder)          │     └──────────────┘
