@@ -3,8 +3,6 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AuthProvider } from "../componentes/AuthContext";
 import BackOffice from "../paginas/BackOffice";
-import { seedLocalStorage } from "../componentes/Datos";
-
 function TestWrapper({ children }) {
   return <MemoryRouter><AuthProvider>{children}</AuthProvider></MemoryRouter>;
 }
@@ -12,7 +10,6 @@ function TestWrapper({ children }) {
 describe("BackOffice", () => {
   beforeEach(() => {
     localStorage.clear();
-    seedLocalStorage();
   });
 
   it("renderiza tabs de navegación del dashboard", async () => {

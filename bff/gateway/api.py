@@ -10,7 +10,9 @@ from .schemas.auth import LoginIn, LoginOut, RegisterIn, UserOut, UserUpdateIn
 from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem
 from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, DonacionStatsOut
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
-from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut)
+from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut,
+                             RegionOut, CategoriaDonacionOut, PasoFuncionamientoOut, ImpactoStatsOut, DistribucionFondosOut,
+                             CampoOut)
 from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service
 from .clients import usuarios_client
 
@@ -154,19 +156,42 @@ async def get_donacion_stats(request):
 async def list_necesidades(request, estado: Optional[str] = None, centro_code: Optional[str] = None, urgencia: Optional[str] = None):
     return await necesidad_service.list_all(estado=estado, centro_code=centro_code, urgencia=urgencia)
 
-@api.get("/necesidades/{code}", auth=None, response=NecesidadOut)
-async def get_necesidad(request, code: str):
-    return await necesidad_service.get_by_code(code)
-
 @api.post("/necesidades", response={201: NecesidadOut})
 async def create_necesidad(request, body: NecesidadCreate):
     return await necesidad_service.create(body, rut=request.user["rut"])
+
+# Rutas fijas (antes de {code} para evitar conflictos)
+
+@api.get("/necesidades/ciudadanas", auth=None, response=list[NecesidadOut])
+async def list_necesidades_ciudadanas(request):
+    return await necesidad_service.list_ciudadanas()
+
+@api.post("/necesidades/ciudadanas", auth=None, response={201: NecesidadOut})
+async def create_necesidad_ciudadana(request, body: NecesidadCreate):
+    user = getattr(request, "user", None)
+    rut = "anónimo"
+    if user is not None and hasattr(user, "get"):
+        rut = user.get("rut", "anónimo")
+    return await necesidad_service.crear_ciudadana(body, rut)
+
+@api.patch("/necesidades/ciudadanas/{code}", auth=None, response=NecesidadOut)
+async def update_necesidad_ciudadana(request, code: str, body: NecesidadUpdate):
+    return await necesidad_service.actualizar_ciudadana(code, body)
+
+@api.delete("/necesidades/ciudadanas/{code}", auth=None, response={204: None})
+async def delete_necesidad_ciudadana(request, code: str):
+    await necesidad_service.eliminar_ciudadana(code)
+    return 204, None
+
+@api.get("/necesidades/{code}", auth=None, response=NecesidadOut)
+async def get_necesidad(request, code: str):
+    return await necesidad_service.get_by_code(code)
 
 @api.put("/necesidades/{code}", response=NecesidadOut)
 async def update_necesidad(request, code: str, body: NecesidadUpdate):
     return await necesidad_service.update(code, body)
 
-@api.post("/necesidades/{code}/activar", response=NecesidadOut)
+@api.post("/necesidades/{code}/activar", auth=None, response=NecesidadOut)
 async def activar_necesidad(request, code: str):
     return await necesidad_service.activar(code)
 
@@ -204,5 +229,27 @@ async def list_valores(request): return await static_service.get_valores()
 
 @api.get("/static/reportes", response=list[ReporteOut], auth=None)
 async def list_reportes(request): return await static_service.get_reportes()
+
+@api.get("/static/regiones", response=list[RegionOut], auth=None)
+async def list_regiones(request): return await static_service.get_regiones()
+
+@api.get("/static/categorias-donacion", response=list[CategoriaDonacionOut], auth=None)
+async def list_categorias_donacion(request): return await static_service.get_categorias_donacion()
+
+@api.get("/static/pasos-funcionamiento", response=list[PasoFuncionamientoOut], auth=None)
+async def list_pasos_funcionamiento(request): return await static_service.get_pasos_funcionamiento()
+
+@api.get("/static/impacto-stats", response=list[ImpactoStatsOut], auth=None)
+async def list_impacto_stats(request): return await static_service.get_impacto_stats()
+
+@api.get("/static/distribucion-fondos", response=list[DistribucionFondosOut], auth=None)
+async def list_distribucion_fondos(request): return await static_service.get_distribucion_fondos()
+
+@api.get("/static/unidades-por-tipo", auth=None)
+async def list_unidades_por_tipo(request): return await static_service.get_unidades_por_tipo()
+
+@api.get("/static/campos-por-tipo", auth=None)
+async def list_campos_por_tipo(request): return await static_service.get_campos_por_tipo()
+
 
 

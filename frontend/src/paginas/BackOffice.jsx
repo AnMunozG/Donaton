@@ -9,10 +9,11 @@ import {
   crearDonacion, actualizarDonacion, eliminarDonacion,
   crearNecesidad, actualizarNecesidad, eliminarNecesidad,
   crearCentro, actualizarCentro, eliminarCentro,
+  getNecesidadesUsuario, eliminarNecesidadUsuario, actualizarNecesidadUsuario,
   estadoColor, CHART_COLORS,
 } from "../api.js";
 import { centrosService } from "../servicios/centros.js";
-import { getNecesidadesUsuario, eliminarNecesidadUsuario, actualizarNecesidadUsuario } from "../componentes/Datos.jsx";
+import SelectRegion from "../componentes/SelectRegion";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: "bi-speedometer2" },
@@ -134,6 +135,11 @@ export default function BackOffice() {
       { campo: "region", nombre: "Región", validaciones: [validarRequerido] },
       { campo: "capacidadTotal", nombre: "Capacidad total", validaciones: [validarRequerido, validarEnteroPositivo] },
     ] : [];
+    if (entity === "centro" && form.capacidadUsada !== "" && form.capacidadTotal !== "") {
+      const usada = parseInt(form.capacidadUsada, 10) || 0;
+      const total = parseInt(form.capacidadTotal, 10) || 0;
+      if (usada > total) errores.capacidadUsada = "No puede superar la capacidad total";
+    }
     const errores = validarForm(form, reglas);
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
@@ -789,9 +795,7 @@ export default function BackOffice() {
                           {formErrors.nombre && <div className="invalid-feedback d-block">{formErrors.nombre}</div>}
                         </div>
                         <div className="col-md-6">
-                          <label className="form-label small fw-semibold">Región</label>
-                          <input name="region" className={`form-control${formErrors.region ? " is-invalid" : ""}`} value={form.region || ""} onChange={handleFormChange} />
-                          {formErrors.region && <div className="invalid-feedback d-block">{formErrors.region}</div>}
+                          <SelectRegion value={form.region} onChange={handleFormChange} error={formErrors.region} />
                         </div>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Dirección</label>
@@ -821,7 +825,8 @@ export default function BackOffice() {
                         </div>
                         <div className="col-md-3">
                           <label className="form-label small fw-semibold">Capacidad usada</label>
-                          <input name="capacidadUsada" type="number" className="form-control" value={form.capacidadUsada ?? ""} onChange={handleFormChange} />
+                          <input name="capacidadUsada" type="number" className={`form-control${formErrors.capacidadUsada ? " is-invalid" : ""}`} value={form.capacidadUsada ?? ""} onChange={handleFormChange} />
+                          {formErrors.capacidadUsada && <div className="invalid-feedback d-block">{formErrors.capacidadUsada}</div>}
                         </div>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Estado</label>

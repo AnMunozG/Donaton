@@ -11,6 +11,7 @@ class NecesidadCreate(Schema):
     descripcion: str = ""
     urgencia: str = "Media"
     reportadoPor: str = ""
+    estado: str = "Activa"
     fecha_limite: Optional[str] = None
     detalles: dict = {}
 
