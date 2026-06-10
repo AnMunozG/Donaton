@@ -1,84 +1,105 @@
 from datetime import datetime
 from ..schemas.donaciones import DonacionOut
 from ..exceptions import NotFoundError
-from . import centro_service
+from ..clients.donaciones_client import DonacionesClient
+from ..clients.logistica_client import LogisticaClient
 
-_donaciones = {}
-_counter = 0
-
-
-async def _centro_nombre(centro_id: str) -> str:
-    try:
-        c = await centro_service.get_by_code(centro_id)
-        return c.nombre
-    except Exception:
-        return centro_id
+donaciones_client = DonacionesClient()
+logistica_client = LogisticaClient()
 
 
 async def list_all(estado: str = None, centro_code: str = None, tipo: str = None) -> list[DonacionOut]:
-    items = list(_donaciones.values())
-    if estado:
-        items = [d for d in items if d["estado"] == estado]
-    if centro_code:
-        items = [d for d in items if d["centroId"] == centro_code]
-    if tipo:
-        items = [d for d in items if d["tipo"] == tipo]
-    items.sort(key=lambda d: d.get("created_at", ""), reverse=True)
-    return items
+    try:
+        params = {}
+        if estado: params["estado"] = estado
+        if centro_code: params["centro_code"] = centro_code
+        if tipo: params["tipo"] = tipo
+        
+        donaciones_data = await donaciones_client.listar_donaciones(params=params)
+        return [DonacionOut(**d) for d in donaciones_data]
+    except Exception:
+        return []
 
 
 async def get_by_code(code: str) -> DonacionOut:
-    d = _donaciones.get(code)
-    if not d:
-        raise NotFoundError("Donación no encontrada")
-    return d
+    donacion_data = await donaciones_client.obtener_donacion(code)
+    if not donacion_data:
+        raise NotFoundError(f"No se encontró la donación con el código {code}")
+    return DonacionOut(**donacion_data)
 
 
 async def create(body, rut: str) -> DonacionOut:
-    global _counter
-    _counter += 1
-    code = f"DON-{_counter:03d}"
-    now = datetime.now()
-    donacion = {
-        "id": code,
-        "tipo": body.tipo,
-        "cantidad": str(body.cantidad),
-        "unidad": body.unidad,
-        "origen": body.origen or rut,
-        "centroId": body.centroId,
-        "centro": await _centro_nombre(body.centroId),
-        "fecha": body.fecha or now.isoformat(),
-        "estado": "En acopio",
-        "detalles": body.detalles or {},
-        "created_at": now,
-        "updated_at": now,
-    }
-    _donaciones[code] = donacion
-    return donacion
+    body["origen"] = rut
+
+    donacion_real_data = await donaciones_client.crear_donacion(body)
+    
+    if not donacion_real_data:
+        raise NotFoundError("El microservicio de donaciones no procesó la solicitud.")
+
+    tipo_recurso = donacion_real_data.get("tipo")
+    cantidad_donada = int(donacion_real_data.get("cantidad", 0))
+    unidad_donada = donacion_real_data.get("unidad")
+    centro_id = donacion_real_data.get("centroId")
+
+    if tipo_recurso != "Donación Monetaria" and centro_id:
+        try:
+            centro_data = await logistica_client.obtener_centro(int(centro_id))
+            
+            if centro_data:
+                inventario_actual = centro_data.get("inventario", []) or []
+                capacidad_total = int(centro_data.get("capacidadTotal", 0))
+                capacidad_usada_actual = int(centro_data.get("capacidadUsada", 0))
+
+                encontrado = False
+                for item in inventario_actual:
+                    if item.get("item") == tipo_recurso and item.get("unidad") == unidad_donada:
+                        item["cantidad"] = int(item["cantidad"]) + cantidad_donada
+                        encontrado = True
+                        break
+                
+                if not encontrado:
+                    inventario_actual.append({
+                        "item": tipo_recurso,
+                        "cantidad": cantidad_donada,
+                        "unidad": unidad_donada
+                    })
+
+                nueva_capacidad_usada = capacidad_usada_actual + cantidad_donada
+                porcentaje = (nueva_capacidad_usada / capacidad_total) * 100 if capacidad_total > 0 else 0
+                
+                nuevo_estado = "Normal"
+                if porcentaje >= 90:
+                    nuevo_estado = "Capacidad crítica"
+                elif porcentaje >= 70:
+                    nuevo_estado = "Capacidad moderada"
+
+                await logistica_client.actualizar_centro(int(centro_id), {
+                    "inventario": inventario_actual,
+                    "capacidadUsada": nueva_capacidad_usada,
+                    "estado": nuevo_estado
+                })
+        except Exception as log_error:
+            print(f"Alerta: Donación creada, pero falló actualización logística: {str(log_error)}")
+
+    return DonacionOut(**donacion_real_data)
 
 
 async def update_estado(code: str, nuevo_estado: str) -> DonacionOut:
-    d = _donaciones.get(code)
-    if not d:
-        raise NotFoundError("Donación no encontrada")
-    d["estado"] = nuevo_estado
-    d["updated_at"] = datetime.now()
-    return d
+    donacion_actualizada = await donaciones_client.actualizar_estado_donacion(code, {"estado": nuevo_estado})
+    if not donacion_actualizada:
+        raise NotFoundError(f"No se pudo actualizar la donación {code}")
+    return DonacionOut(**donacion_actualizada)
 
 
-async def get_stats():
-    total = len(_donaciones)
-    centros = set(d["centroId"] for d in _donaciones.values())
-    por_estado = {}
-    por_tipo = {}
-    for d in _donaciones.values():
-        por_estado[d["estado"]] = por_estado.get(d["estado"], 0) + 1
-        por_tipo[d["tipo"]] = por_tipo.get(d["tipo"], 0) + 1
-    return {
-        "total_donaciones": total,
-        "total_monto": total * 10000,
-        "total_beneficiarios": total * 3,
-        "centros_activos": len(centros),
-        "por_estado": por_estado,
-        "por_tipo": por_tipo,
-    }
+async def get_stats() -> dict:
+    try:
+        return await donaciones_client.obtener_estadisticas()
+    except Exception:
+        return {
+            "total_donaciones": 0,
+            "total_monto": 0,
+            "total_beneficiarios": 0,
+            "centros_activos": 0,
+            "por_estado": {},
+            "por_tipo": {},
+        }
