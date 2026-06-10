@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    'drf_spectacular',
     'api_servicio',
     'rest_framework_simplejwt',
 ]
@@ -138,13 +137,11 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-CORS_ALLOW_ALL_ORIGINS = True  # conexion frontend
+CORS_ALLOW_ALL_ORIGINS = True
 
 AUTH_USER_MODEL = 'api_servicio.Usuario'
 
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication'
@@ -152,12 +149,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-}
-
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'API de ' + 'Usuarios', 
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

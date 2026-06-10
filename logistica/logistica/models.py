@@ -3,9 +3,9 @@ from django.db import models
 class CentroAcopio(models.Model):
     nombre = models.CharField(max_length=100)
     region = models.TextField()
-    direccion = models.CharField(max_length=255, default="")
-    telefono = models.CharField(max_length=50, default="")
-    encargado = models.CharField(max_length=100, default="")
+    direccion = models.CharField(max_length=255, default="", blank=True)
+    telefono = models.CharField(max_length=50, default="", blank=True)
+    encargado = models.CharField(max_length=100, default="", blank=True)
     capacidadTotal = models.IntegerField()
     capacidadUsada = models.IntegerField()
     estado = models.CharField(max_length=50)
