@@ -42,17 +42,12 @@ class LogisticaClient(ServiceClient):
         return self._system_token
 
     async def _request(self, method: str, path: str, **kwargs) -> dict:
-        token = kwargs.pop("token", None) or self._get_system_token()
+        if method.upper() == "GET":
+            token = kwargs.pop("token", None)
+        else:
+            token = kwargs.pop("token", None) or self._get_system_token()
+            
         return await super()._request(method, path, token=token, **kwargs)
-
-    # ── Productos ──
-
-    async def listar_productos(self, params: dict = None) -> list:
-        resp = await self.get("/api/productos/", params=params)
-        return resp if isinstance(resp, list) else resp.get("results", [])
-
-    async def obtener_producto(self, id_: int) -> dict:
-        return await self.get(f"/api/productos/{id_}/")
 
     # ── Centros ──
 
@@ -71,12 +66,3 @@ class LogisticaClient(ServiceClient):
 
     async def eliminar_centro(self, id_: int) -> dict:
         return await self.delete(f"/api/centros/{id_}/")
-
-    # ── Inventario ──
-
-    async def listar_inventario(self, params: dict = None) -> list:
-        resp = await self.get("/api/inventario/", params=params)
-        return resp if isinstance(resp, list) else resp.get("results", [])
-
-    async def obtener_inventario(self, id_: int) -> dict:
-        return await self.get(f"/api/inventario/{id_}/")
