@@ -27,7 +27,7 @@ const urgencias = ["Alta", "Media", "Baja"];
 function emptyForm(entity) {
   if (entity === "donacion") return { tipo: "", cantidad: "", unidad: "", origen: "", centroId: "", estado: "En acopio" };
   if (entity === "necesidad") return { recurso: "", cantidad: "", unidad: "", urgencia: "Media", estado: "Pendiente", centroId: "", reportadoPor: "", descripcion: "" };
-  return { nombre: "", region: "", encargado: "", capacidadTotal: "", capacidadUsada: "", estado: "Activo" };
+  return { nombre: "", region: "", direccion: "", telefono: "", encargado: "", latitud: "", longitud: "", capacidadTotal: "", capacidadUsada: "", estado: "Activo" };
 }
 
 export default function BackOffice() {
@@ -132,36 +132,67 @@ export default function BackOffice() {
     ] : entity === "centro" ? [
       { campo: "nombre", nombre: "Nombre", validaciones: [validarRequerido] },
       { campo: "region", nombre: "Región", validaciones: [validarRequerido] },
-      { campo: "encargado", nombre: "Encargado", validaciones: [validarRequerido] },
       { campo: "capacidadTotal", nombre: "Capacidad total", validaciones: [validarRequerido, validarEnteroPositivo] },
-      { campo: "capacidadUsada", nombre: "Capacidad usada", validaciones: [validarRequerido, validarEnteroPositivo] },
     ] : [];
     const errores = validarForm(form, reglas);
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
     if (entity === "donacion") {
-      const centroSel = centros.find((c) => c.id === form.centroId);
-      const data = { ...form, centro: centroSel ? centroSel.nombre : form.centro || "" };
       if (editItem) {
-        await actualizarDonacion(editItem.id, data);
+        await actualizarDonacion(editItem.id, { estado: form.estado });
       } else {
-        await crearDonacion(data);
+        await crearDonacion({
+          tipo: form.tipo,
+          cantidad: form.cantidad,
+          unidad: form.unidad,
+          origen: form.origen,
+          centroId: form.centroId,
+          fecha: new Date().toISOString().split("T")[0],
+        });
       }
       getDonaciones().then(setDonaciones);
     } else if (entity === "necesidad") {
-      const centroSelNec = centros.find((c) => c.id === form.centroId);
-      const data = { ...form, centro: centroSelNec ? centroSelNec.nombre : form.centro || "" };
       if (editItem) {
-        await actualizarNecesidad(editItem.id, data);
+        await actualizarNecesidad(editItem.id, {
+          cantidad: form.cantidad,
+          urgencia: form.urgencia,
+          estado: form.estado,
+          descripcion: form.descripcion,
+          reportadoPor: form.reportadoPor,
+        });
       } else {
-        await crearNecesidad(data);
+        await crearNecesidad({
+          centroId: form.centroId,
+          recurso: form.recurso,
+          cantidad: form.cantidad,
+          unidad: form.unidad,
+          descripcion: form.descripcion || "",
+          urgencia: form.urgencia || "Media",
+          reportadoPor: form.reportadoPor || "",
+        });
       }
       getNecesidades().then(setNecesidades);
     } else if (entity === "centro") {
+      const coordenadas = (form.latitud && form.longitud)
+        ? { lat: parseFloat(form.latitud), lng: parseFloat(form.longitud) }
+        : undefined;
+      const payload = {
+        nombre: form.nombre,
+        region: form.region,
+        direccion: form.direccion || "",
+        telefono: form.telefono || "",
+        encargado: form.encargado || "",
+        capacidadTotal: parseInt(form.capacidadTotal, 10) || 0,
+        ...(coordenadas ? { coordenadas } : {}),
+      };
+      if (form.capacidadUsada !== "") {
+        payload.capacidadUsada = parseInt(form.capacidadUsada, 10);
+      }
       if (editItem) {
-        await actualizarCentro(editItem.id, form);
+        payload.estado = form.estado || "Activo";
+        await actualizarCentro(editItem.id, payload);
       } else {
-        await crearCentro(form);
+        await crearCentro(payload);
       }
       getCentros().then(setCentros);
     }
@@ -194,9 +225,7 @@ export default function BackOffice() {
       cantidad: userNeed.cantidad,
       unidad: userNeed.unidad,
       urgencia: userNeed.urgencia,
-      estado: "Pendiente",
       centroId: userNeed.centroId,
-      centro: userNeed.centro || "",
       reportadoPor: userNeed.reportadoPor,
       descripcion: userNeed.descripcion || "",
     });
@@ -596,7 +625,7 @@ export default function BackOffice() {
                           <td><span className="bo-id">{c.id}</span></td>
                           <td className="fw-medium">{c.nombre}</td>
                           <td>{c.region}</td>
-                          <td>{c.encargado}</td>
+                          <td>{c.encargado || "—"}</td>
                           <td>{c.capacidadTotal} unid.</td>
                           <td>
                             <div className="d-flex align-items-center gap-2">
@@ -765,9 +794,25 @@ export default function BackOffice() {
                           {formErrors.region && <div className="invalid-feedback d-block">{formErrors.region}</div>}
                         </div>
                         <div className="col-md-6">
+                          <label className="form-label small fw-semibold">Dirección</label>
+                          <input name="direccion" className="form-control" value={form.direccion || ""} onChange={handleFormChange} placeholder="Calle, número, comuna" />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label small fw-semibold">Teléfono</label>
+                          <input name="telefono" className="form-control" value={form.telefono || ""} onChange={handleFormChange} placeholder="+56 9 XXXX XXXX" />
+                        </div>
+                        <div className="col-md-6">
                           <label className="form-label small fw-semibold">Encargado</label>
                           <input name="encargado" className={`form-control${formErrors.encargado ? " is-invalid" : ""}`} value={form.encargado || ""} onChange={handleFormChange} />
                           {formErrors.encargado && <div className="invalid-feedback d-block">{formErrors.encargado}</div>}
+                        </div>
+                        <div className="col-md-3">
+                          <label className="form-label small fw-semibold">Latitud</label>
+                          <input name="latitud" type="number" step="any" className="form-control" value={form.latitud || ""} onChange={handleFormChange} placeholder="-33.4489" />
+                        </div>
+                        <div className="col-md-3">
+                          <label className="form-label small fw-semibold">Longitud</label>
+                          <input name="longitud" type="number" step="any" className="form-control" value={form.longitud || ""} onChange={handleFormChange} placeholder="-70.6693" />
                         </div>
                         <div className="col-md-3">
                           <label className="form-label small fw-semibold">Capacidad total</label>
@@ -776,8 +821,7 @@ export default function BackOffice() {
                         </div>
                         <div className="col-md-3">
                           <label className="form-label small fw-semibold">Capacidad usada</label>
-                          <input name="capacidadUsada" type="number" className={`form-control${formErrors.capacidadUsada ? " is-invalid" : ""}`} value={form.capacidadUsada || ""} onChange={handleFormChange} />
-                          {formErrors.capacidadUsada && <div className="invalid-feedback d-block">{formErrors.capacidadUsada}</div>}
+                          <input name="capacidadUsada" type="number" className="form-control" value={form.capacidadUsada ?? ""} onChange={handleFormChange} />
                         </div>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Estado</label>

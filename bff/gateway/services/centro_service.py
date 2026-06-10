@@ -46,7 +46,7 @@ async def create(body) -> CentroOut:
         "telefono": getattr(body, "telefono", ""),
         "encargado": getattr(body, "encargado", ""),
         "capacidadTotal": body.capacidadTotal,
-        "capacidadUsada": 0,
+        "capacidadUsada": getattr(body, "capacidadUsada", 0),
         "estado": "Activo",
     }
     if body.coordenadas:
@@ -77,6 +77,8 @@ async def update(code: str, body) -> CentroOut:
         payload["encargado"] = body.encargado
     if hasattr(body, "capacidadTotal") and body.capacidadTotal is not None:
         payload["capacidadTotal"] = body.capacidadTotal
+    if hasattr(body, "capacidadUsada") and body.capacidadUsada is not None:
+        payload["capacidadUsada"] = body.capacidadUsada
     if body.coordenadas is not None:
         payload["latitud"] = body.coordenadas.lat
         payload["longitud"] = body.coordenadas.lng

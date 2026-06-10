@@ -125,11 +125,11 @@ export default function Centros() {
                 </div>
                 <div className="col-6">
                   <div className="small c-muted"><i className="bi bi-person-fill me-1 c-accent"></i>Encargado/a</div>
-                  <div className="fw-semibold">{seleccionado.encargado}</div>
+                  <div className="fw-semibold">{seleccionado.encargado || "—"}</div>
                 </div>
                 <div className="col-6">
                   <div className="small c-muted"><i className="bi bi-telephone-fill me-1 c-accent"></i>Contacto</div>
-                  <div className="fw-semibold">{seleccionado.telefono}</div>
+                  <div className="fw-semibold">{seleccionado.telefono || "—"}</div>
                 </div>
               </div>
 

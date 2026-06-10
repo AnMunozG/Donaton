@@ -94,7 +94,7 @@ export default function Login() {
               </div>
               <div className="auth-divider text-center">
                 <small className="c-muted">
-                  <strong className="c-heading">Prueba:</strong> Admin: 111111111 / admin1234
+                  <strong className="c-heading">Prueba:</strong> Admin: 11111111-1 / admin1234
                 </small>
               </div>
             </div>

@@ -62,7 +62,11 @@ export async function actualizarCentro(id, data) {
 }
 
 export async function eliminarCentro(id) {
-  return centrosService.delete(id);
+  try { return await centrosService.delete(id); } catch (e) {
+    const list = loadFromStorage("centros") || [];
+    saveToStorage("centros", list.filter((c) => c.id !== id));
+    return { deleted: true };
+  }
 }
 
 // ── Donaciones ───────────────────────────────────────────────
@@ -72,8 +76,7 @@ export async function getDonaciones() {
 }
 
 export async function crearDonacion(data) {
-  try { return await donacionesService.create(data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
+  try { return await donacionesService.create(data); } catch {
     const list = loadFromStorage("donaciones") || [];
     const nums = list.map((d) => { const m = d.id?.match(/\d+/); return m ? parseInt(m[0], 10) : 0; }).filter((n) => !isNaN(n));
     const max = nums.length ? Math.max(...nums) : 0;
@@ -82,22 +85,23 @@ export async function crearDonacion(data) {
   }
 }
 
-export async function actualizarDonacion(id, data) {
-  try { return await donacionesService.update(id, data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
+export async function actualizarEstadoDonacion(id, estado) {
+  try { return await donacionesService.update(id, { estado }); } catch {
     const list = loadFromStorage("donaciones") || [];
     const idx = list.findIndex((d) => d.id === id);
     if (idx === -1) throw new Error("Donacion not found");
-    Object.assign(list[idx], data); saveToStorage("donaciones", list); return list[idx];
+    list[idx].estado = estado; saveToStorage("donaciones", list); return list[idx];
   }
 }
 
+export async function actualizarDonacion(id, data) {
+  const estado = data.estado;
+  return actualizarEstadoDonacion(id, estado);
+}
+
 export async function eliminarDonacion(id) {
-  try { return await donacionesService.delete(id); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("donaciones") || [];
-    saveToStorage("donaciones", list.filter((d) => d.id !== id));
-  }
+  const list = loadFromStorage("donaciones") || [];
+  saveToStorage("donaciones", list.filter((d) => d.id !== id));
 }
 
 // ── Necesidades (API + localStorage) ─────────────────────────
@@ -107,8 +111,7 @@ export async function getNecesidades() {
 }
 
 export async function crearNecesidad(data) {
-  try { return await necesidadesService.create(data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
+  try { return await necesidadesService.create(data); } catch {
     const list = loadFromStorage("necesidades") || [];
     const nums = list.map((n) => { const m = n.id?.match(/\d+/); return m ? parseInt(m[0], 10) : 0; }).filter((n) => !isNaN(n));
     const max = nums.length ? Math.max(...nums) : 0;
@@ -118,8 +121,7 @@ export async function crearNecesidad(data) {
 }
 
 export async function actualizarNecesidad(id, data) {
-  try { return await necesidadesService.update(id, data); } catch (e) {
-    if (!isNetworkError(e)) throw e;
+  try { return await necesidadesService.update(id, data); } catch {
     const list = loadFromStorage("necesidades") || [];
     const idx = list.findIndex((n) => n.id === id);
     if (idx === -1) throw new Error("Necesidad not found");
@@ -128,11 +130,8 @@ export async function actualizarNecesidad(id, data) {
 }
 
 export async function eliminarNecesidad(id) {
-  try { return await necesidadesService.delete(id); } catch (e) {
-    if (!isNetworkError(e)) throw e;
-    const list = loadFromStorage("necesidades") || [];
-    saveToStorage("necesidades", list.filter((n) => n.id !== id));
-  }
+  const list = loadFromStorage("necesidades") || [];
+  saveToStorage("necesidades", list.filter((n) => n.id !== id));
 }
 
 // ── Auth ─────────────────────────────────────────────────────

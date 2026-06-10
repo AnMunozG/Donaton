@@ -21,6 +21,7 @@ class CentroCreate(Schema):
     encargado: str = ""
     coordenadas: Optional[Coordenadas] = None
     capacidadTotal: int = 0
+    capacidadUsada: int = 0
 
 
 class CentroUpdate(Schema):
@@ -31,6 +32,7 @@ class CentroUpdate(Schema):
     encargado: Optional[str] = None
     coordenadas: Optional[Coordenadas] = None
     capacidadTotal: Optional[int] = None
+    capacidadUsada: Optional[int] = None
     inventario: Optional[list[InventarioItem]] = None
     estado: Optional[str] = None
 

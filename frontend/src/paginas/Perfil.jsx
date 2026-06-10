@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../componentes/AuthContext";
 import { getDonaciones, actualizarCuenta } from "../api.js";
-import { validarRequerido, validarEmail, validarPassword, validarConfirmacion, validarForm } from "../componentes/Validaciones.js";
+import { validarRequerido, validarEmail, validarForm } from "../componentes/Validaciones.js";
 
 export default function Perfil() {
   const { user, isAuth, updateUser } = useAuth();
@@ -15,18 +15,18 @@ export default function Perfil() {
     return () => clearTimeout(guardadoTimer.current);
   }, []);
 
-  const [form, setForm] = useState({ nombre: "", email: "", password: "", confirmacion: "" });
+  const [form, setForm] = useState({ nombre: "", email: "" });
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     if (!isAuth) return;
     getDonaciones().then((lista) => {
-      setDonaciones(lista.filter((d) => d.origen === user.rut).reverse());
+      setDonaciones(lista.reverse());
     });
   }, [isAuth, user?.rut]);
 
   useEffect(() => {
-    if (editando) setForm({ nombre: user.nombre || "", email: user.email || "", password: "", confirmacion: "" });
+    if (editando) setForm({ nombre: user.nombre || "", email: user.email || "" });
   }, [editando, user?.nombre, user?.email]);
 
   if (!isAuth) return <Navigate to="/login" replace />;
@@ -42,20 +42,10 @@ export default function Perfil() {
       { campo: "nombre", nombre: "Nombre", validaciones: [validarRequerido] },
       { campo: "email", nombre: "Correo electrónico", validaciones: [validarRequerido, validarEmail] },
     ];
-    if (form.password) {
-      reglas.push(
-        { campo: "password", nombre: "Contraseña", validaciones: [validarRequerido, validarPassword] },
-      );
-    }
     const errores = validarForm(form, reglas);
-    if (form.password) {
-      const confMsg = validarConfirmacion(form.password, form.confirmacion);
-      if (confMsg) errores.confirmacion = confMsg;
-    }
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
     const data = { nombre: form.nombre, email: form.email };
-    if (form.password) data.password = form.password;
     try {
       await actualizarCuenta(user.rut, data);
       updateUser(data);
@@ -125,16 +115,7 @@ export default function Perfil() {
                     <input name="email" type="email" className={`form-control form-control-sm${formErrors.email ? " is-invalid" : ""}`} value={form.email} onChange={handleChange} />
                     {formErrors.email && <div className="invalid-feedback d-block">{formErrors.email}</div>}
                   </div>
-                  <div className="mb-2">
-                    <label className="form-label small fw-semibold">Nueva contraseña <span className="c-muted">(opcional)</span></label>
-                    <input name="password" type="password" className={`form-control form-control-sm${formErrors.password ? " is-invalid" : ""}`} placeholder="Mínimo 8 caracteres" value={form.password} onChange={handleChange} />
-                    {formErrors.password && <div className="invalid-feedback d-block">{formErrors.password}</div>}
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Confirmar contraseña</label>
-                    <input name="confirmacion" type="password" className={`form-control form-control-sm${formErrors.confirmacion ? " is-invalid" : ""}`} placeholder="Repite la contraseña" value={form.confirmacion} onChange={handleChange} />
-                    {formErrors.confirmacion && <div className="invalid-feedback d-block">{formErrors.confirmacion}</div>}
-                  </div>
+
                   <div className="d-flex gap-2">
                     <button type="submit" className="btn btn-accent btn-sm flex-grow-1"><i className="bi bi-check-lg me-1"></i>Guardar</button>
                     <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setEditando(false)}>Cancelar</button>

@@ -23,7 +23,7 @@ class UsuariosClient(ServiceClient):
         })
 
     async def login(self, rut: str, password: str) -> dict:
-        return await self.post("/api/login/", {"rut": rut, "password": password})
+        return await self.post("/api/login/", {"username": rut, "password": password})
 
     # ── Requieren token de Usuarios (IsAuthenticated) ──
 
