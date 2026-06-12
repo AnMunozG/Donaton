@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Donacion
 
 class DonacionSerializer(serializers.ModelSerializer):
-    id = serializers.CharField(source='id_donacion')
+    id = serializers.CharField(source='idDonacion', read_only=True)
 
     class Meta:
         model = Donacion

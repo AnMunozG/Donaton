@@ -71,6 +71,7 @@ async def health(request):
     servicios = {
         "usuarios": await check("usuarios", "USUARIOS_URL"),
         "logistica": await check("logistica", "LOGISTICA_URL"),
+        "donaciones": await check("donaciones", "DONACIONES_URL"),
     }
     return {
         "db": "n/a (BFF sin BD de dominio)",
@@ -144,6 +145,11 @@ async def create_donacion(request, body: DonacionCreate):
 @api.patch("/donaciones/{code}/estado", response=DonacionOut)
 async def update_donacion_estado(request, code: str, body: DonacionUpdate):
     return await donacion_service.update_estado(code, body.estado)
+
+@api.delete("/donaciones/{code}", response={204: None})
+async def delete_donacion(request, code: str):
+    await donacion_service.delete(code)
+    return 204, None
 
 @api.get("/donaciones/stats/resumen", auth=None, response=DonacionStatsOut)
 async def get_donacion_stats(request):

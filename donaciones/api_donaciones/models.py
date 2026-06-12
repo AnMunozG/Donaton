@@ -10,6 +10,8 @@ class Donacion(models.Model):
     fecha = models.DateField()
     estado = models.CharField(max_length=50)
     detalles = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.id_donacion} - {self.tipo}"
+        return f"{self.idDonacion} - {self.tipo}"

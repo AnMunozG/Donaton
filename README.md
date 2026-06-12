@@ -6,22 +6,25 @@ Plataforma web de donaciones transparentes que conecta donantes, municipalidades
 
 ```
 ┌──────────┐     ┌─────────────────────────────────────┐     ┌───────────────┐
-│ Frontend │────▶│              BFF (API Gateway)       │────▶│  Usuarios   │
-│ (React)  │     │        Django + Django Ninja        │     │  (Django)     │
+│ Frontend │────▶│              BFF (API Gateway)       │────▶│  Usuarios    │
+│ (React)  │     │        Django + Django Ninja         │     │  (Django)    │
 │  :80     │     │               :8080                  │     │  :8002       │
 └──────────┘     │                                      │     ├──────────────┤
-                 │  - Auth (login/register/profile)      │────▶│  Logística  |
+                 │  - Auth (login/register/profile)      │────▶│  Logística   │
                  │  - Centros CRUD + inventario          │     │  (Django)    │
-                 │  - Donaciones (placeholder)           │     │  :8001       │
-                 │  - Necesidades (placeholder)          │     └──────────────┘
-                 │  - Catálogos / contenido estático     │
-                 └─────────────────────────────────────┘
+                 │  - Donaciones CRUD + stats            │     │  :8001       │
+                 │  - Necesidades ciudadanas             │     ├──────────────┤
+                 │  - Catálogos / contenido estático     │────▶│  Donaciones  │
+                 └─────────────────────────────────────┘     │  (Django)    │
+                                                             │  :8003       │
+                                                             └──────────────┘
 ```
 
 - **Frontend**: React 19 + Vite + Bootstrap 5 + Recharts
 - **BFF** (Backend-for-Frontend): Django 5 + Django Ninja (API Gateway)
 - **Usuarios**: Django 5 + DRF + SimpleJWT (gestión de usuarios)
-- **Logística**: Django 5 + DRF + SimpleJWT (centros, productos, inventario)
+- **Logística**: Django 5 + DRF + SimpleJWT (centros, inventario JSON)
+- **Donaciones**: Django 5 + DRF + drf-spectacular (donaciones CRUD + estadísticas)
 
 ## Requisitos
 
@@ -50,6 +53,8 @@ Servicios disponibles:
 | Usuarios Docs | http://localhost:8002/api/docs/ |
 | Logística API | http://localhost:8001/api/ |
 | Logística Docs | http://localhost:8001/api/docs/ |
+| Donaciones API | http://localhost:8003/api/ |
+| Donaciones Docs | http://localhost:8003/api/docs/ |
 
 ## Comandos útiles (Makefile)
 
@@ -113,6 +118,18 @@ python manage.py seed
 python manage.py runserver 8001
 ```
 
+### Donaciones
+
+```bash
+cd donaciones
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+# Requiere MySQL con base 'backend_donaciones'
+python manage.py migrate
+python manage.py runserver 8002
+```
+
 ## Variables de entorno
 
 Copia el archivo `.env` incluido y ajusta según sea necesario:
@@ -166,14 +183,23 @@ Donaton/
 │   │   └── serializers.py
 │   └── requirements.txt
 │
+├── donaciones/              # Microservicio de Donaciones
+│   ├── confing/
+│   │   └── settings.py      # Django + DRF + MySQL
+│   ├── api_donaciones/
+│   │   ├── models.py        # Donacion
+│   │   ├── views.py         # ViewSet con filtros + stats
+│   │   └── serializers.py
+│   ├── management/          # Comandos seed
+│   └── requirements.txt
+│
 └── logistica/               # Microservicio de Logística
     ├── config/
     │   └── settings.py      # Django + DRF + SimpleJWT
     ├── logistica/
-    │   ├── models.py        # CentroAcopio, Producto, Inventario
+    │   ├── models.py        # CentroAcopio con inventario JSON
     │   ├── views.py         # ViewSets con permisos
-    │   ├── serializers.py
-    │   └── permissions.py   # IsAdminOrReadOnly
+    │   └── serializers.py
     └── requirements.txt
 ```
 
@@ -192,9 +218,11 @@ Donaton/
 | PUT | `/api/centros/{id}` | JWT | Actualizar centro |
 | GET | `/api/centros/{id}/stats` | - | Estadísticas de centro |
 | GET | `/api/centros/{id}/inventario` | - | Inventario de centro |
-| GET | `/api/donaciones` | - | Listar donaciones |
-| POST | `/api/donaciones` | JWT | Crear donación |
+| GET | `/api/donaciones` | - | Listar donaciones (filtros: estado, centro_code, tipo) |
+| GET | `/api/donaciones/{code}` | - | Detalle de donación |
+| POST | `/api/donaciones` | JWT | Crear donación (actualiza inventario en logística) |
 | PATCH | `/api/donaciones/{code}/estado` | JWT | Actualizar estado |
+| GET | `/api/donaciones/stats/resumen` | - | Estadísticas de donaciones |
 | GET | `/api/necesidades` | - | Listar necesidades |
 | POST | `/api/necesidades` | JWT | Crear necesidad |
 | GET | `/api/static/*` | - | Catálogos y contenido estático |
