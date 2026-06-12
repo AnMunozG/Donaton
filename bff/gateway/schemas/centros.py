@@ -57,3 +57,27 @@ class CentroStatsOut(Schema):
     total_donaciones: int
     total_necesidades: int
     capacidad_usada: float
+
+
+class CoordenadaPunto(Schema):
+    lat: float
+    lng: float
+
+
+class RutaRequest(Schema):
+    origen_lat: float
+    origen_lng: float
+    dest_lat: float
+    dest_lng: float
+    modo: str = "driving"
+
+
+class RutaPuntoOut(Schema):
+    lat: float
+    lng: float
+
+
+class RutaOut(Schema):
+    line: list[RutaPuntoOut]
+    distancia: float
+    duracion: float

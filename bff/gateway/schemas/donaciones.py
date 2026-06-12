@@ -25,7 +25,7 @@ class DonacionOut(Schema):
     unidad: str
     origen: str
     centroId: str
-    centro: str  # nombre del centro
+    centro: str = ""  # nombre del centro (se resuelve si está disponible)
     fecha: str
     estado: str
     detalles: dict = {}

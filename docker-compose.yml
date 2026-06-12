@@ -57,6 +57,34 @@ services:
       mysql-logistica:
         condition: service_healthy
 
+  mysql-donaciones:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      MYSQL_DATABASE: backend_donaciones
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_donaciones_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  donaciones:
+    build: ./donaciones
+    ports:
+      - "8003:8002"
+    environment:
+      DB_HOST: mysql-donaciones
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      DEBUG: ${DJANGO_DEBUG:-True}
+      ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,donaciones
+    depends_on:
+      mysql-donaciones:
+        condition: service_healthy
+
   bff:
     build: ./bff
     ports:
@@ -64,6 +92,7 @@ services:
     environment:
       USUARIOS_URL: http://usuarios:8000
       LOGISTICA_URL: http://logistica:8001
+      DONACIONES_URL: http://donaciones:8002
       LOGISTICA_JWT_SECRET: ${LOGISTICA_JWT_SECRET}
       BFF_JWT_SECRET: ${BFF_JWT_SECRET:-bff-jwt-secret-change-in-production}
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:8002,http://localhost,http://localhost:80,http://localhost:8080
@@ -75,6 +104,8 @@ services:
       usuarios:
         condition: service_started
       logistica:
+        condition: service_started
+      donaciones:
         condition: service_started
 
   frontend:
@@ -90,4 +121,5 @@ services:
 volumes:
   mysql_usuarios_data:
   mysql_logistica_data:
+  mysql_donaciones_data:
   bff_data:

@@ -23,6 +23,9 @@ class DonacionesClient(ServiceClient):
     async def actualizar_estado_donacion(self, code: str, data: dict) -> dict:
         return await self.patch(f"/api/donaciones/{code}/", data)
 
+    async def eliminar_donacion(self, code: str) -> dict:
+        return await self.delete(f"/api/donaciones/{code}/")
+
     # ── Estadísticas ──
 
     async def obtener_estadisticas(self) -> dict:

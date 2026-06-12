@@ -7,13 +7,13 @@ from typing import Optional
 
 from .exceptions import BffError
 from .schemas.auth import LoginIn, LoginOut, RegisterIn, UserOut, UserUpdateIn
-from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem
+from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem, RutaRequest, RutaOut
 from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, DonacionStatsOut
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut,
                              RegionOut, CategoriaDonacionOut, PasoFuncionamientoOut, ImpactoStatsOut, DistribucionFondosOut,
                              CampoOut)
-from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service
+from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service, routing_service
 from .clients import usuarios_client
 
 
@@ -71,6 +71,7 @@ async def health(request):
     servicios = {
         "usuarios": await check("usuarios", "USUARIOS_URL"),
         "logistica": await check("logistica", "LOGISTICA_URL"),
+        "donaciones": await check("donaciones", "DONACIONES_URL"),
     }
     return {
         "db": "n/a (BFF sin BD de dominio)",
@@ -127,6 +128,11 @@ async def get_centro_inventario(request, code: str):
     return await centro_service.get_inventario(code)
 
 
+@api.get("/ruta", auth=None, response=RutaOut)
+async def get_ruta(request, origen_lat: float, origen_lng: float, dest_lat: float, dest_lng: float, modo: str = "driving"):
+    return await routing_service.calcular_ruta(origen_lat, origen_lng, dest_lat, dest_lng, modo)
+
+
 # ── Donaciones ──
 
 @api.get("/donaciones", auth=None, response=list[DonacionOut])
@@ -144,6 +150,11 @@ async def create_donacion(request, body: DonacionCreate):
 @api.patch("/donaciones/{code}/estado", response=DonacionOut)
 async def update_donacion_estado(request, code: str, body: DonacionUpdate):
     return await donacion_service.update_estado(code, body.estado)
+
+@api.delete("/donaciones/{code}", response={204: None})
+async def delete_donacion(request, code: str):
+    await donacion_service.delete(code)
+    return 204, None
 
 @api.get("/donaciones/stats/resumen", auth=None, response=DonacionStatsOut)
 async def get_donacion_stats(request):

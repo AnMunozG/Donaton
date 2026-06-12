@@ -1,5 +1,3 @@
-from ..clients import logistica_client
-
 REGIONES = [
     "Arica y Parinacota", "Tarapacá", "Antofagasta", "Atacama",
     "Coquimbo", "Valparaíso", "Metropolitana de Santiago", "O'Higgins",
@@ -18,10 +16,10 @@ CATEGORIAS_DONACION = [
 ]
 
 PASOS_FUNCIONAMIENTO = [
-    {"code": "p1", "paso": 1, "titulo": "Regístrate", "descripcion": "Crea una cuenta como donante o voluntario."},
-    {"code": "p2", "paso": 2, "titulo": "Elige cómo ayudar", "descripcion": "Selecciona una campaña, centro o necesidad activa."},
-    {"code": "p3", "paso": 3, "titulo": "Coordina tu aporte", "descripcion": "Define monto, artículos o tiempo según tu elección."},
-    {"code": "p4", "paso": 4, "titulo": "Sigue el impacto", "descripcion": "Recibe actualizaciones y mira el impacto de tu ayuda."},
+    {"code": "p1", "paso": 1, "titulo": "Regístrate", "descripcion": "Crea una cuenta como donante o voluntario.", "icono": "bi-person-plus-fill"},
+    {"code": "p2", "paso": 2, "titulo": "Elige cómo ayudar", "descripcion": "Selecciona una campaña, centro o necesidad activa.", "icono": "bi-hand-index-thumb-fill"},
+    {"code": "p3", "paso": 3, "titulo": "Coordina tu aporte", "descripcion": "Define monto, artículos o tiempo según tu elección.", "icono": "bi-calendar-check-fill"},
+    {"code": "p4", "paso": 4, "titulo": "Sigue el impacto", "descripcion": "Recibe actualizaciones y mira el impacto de tu ayuda.", "icono": "bi-graph-up-arrow"},
 ]
 
 IMPACTO_STATS = [
@@ -136,12 +134,17 @@ UNIDADES = [
 ]
 
 
+TIPOS_RECURSO = [
+    {"code": "alimentos", "nombre": "Alimentos no perecibles", "descripcion": "Arroz, fideos, legumbres, aceite, leche en polvo", "activo": True},
+    {"code": "ropa", "nombre": "Ropa y abrigo", "descripcion": "Chaquetas, frazadas, calcetines, zapatos", "activo": True},
+    {"code": "medicamentos", "nombre": "Insumos médicos", "descripcion": "Vendas, alcohol, paracetamol, mascarillas", "activo": True},
+    {"code": "higiene", "nombre": "Artículos de higiene", "descripcion": "Jabón, pasta dental, pañales, toallitas", "activo": True},
+    {"code": "dinero", "nombre": "Donación Monetaria", "descripcion": "Aporte económico vía transferencia o webpay", "activo": True},
+    {"code": "utensilios", "nombre": "Utensilios del hogar", "descripcion": "Ollas, vajilla, ropa de cama", "activo": True},
+]
+
 async def get_tipos_recurso():
-    productos = await logistica_client.listar_productos()
-    return [
-        {"code": str(p["id"]), "nombre": p["nombre"], "descripcion": p.get("descripcion", ""), "activo": p.get("activo", True)}
-        for p in productos
-    ]
+    return TIPOS_RECURSO
 
 
 async def get_unidades():

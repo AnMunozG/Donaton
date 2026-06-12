@@ -33,6 +33,13 @@ class RegistroSerializer(serializers.ModelSerializer):
 
         if dv_ingresado != dv_esperado:
             raise serializers.ValidationError("Dígito verificador incorrecto.")
+
+        from .models import Usuario
+        qs = Usuario.objects.filter(username=rut_limpio)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Este RUT ya está registrado.")
         
         return rut_limpio
 

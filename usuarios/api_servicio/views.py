@@ -21,15 +21,9 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            
-            # Nota: En JWT, el token no se crea aquí manualmente en la DB.
-            # El usuario se registra y luego va al endpoint /api/login/ 
-            # para obtener su llave (Access Token).
-            
             return Response({
                 'mensaje': 'Usuario creado con éxito',
                 'rut': user.rut,
                 'siguiente_paso': 'Ahora obtén tu token en /api/login/'
             }, status=status.HTTP_201_CREATED)
-        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

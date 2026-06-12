@@ -1,4 +1,3 @@
-from datetime import datetime
 from ..schemas.donaciones import DonacionOut
 from ..exceptions import NotFoundError
 from ..clients.donaciones_client import DonacionesClient
@@ -29,9 +28,10 @@ async def get_by_code(code: str) -> DonacionOut:
 
 
 async def create(body, rut: str) -> DonacionOut:
-    body["origen"] = rut
+    data = body.dict()
+    data["origen"] = rut
 
-    donacion_real_data = await donaciones_client.crear_donacion(body)
+    donacion_real_data = await donaciones_client.crear_donacion(data)
     
     if not donacion_real_data:
         raise NotFoundError("El microservicio de donaciones no procesó la solicitud.")
@@ -52,15 +52,17 @@ async def create(body, rut: str) -> DonacionOut:
 
                 encontrado = False
                 for item in inventario_actual:
-                    if item.get("item") == tipo_recurso and item.get("unidad") == unidad_donada:
-                        item["cantidad"] = int(item["cantidad"]) + cantidad_donada
+                    nombre_item = item.get("item") or item.get("tipo")
+                    if nombre_item == tipo_recurso and item.get("unidad") == unidad_donada:
+                        cantidad_actual = int(str(item["cantidad"]).split()[0].replace(".", ""))
+                        item["cantidad"] = str(cantidad_actual + cantidad_donada)
                         encontrado = True
                         break
                 
                 if not encontrado:
                     inventario_actual.append({
-                        "item": tipo_recurso,
-                        "cantidad": cantidad_donada,
+                        "tipo": tipo_recurso,
+                        "cantidad": str(cantidad_donada),
                         "unidad": unidad_donada
                     })
 
@@ -89,6 +91,10 @@ async def update_estado(code: str, nuevo_estado: str) -> DonacionOut:
     if not donacion_actualizada:
         raise NotFoundError(f"No se pudo actualizar la donación {code}")
     return DonacionOut(**donacion_actualizada)
+
+
+async def delete(code: str) -> None:
+    await donaciones_client.eliminar_donacion(code)
 
 
 async def get_stats() -> dict:

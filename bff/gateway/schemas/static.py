@@ -73,6 +73,7 @@ class PasoFuncionamientoOut(Schema):
     paso: int
     titulo: str
     descripcion: str
+    icono: str = ""
 
 
 class ImpactoStatsOut(Schema):
