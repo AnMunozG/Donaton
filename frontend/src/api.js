@@ -75,6 +75,12 @@ export async function getHitos() {
   return fetchStatic("/static/hitos");
 }
 
+export async function getRuta(origenLat, origenLng, destLat, destLng, modo = "driving") {
+  const res = await api.get("/ruta", { params: { origen_lat: origenLat, origen_lng: origenLng, dest_lat: destLat, dest_lng: destLng, modo } });
+  return res;
+}
+
+
 // ── Centros (solo API — Logistica) ───────────────────────────
 
 export async function getCentros() {

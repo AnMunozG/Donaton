@@ -110,7 +110,7 @@ export default function Inicio() {
             <div className="carrusel-track">
               {items.map((cat, i) => (
                 <div key={i} className="carrusel-card">
-                  <i className={`bi ${cat.icon} fs-2 mb-3 d-block c-accent`}></i>
+                  <i className={`bi ${cat.icono} fs-2 mb-3 d-block c-accent`}></i>
                   <div className="fw-semibold mb-1 c-heading">{cat.nombre}</div>
                   <div className="small c-muted">{cat.descripcion}</div>
                 </div>
@@ -190,11 +190,11 @@ export default function Inicio() {
             <div key={i} className="col-12 col-md-6 col-lg-3">
               <div className="p-4 rounded-4 h-100 d-flex flex-column gap-2 card-surface">
                 <div className="d-flex align-items-center gap-3 mb-1">
-                  <span className="numero-paso fw-bold fs-5">{paso.num}</span>
-                  <i className={`bi ${paso.icon} fs-4 c-accent`}></i>
+                  <span className="numero-paso fw-bold fs-5">{paso.paso}</span>
+                  <i className={`bi ${paso.icono} fs-4 c-accent`}></i>
                 </div>
                 <div className="fw-semibold c-heading">{paso.titulo}</div>
-                <div className="small c-muted">{paso.texto}</div>
+                <div className="small c-muted">{paso.descripcion}</div>
               </div>
             </div>
           ))}

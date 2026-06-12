@@ -7,13 +7,13 @@ from typing import Optional
 
 from .exceptions import BffError
 from .schemas.auth import LoginIn, LoginOut, RegisterIn, UserOut, UserUpdateIn
-from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem
+from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem, RutaRequest, RutaOut
 from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, DonacionStatsOut
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut,
                              RegionOut, CategoriaDonacionOut, PasoFuncionamientoOut, ImpactoStatsOut, DistribucionFondosOut,
                              CampoOut)
-from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service
+from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service, routing_service
 from .clients import usuarios_client
 
 
@@ -126,6 +126,11 @@ async def get_centro_stats(request, code: str):
 @api.get("/centros/{code}/inventario", auth=None, response=list[InventarioItem])
 async def get_centro_inventario(request, code: str):
     return await centro_service.get_inventario(code)
+
+
+@api.get("/ruta", auth=None, response=RutaOut)
+async def get_ruta(request, origen_lat: float, origen_lng: float, dest_lat: float, dest_lng: float, modo: str = "driving"):
+    return await routing_service.calcular_ruta(origen_lat, origen_lng, dest_lat, dest_lng, modo)
 
 
 # ── Donaciones ──

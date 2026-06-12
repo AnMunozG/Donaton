@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { getCentros, getNecesidades, urgenciaColorMap, estadoNecColorMap } from "../api.js";
+import { getCentros, getNecesidades, getRuta, urgenciaColorMap, estadoNecColorMap } from "../api.js";
 import { capacidadColor } from "../componentes/Validaciones.js";
 import Mapa from "../componentes/Mapa";
 import banner2Img from "../assets/Banner2.png";
 
-const OSRM_BASE = "https://router.project-osrm.org/route/v1";
 const TRAVEL_MODES = [
   { key: "driving",  label: "Auto",       icon: "bi-car-front" },
   { key: "walking",  label: "Caminando",  icon: "bi-person-walking" },
@@ -51,26 +50,21 @@ export default function Centros() {
     setRouteInfo(null);
 
     const dest = seleccionado.coordenadas;
-    const url = `${OSRM_BASE}/${modo}/${origen.lng},${origen.lat};${dest.lng},${dest.lat}?geometries=geojson&overview=full&steps=false&alternatives=false&_=${Date.now()}`;
+    if (!origen?.lat || !origen?.lng || !dest?.lat || !dest?.lng || isNaN(+origen.lat) || isNaN(+origen.lng) || isNaN(+dest.lat) || isNaN(+dest.lng)) {
+      setRouteError("Coordenadas inválidas. El centro no tiene una ubicación registrada.");
+      setRouteLoading(false);
+      return;
+    }
 
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al obtener la ruta");
-        return res.json();
-      })
+    getRuta(origen.lat, origen.lng, dest.lat, dest.lng, modo)
       .then((data) => {
-        if (data.code !== "Ok" || !data.routes?.length) {
-          throw new Error("No se pudo calcular la ruta");
-        }
-        setRouteLine(
-          data.routes[0].geometry.coordinates.map((c) => ({ lat: c[1], lng: c[0] }))
-        );
-        setRouteInfo({
-          distancia: data.routes[0].distance,
-          duracion: data.routes[0].duration,
-        });
+        setRouteLine(data.line);
+        setRouteInfo({ distancia: data.distancia, duracion: data.duracion });
       })
-      .catch((err) => setRouteError(err.message))
+      .catch((err) => {
+        const msg = err?.response?.data?.detail || err?.message || "Error al calcular la ruta";
+        setRouteError(msg);
+      })
       .finally(() => setRouteLoading(false));
   }
 
