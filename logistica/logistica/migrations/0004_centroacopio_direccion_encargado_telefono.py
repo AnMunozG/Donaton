@@ -1,26 +1,11 @@
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
+    """No-op: estos campos ya existen en 0001_initial."""
 
     dependencies = [
-        ('logistica', '0003_crear_system_user'),
+        ('logistica', '0002_cargar_datos'),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name='centroacopio',
-            name='direccion',
-            field=models.CharField(default='', max_length=255),
-        ),
-        migrations.AddField(
-            model_name='centroacopio',
-            name='encargado',
-            field=models.CharField(default='', max_length=100),
-        ),
-        migrations.AddField(
-            model_name='centroacopio',
-            name='telefono',
-            field=models.CharField(default='', max_length=50),
-        ),
-    ]
+    operations = []

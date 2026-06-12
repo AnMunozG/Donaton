@@ -688,6 +688,48 @@ footer .border-top-section {
   }
 }
 
+/* ── LOCALIZAR BOTÓN ──────────────────────────────────────── */
+.btn-localizar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  transition: opacity 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+.btn-localizar:hover:not(:disabled) {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+.btn-localizar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── RUTA INFO ──────────────────────────────────────────────── */
+.route-info {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+}
+.route-info .badge {
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+.route-info .btn-group .btn {
+  line-height: 1;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.85rem;
+}
+.route-info .btn-group .btn i {
+  font-size: 0.95rem;
+}
+
 /* ── CENTROS: panel de detalle ────────────────────────────── */
 .lista-centros {
   max-height: 790px;

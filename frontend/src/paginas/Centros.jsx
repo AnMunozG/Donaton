@@ -4,16 +4,35 @@ import { capacidadColor } from "../componentes/Validaciones.js";
 import Mapa from "../componentes/Mapa";
 import banner2Img from "../assets/Banner2.png";
 
+const OSRM_BASE = "https://router.project-osrm.org/route/v1";
+const TRAVEL_MODES = [
+  { key: "driving",  label: "Auto",       icon: "bi-car-front" },
+  { key: "walking",  label: "Caminando",  icon: "bi-person-walking" },
+  { key: "cycling",  label: "Bicicleta",  icon: "bi-bicycle" },
+];
+
 export default function Centros() {
   const [centros, setCentros] = useState([]);
   const [necesidades, setNecesidades] = useState([]);
   const [seleccionado, setSeleccionado] = useState(null);
   const [filtroRegion, setFiltroRegion] = useState("Todas");
+  const [routeLine, setRouteLine] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [routeInfo, setRouteInfo] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState(null);
+  const [travelMode, setTravelMode] = useState("driving");
 
   useEffect(() => {
     getCentros().then(setCentros);
     getNecesidades().then(setNecesidades);
   }, []);
+
+  useEffect(() => {
+    setRouteLine(null);
+    setRouteInfo(null);
+    setRouteError(null);
+  }, [seleccionado]);
 
   const regiones = ["Todas", ...new Set(centros.map((c) => c.region))];
 
@@ -24,6 +43,82 @@ export default function Centros() {
   const necesidadesDelCentro = seleccionado
     ? necesidades.filter((n) => n.centroId === seleccionado.id)
     : [];
+
+  function fetchRoute(origen, modo) {
+    setRouteError(null);
+    setRouteLoading(true);
+    setRouteLine(null);
+    setRouteInfo(null);
+
+    const dest = seleccionado.coordenadas;
+    const url = `${OSRM_BASE}/${modo}/${origen.lng},${origen.lat};${dest.lng},${dest.lat}?geometries=geojson&overview=full&steps=false&alternatives=false&_=${Date.now()}`;
+
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al obtener la ruta");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.code !== "Ok" || !data.routes?.length) {
+          throw new Error("No se pudo calcular la ruta");
+        }
+        setRouteLine(
+          data.routes[0].geometry.coordinates.map((c) => ({ lat: c[1], lng: c[0] }))
+        );
+        setRouteInfo({
+          distancia: data.routes[0].distance,
+          duracion: data.routes[0].duration,
+        });
+      })
+      .catch((err) => setRouteError(err.message))
+      .finally(() => setRouteLoading(false));
+  }
+
+  function handleLocalizar() {
+    if (!seleccionado?.coordenadas) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const user = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(user);
+        fetchRoute(user, travelMode);
+      },
+      (err) => {
+        setRouteError(
+          err.code === 1
+            ? "Permiso de ubicación denegado. Actívalo en la configuración de tu navegador."
+            : "No se pudo obtener tu ubicación. Verifica que el GPS esté activo."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function handleCambiarModo(modo) {
+    setTravelMode(modo);
+    if (userLocation) {
+      fetchRoute(userLocation, modo);
+    }
+  }
+
+  function limpiarRuta() {
+    setRouteLine(null);
+    setUserLocation(null);
+    setRouteInfo(null);
+    setRouteError(null);
+  }
+
+  function formatearDistancia(m) {
+    if (!m) return "";
+    return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
+  }
+
+  function formatearDuracion(s) {
+    if (!s) return "";
+    return s >= 3600
+      ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min`
+      : `${Math.round(s / 60)} min`;
+  }
 
   return (
     <div className="centros">
@@ -104,7 +199,13 @@ export default function Centros() {
 
         <div className="col-12 col-lg-8">
           <div className="mb-3">
-            <Mapa centros={centrosFiltrados} seleccionado={seleccionado} onSelect={setSeleccionado} />
+            <Mapa
+              centros={centrosFiltrados}
+              seleccionado={seleccionado}
+              onSelect={setSeleccionado}
+              routeLine={routeLine}
+              userLocation={userLocation}
+            />
           </div>
 
           {seleccionado ? (
@@ -119,8 +220,19 @@ export default function Centros() {
 
               <div className="row g-3 mb-4">
                 <div className="col-12">
-                  <div className="small c-muted">
-                    <i className="bi bi-geo-alt-fill me-1 c-accent"></i>{seleccionado.direccion}
+                  <div className="small c-muted d-flex align-items-center gap-2 flex-wrap">
+                    <span><i className="bi bi-geo-alt-fill me-1 c-accent"></i>{seleccionado.direccion}</span>
+                    {seleccionado.coordenadas && (
+                      <button
+                        className="btn-localizar"
+                        onClick={handleLocalizar}
+                        disabled={routeLoading}
+                        title="Generar ruta desde tu ubicación"
+                      >
+                        <i className="bi bi-pin-map"></i>
+                        {routeLoading ? " Calculando..." : " Localizar"}
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="col-6">
@@ -132,6 +244,59 @@ export default function Centros() {
                   <div className="fw-semibold">{seleccionado.telefono || "—"}</div>
                 </div>
               </div>
+
+              {routeError && (
+                <div className="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-4">
+                  <i className="bi bi-exclamation-triangle-fill"></i>
+                  {routeError}
+                </div>
+              )}
+
+              {(routeInfo || userLocation) && (
+                <div className="route-info d-flex align-items-start flex-column flex-sm-row align-items-sm-center justify-content-between flex-wrap gap-2 mb-4 py-2 px-3 rounded-3">
+                  <div className="d-flex align-items-center gap-2 flex-wrap small">
+                    {routeInfo ? (
+                      <>
+                        <span><i className="bi bi-geo-alt-fill me-1 text-primary"></i>Tu ubicación</span>
+                        <i className="bi bi-arrow-right c-muted"></i>
+                        <span><i className="bi bi-building me-1 text-success"></i>{seleccionado.nombre}</span>
+                        <span className="badge bg-light text-dark border">
+                          <i className="bi bi-sign-turn-right me-1"></i>{formatearDistancia(routeInfo.distancia)}
+                        </span>
+                        <span className="badge bg-light text-dark border">
+                          <i className="bi bi-clock me-1"></i>{formatearDuracion(routeInfo.duracion)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="c-muted">
+                        {routeLoading ? (
+                          <><span className="spinner-border spinner-border-sm me-1" role="status"></span>Calculando ruta...</>
+                        ) : (
+                          <><i className="bi bi-geo-alt-fill me-1 text-primary"></i>Ubicación obtenida</>
+                        )}
+                      </span>
+                    )}
+                    <div className="btn-group btn-group-sm ms-1" role="group">
+                      {TRAVEL_MODES.map((m) => (
+                        <button
+                          key={m.key}
+                          className={`btn btn-sm ${travelMode === m.key ? "btn-primary" : "btn-outline-primary"}`}
+                          onClick={() => handleCambiarModo(m.key)}
+                          title={m.label}
+                          disabled={routeLoading}
+                        >
+                          <i className={m.icon}></i>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="d-flex gap-1">
+                    <button className="btn btn-sm btn-outline-secondary" onClick={limpiarRuta}>
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <h3 className="fs-6 fw-bold mb-3 c-heading">
                 <i className="bi bi-flag-fill me-2 c-primary"></i>Necesidades asignadas
