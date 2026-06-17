@@ -101,6 +101,7 @@ REDIS_URL = os.getenv("REDIS_URL", "")
 USUARIOS_URL = os.getenv("USUARIOS_URL", "http://localhost:8002")
 LOGISTICA_URL = os.getenv("LOGISTICA_URL", "http://localhost:8001")
 DONACIONES_URL = os.getenv("DONACIONES_URL", "http://localhost:8003")
+NECESIDADES_URL = os.getenv("NECESIDADES_URL", "http://localhost:8004")
 
 # ── Logging ──
 LOGGING = {

@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+echo "==> Waiting for MySQL (logistica)..."
+while ! python3 -c "import socket; s=socket.socket(); s.connect(('mysql-logistica', 3306)); s.close()" 2>/dev/null; do
+  sleep 1
+done
+echo "==> MySQL is ready!"
+
 echo "==> Running migrations..."
 python manage.py migrate --noinput
 

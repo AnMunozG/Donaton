@@ -1,12 +1,9 @@
-from datetime import datetime
 from ..schemas.necesidades import NecesidadOut, PropuestaOut
 from ..exceptions import NotFoundError
+from ..clients.necesidades_client import NecesidadesClient
 from . import centro_service
 
-_necesidades = {}
-_ciudadanas = {}
-_counter = 0
-_ciudadana_counter = 0
+necesidades_client = NecesidadesClient()
 
 
 async def _centro_nombre(centro_id: str) -> str:
@@ -17,79 +14,117 @@ async def _centro_nombre(centro_id: str) -> str:
         return centro_id
 
 
+def _model_to_out(n: dict) -> dict:
+    return {
+        "id": str(n.get("id", "")),
+        "recurso": n.get("titulo", ""),
+        "cantidad": float(n.get("cantidad_requerida", 0)),
+        "donado": float(n.get("cantidad_recibida", 0)),
+        "descripcion": n.get("descripcion", ""),
+        "unidad": n.get("unidad_medida", ""),
+        "fecha": n.get("fecha_creacion", ""),
+        "urgencia": n.get("urgencia", "").capitalize() if n.get("urgencia", "") else "",
+        "estado": n.get("estado", "Pendiente"),
+        "centroId": str(n.get("centro_acopio_id", "")),
+        "centro": "",
+        "reportadoPor": n.get("solicitante_nombre", ""),
+        "detalles": n.get("detalles", {}),
+    }
+
+
+def _out_to_model(body) -> dict:
+    data = {
+        "titulo": body.recurso,
+        "descripcion": body.descripcion,
+        "cantidad_requerida": int(body.cantidad),
+        "unidad_medida": body.unidad,
+        "centro_acopio_id": int(body.centroId),
+        "solicitante_nombre": body.reportadoPor or "anónimo",
+        "solicitante_contacto": "",
+        "urgencia": (body.urgencia or "MEDIA").upper(),
+        "estado": body.estado or "Activa",
+        "detalles": body.detalles or {},
+    }
+    return data
+
+
+async def _enrich(items: list) -> list:
+    result = []
+    for n in items:
+        out = _model_to_out(n)
+        out["centro"] = await _centro_nombre(out["centroId"])
+        result.append(out)
+    return result
+
+
+async def _enrich_one(n: dict) -> dict:
+    out = _model_to_out(n)
+    out["centro"] = await _centro_nombre(out["centroId"])
+    return out
+
+
 async def list_all(estado=None, centro_code=None, urgencia=None) -> list[NecesidadOut]:
-    items = list(_necesidades.values())
-    if estado:
-        items = [n for n in items if n["estado"] == estado]
-    if centro_code:
-        items = [n for n in items if n["centroId"] == centro_code]
-    if urgencia:
-        items = [n for n in items if n["urgencia"] == urgencia]
-    items.sort(key=lambda n: n.get("created_at", ""), reverse=True)
-    return items
+    try:
+        params = {}
+        if estado:
+            params["estado"] = estado
+        if centro_code:
+            params["centro_id"] = centro_code
+        if urgencia:
+            params["urgencia"] = urgencia
+        items = await necesidades_client.listar_necesidades(params=params)
+        enriched = await _enrich(items)
+        enriched.sort(key=lambda n: n.get("fecha", ""), reverse=True)
+        return enriched
+    except Exception:
+        return []
 
 
 async def get_by_code(code: str) -> NecesidadOut:
-    n = _necesidades.get(code)
-    if not n:
+    n = await necesidades_client.obtener_necesidad(code)
+    if not n or "error" in n:
         raise NotFoundError("Necesidad no encontrada")
-    return n
+    return await _enrich_one(n)
 
 
 async def create(body, rut: str) -> NecesidadOut:
-    global _counter
-    _counter += 1
-    code = f"NEC-{_counter:03d}"
-    now = datetime.now()
-    necesidad = {
-        "id": code,
-        "recurso": body.recurso,
-        "cantidad": body.cantidad,
-        "donado": 0,
-        "descripcion": body.descripcion or "",
-        "unidad": body.unidad,
-        "fecha": now.isoformat(),
-        "urgencia": body.urgencia or "Media",
-        "estado": body.estado or "Activa",
-        "centroId": body.centroId,
-        "centro": await _centro_nombre(body.centroId),
-        "reportadoPor": body.reportadoPor or rut,
-        "detalles": body.detalles or {},
-    }
-    _necesidades[code] = necesidad
-    return necesidad
+    data = _out_to_model(body)
+    if data.get("solicitante_nombre") == "anónimo" and rut != "anónimo":
+        data["solicitante_nombre"] = rut
+    n = await necesidades_client.crear_necesidad(data)
+    return await _enrich_one(n)
 
 
 async def update(code: str, body) -> NecesidadOut:
-    n = _necesidades.get(code)
-    if not n:
+    n = await necesidades_client.obtener_necesidad(code)
+    if not n or "error" in n:
         raise NotFoundError("Necesidad no encontrada")
+    update_data = {}
     if body.cantidad is not None:
-        n["cantidad"] = body.cantidad
+        update_data["cantidad_requerida"] = int(body.cantidad)
     if body.urgencia is not None:
-        n["urgencia"] = body.urgencia
+        update_data["urgencia"] = body.urgencia.upper() if body.urgencia else ""
     if body.estado is not None:
-        n["estado"] = body.estado
+        update_data["estado"] = body.estado
     if body.descripcion is not None:
-        n["descripcion"] = body.descripcion
+        update_data["descripcion"] = body.descripcion
     if body.reportadoPor is not None:
-        n["reportadoPor"] = body.reportadoPor
+        update_data["solicitante_nombre"] = body.reportadoPor
     if body.detalles is not None:
-        n["detalles"] = body.detalles
-    return n
+        update_data["detalles"] = body.detalles
+    n = await necesidades_client.actualizar_necesidad(code, update_data)
+    return await _enrich_one(n)
 
 
-async def activar(code: str) -> NecesidadOut:
-    n = _ciudadanas.get(code)
-    if not n:
-        raise NotFoundError("Necesidad ciudadana no encontrada")
-    global _counter
-    _counter += 1
-    new_code = f"NEC-{_counter:03d}"
-    necesidad = {**n, "id": new_code, "estado": "Activa"}
-    _necesidades[new_code] = necesidad
-    del _ciudadanas[code]
-    return necesidad
+async def activar(code: str, urgencia: str = "MEDIA") -> NecesidadOut:
+    n = await necesidades_client.obtener_necesidad(code)
+    if not n or "error" in n:
+        raise NotFoundError("Necesidad no encontrada")
+    update = {"estado": "Activa"}
+    if urgencia:
+        update["urgencia"] = urgencia.upper()
+    n = await necesidades_client.actualizar_necesidad(code, update)
+    return await _enrich_one(n)
 
 
 async def crear_propuesta(necesidad_code: str, mensaje: str, rut: str) -> PropuestaOut:
@@ -100,55 +135,48 @@ async def list_propuestas(necesidad_code: str) -> list[PropuestaOut]:
     return []
 
 
-# ── Necesidades ciudadanas (inbox para admin) ──
-
 async def list_ciudadanas() -> list[NecesidadOut]:
-    items = list(_ciudadanas.values())
-    items.sort(key=lambda n: n.get("created_at", ""), reverse=True)
-    return items
+    try:
+        items = await necesidades_client.listar_necesidades(params={"estado": "Pendiente"})
+        enriched = await _enrich(items)
+        enriched.sort(key=lambda n: n.get("fecha", ""), reverse=True)
+        return enriched
+    except Exception:
+        return []
 
 
 async def crear_ciudadana(body, rut: str) -> NecesidadOut:
-    global _ciudadana_counter
-    _ciudadana_counter += 1
-    code = f"CIU-{_ciudadana_counter:03d}"
-    now = datetime.now()
-    necesidad = {
-        "id": code,
-        "recurso": body.recurso,
-        "cantidad": body.cantidad,
-        "donado": 0,
-        "descripcion": body.descripcion or "",
-        "unidad": body.unidad,
-        "fecha": now.isoformat(),
-        "urgencia": body.urgencia or "",
-        "estado": "Pendiente",
-        "centroId": body.centroId,
-        "centro": await _centro_nombre(body.centroId),
-        "reportadoPor": body.reportadoPor or rut,
-        "detalles": body.detalles or {},
-    }
-    _ciudadanas[code] = necesidad
-    return necesidad
+    data = _out_to_model(body)
+    data["estado"] = "Pendiente"
+    data["urgencia"] = ""
+    if data.get("solicitante_nombre") == "anónimo" and rut != "anónimo":
+        data["solicitante_nombre"] = rut
+    n = await necesidades_client.crear_necesidad(data)
+    if "error" in n:
+        raise Exception(n.get("error", "Error al crear necesidad ciudadana"))
+    return await _enrich_one(n)
 
 
 async def actualizar_ciudadana(code: str, body) -> NecesidadOut:
-    n = _ciudadanas.get(code)
-    if not n:
+    n = await necesidades_client.obtener_necesidad(code)
+    if not n or "error" in n:
         raise NotFoundError("Necesidad ciudadana no encontrada")
+    update_data = {}
     if body.urgencia is not None:
-        n["urgencia"] = body.urgencia
+        update_data["urgencia"] = body.urgencia.upper() if body.urgencia else ""
     if body.estado is not None:
-        n["estado"] = body.estado
+        update_data["estado"] = body.estado
     if body.descripcion is not None:
-        n["descripcion"] = body.descripcion
+        update_data["descripcion"] = body.descripcion
     if body.reportadoPor is not None:
-        n["reportadoPor"] = body.reportadoPor
-    return n
+        update_data["solicitante_nombre"] = body.reportadoPor
+    n = await necesidades_client.actualizar_necesidad(code, update_data)
+    return await _enrich_one(n)
 
 
 async def eliminar_ciudadana(code: str) -> dict:
-    if code not in _ciudadanas:
+    n = await necesidades_client.obtener_necesidad(code)
+    if not n or "error" in n:
         raise NotFoundError("Necesidad ciudadana no encontrada")
-    del _ciudadanas[code]
+    await necesidades_client.eliminar_necesidad(code)
     return {"deleted": True}

@@ -9,7 +9,7 @@ from .exceptions import BffError
 from .schemas.auth import LoginIn, LoginOut, RegisterIn, UserOut, UserUpdateIn
 from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem, RutaRequest, RutaOut
 from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, DonacionStatsOut
-from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, PropuestaCreate, PropuestaOut
+from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, ActivarNecesidadIn, PropuestaCreate, PropuestaOut
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut,
                              RegionOut, CategoriaDonacionOut, PasoFuncionamientoOut, ImpactoStatsOut, DistribucionFondosOut,
                              CampoOut)
@@ -72,6 +72,7 @@ async def health(request):
         "usuarios": await check("usuarios", "USUARIOS_URL"),
         "logistica": await check("logistica", "LOGISTICA_URL"),
         "donaciones": await check("donaciones", "DONACIONES_URL"),
+        "necesidades": await check("necesidades", "NECESIDADES_URL"),
     }
     return {
         "db": "n/a (BFF sin BD de dominio)",
@@ -207,8 +208,8 @@ async def update_necesidad(request, code: str, body: NecesidadUpdate):
     return await necesidad_service.update(code, body)
 
 @api.post("/necesidades/{code}/activar", auth=None, response=NecesidadOut)
-async def activar_necesidad(request, code: str):
-    return await necesidad_service.activar(code)
+async def activar_necesidad(request, code: str, body: ActivarNecesidadIn):
+    return await necesidad_service.activar(code, urgencia=body.urgencia)
 
 
 # ── Propuestas ──

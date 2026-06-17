@@ -22,7 +22,7 @@ export default function Inicio() {
   const items = [...categorias, ...categorias];
   const urgenciaPeso = { Alta: 0, Media: 1, Baja: 2 };
   const activas = necesidades
-    .filter((n) => n.estado !== "Cubierto")
+    .filter((n) => n.estado !== "Cubierto" && n.estado !== "Pendiente")
     .sort((a, b) => {
       const ua = urgenciaPeso[a.urgencia] ?? 99;
       const ub = urgenciaPeso[b.urgencia] ?? 99;
@@ -151,7 +151,7 @@ export default function Inicio() {
                       <i className="bi bi-building me-1 c-accent"></i>{centroNombre(n.centroId) || n.centro || "Sin centro"}
                     </p>
                     {n.descripcion && (
-                      <p className="project-desc small c-muted mb-2">{n.descripcion}</p>
+                      <div className="project-desc small c-muted mb-2" dangerouslySetInnerHTML={{ __html: n.descripcion }} />
                     )}
                     <div className="mb-2">
                       <div className="d-flex justify-content-between small mb-1">

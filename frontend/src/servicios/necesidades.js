@@ -6,5 +6,5 @@ export const necesidadesService = {
   create: (data) => api.post('/necesidades', data),
   update: (id, data) => api.put(`/necesidades/${id}`, data),
   delete: (id) => api.delete(`/necesidades/${id}`),
-  asignar: (id, centroId) => api.post(`/necesidades/${id}/asignar`, { centroId }),
+  activar: (id, urgencia) => api.post(`/necesidades/${id}/activar`, { urgencia }),
 };
