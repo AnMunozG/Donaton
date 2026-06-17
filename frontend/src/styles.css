@@ -2025,6 +2025,525 @@ footer .border-top-section {
   .bo-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
 }
 
+/* ── CONTENEDOR MÁXIMO PARA PANTALLAS GIGANTES ────────── */
+.content-surface {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 1920px) {
+  .content-surface {
+    max-width: 1600px;
+  }
+}
+
+/* ── TABLA: scroll horizontal en cualquier tamaño pequeño ── */
+.bo-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bo-table {
+  min-width: 600px;
+}
+
+/* ── MODAL: responsive en móvil ──────────────────────────── */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  .modal-dialog.modal-lg {
+    max-width: calc(100vw - 1rem);
+  }
+  .modal-body {
+    padding: 1rem;
+  }
+  .modal-body .row.g-3 > [class*="col-"] {
+    width: 100%;
+  }
+}
+
+/* ── MOBILE S (320–374px) ────────────────────────────────── */
+@media (max-width: 374px) {
+  :root {
+    --page-px: 0.65rem;
+    --page-py: 1rem;
+    --fs-h1: clamp(1.4rem, 7vw, 1.8rem);
+    --fs-h2: clamp(1rem, 4vw, 1.15rem);
+    --fs-body: clamp(0.8rem, 3vw, 0.9rem);
+    --fs-small: clamp(0.65rem, 2.5vw, 0.75rem);
+  }
+
+  header { padding: 0.4rem 0.5rem; }
+
+  header .logo-link svg {
+    width: clamp(120px, 35vw, 160px);
+  }
+
+  header .nav-link {
+    font-size: 0.82rem;
+    padding: 0.3rem 0.4rem !important;
+  }
+
+  header .header-actions {
+    gap: 0.3rem;
+  }
+
+  header .header-actions .btn {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.55rem;
+  }
+
+  .hero-banner {
+    height: clamp(180px, 50vw, 260px);
+  }
+
+  .hero-banner-content {
+    padding: 0.75rem;
+    gap: 0.3rem;
+  }
+
+  .hero-banner-content h2 {
+    font-size: 0.82rem;
+  }
+
+  .hero-banner-content p { display: none; }
+
+  .hero-banner-content .btn {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.7rem;
+  }
+
+  .carrusel-card {
+    width: 170px;
+    padding: 1rem;
+  }
+
+  .carrusel-track {
+    gap: 0.75rem;
+  }
+
+  .mapa-container,
+  .mapa-full {
+    height: 220px;
+  }
+
+  .auth-form-card {
+    padding: 1rem;
+  }
+
+  footer {
+    padding: 1rem 0.75rem;
+  }
+
+  footer .col-6 {
+    width: 100%;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .bo-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0.35rem;
+    gap: 0.15rem;
+  }
+
+  .bo-sidebar-header,
+  .bo-sidebar-footer { display: none; }
+
+  .bo-nav {
+    flex-direction: row;
+    padding: 0;
+  }
+
+  .bo-nav-btn {
+    white-space: nowrap;
+    font-size: 0.7rem;
+    padding: 0.4rem 0.5rem;
+    gap: 0.3rem;
+  }
+
+  .bo-nav-btn span { font-size: 0.68rem; }
+
+  .bo-main { padding: 0.75rem; }
+
+  .bo-chart-card { padding: 1rem; }
+
+  .dashboard .col-sm-6 { width: 100%; }
+}
+
+/* ── MOBILE M (375–424px) ────────────────────────────────── */
+@media (min-width: 375px) and (max-width: 424px) {
+  :root {
+    --page-px: 0.75rem;
+    --page-py: 1.25rem;
+  }
+
+  header { padding: 0.45rem 0.65rem; }
+
+  header .logo-link svg {
+    width: clamp(130px, 38vw, 175px);
+  }
+
+  .hero-banner {
+    height: clamp(200px, 48vw, 280px);
+  }
+
+  .hero-banner-content p { display: none; }
+
+  .carrusel-card { width: 185px; }
+
+  .mapa-container,
+  .mapa-full { height: 240px; }
+
+  footer { padding: 1.25rem 0.85rem; }
+}
+
+/* ── MOBILE L (425–575px) ────────────────────────────────── */
+@media (min-width: 425px) and (max-width: 575px) {
+  :root {
+    --page-px: 0.85rem;
+    --page-py: 1.5rem;
+  }
+
+  header .logo-link svg {
+    width: clamp(140px, 38vw, 190px);
+  }
+
+  .carrusel-card { width: 200px; }
+
+  .mapa-container,
+  .mapa-full { height: 260px; }
+
+  footer { padding: 1.5rem 1rem; }
+}
+
+/* ── TABLET PEQUEÑO / PHONE GRANDE (576–767px) ──────────── */
+@media (min-width: 576px) and (max-width: 767px) {
+  :root {
+    --page-px: 1rem;
+    --page-py: 1.5rem;
+  }
+
+  header .logo-link svg {
+    width: clamp(130px, 30vw, 170px);
+  }
+
+  .hero-banner {
+    height: clamp(220px, 42vw, 300px);
+  }
+
+  .hero-banner-content p { display: none; }
+
+  .mapa-container,
+  .mapa-full {
+    height: 300px;
+  }
+
+  .carrusel-card {
+    width: 190px;
+    padding: 1.15rem;
+  }
+
+  footer {
+    padding: 1.5rem 1rem;
+  }
+
+  footer .col-6 {
+    width: 100%;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .bo-layout {
+    flex-direction: column;
+  }
+
+  .bo-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0.4rem;
+    gap: 0.2rem;
+  }
+
+  .bo-sidebar-header { display: none; }
+
+  .bo-nav {
+    flex-direction: row;
+    padding: 0;
+  }
+
+  .bo-nav-btn {
+    white-space: nowrap;
+    font-size: 0.78rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .bo-sidebar-footer { display: none; }
+
+  .bo-main {
+    padding: 0.85rem;
+  }
+
+  .auth-form-card {
+    padding: 1.25rem;
+  }
+}
+
+/* ── TABLET (768–991px) ───────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 991px) {
+  :root {
+    --page-px: 1.25rem;
+    --page-py: 1.75rem;
+    --fs-h1: clamp(1.6rem, 3.5vw, 2.2rem);
+    --fs-h2: clamp(1.05rem, 2.2vw, 1.25rem);
+  }
+
+  header { padding: 0.5rem 0.75rem; }
+
+  header .logo-link svg {
+    width: clamp(130px, 22vw, 180px);
+  }
+
+  header .navbar-nav {
+    gap: 0;
+  }
+
+  header .nav-link {
+    font-size: 0.82rem;
+    padding: 0.3rem 0.4rem !important;
+  }
+
+  header .header-actions {
+    margin-left: 0.5rem;
+    gap: 0.3rem;
+  }
+
+  header .header-actions .btn {
+    font-size: 0.78rem;
+    padding: 0.25rem 0.55rem;
+  }
+
+  .inicio, .donacion, .necesidades, .centros,
+  .nosotros, .registro, .login {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .hero-banner {
+    height: clamp(240px, 38vw, 320px);
+  }
+
+  .hero-banner-content h2 {
+    font-size: clamp(0.82rem, 2.2vw, 0.95rem);
+  }
+
+  .hero-banner-content p {
+    font-size: clamp(0.82rem, 2.2vw, 0.95rem);
+    max-width: 500px;
+  }
+
+  .mapa-container,
+  .mapa-full {
+    height: 320px;
+  }
+
+  .lista-centros {
+    max-height: 400px;
+  }
+
+  .carrusel-card {
+    width: 190px;
+    padding: 1.15rem;
+  }
+
+  .stat-card {
+    padding: 0.85rem;
+  }
+
+  .filter-btn {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.75rem;
+  }
+
+  .auth-form-card {
+    padding: 1.5rem;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  footer .col-md-4,
+  footer .col-md-2,
+  footer .col-md-3 {
+    width: 50%;
+  }
+
+  .bo-sidebar {
+    width: 56px;
+  }
+
+  .bo-sidebar .bo-nav-btn span,
+  .bo-sidebar-header span,
+  .bo-sidebar-footer small { display: none; }
+
+  .bo-sidebar-header {
+    justify-content: center;
+    padding: 0.65rem;
+  }
+
+  .bo-nav {
+    padding: 0 0.2rem;
+  }
+
+  .bo-nav-btn {
+    justify-content: center;
+    padding: 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .bo-main {
+    padding: 1rem;
+  }
+
+  .bo-card-value {
+    font-size: 1.3rem;
+  }
+}
+
+/* ── LAPTOP / SMALL DESKTOP (992–1199px) ──────────────────── */
+@media (min-width: 992px) and (max-width: 1199px) {
+  :root {
+    --page-px: 1.5rem;
+    --page-py: 2rem;
+  }
+
+  header .nav-link {
+    font-size: 0.88rem;
+    padding: 0.35rem 0.55rem !important;
+  }
+
+  header .header-actions .btn {
+    font-size: 0.82rem;
+    padding: 0.3rem 0.7rem;
+  }
+
+  .inicio, .donacion, .necesidades, .centros,
+  .nosotros, .registro, .login {
+    padding: 2rem 1.5rem;
+  }
+
+  .hero-banner {
+    height: clamp(280px, 38vw, 360px);
+  }
+
+  .mapa-container,
+  .mapa-full {
+    height: 360px;
+  }
+
+  .lista-centros {
+    max-height: 500px;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .bo-main {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .bo-chart-card {
+    padding: 1.25rem;
+  }
+}
+
+/* ── DESKTOP GRANDE (1400–1919px) ─────────────────────────── */
+@media (min-width: 1400px) and (max-width: 1919px) {
+  .tp-container { max-width: 1300px; }
+}
+
+/* ── 4K / ULTRAWIDE (1920px+) ──────────────────────────────── */
+@media (min-width: 1920px) {
+  :root {
+    --page-px: 3rem;
+    --page-py: 3rem;
+  }
+
+  .hero-banner-content {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .banner-content-wrapper,
+  .nos-hero-content,
+  .tp-hero-content {
+    max-width: 850px;
+  }
+
+  .lista-centros {
+    max-height: 900px;
+  }
+}
+
+/* ── 4K / ULTRAWIDE (2560px+) ──────────────────────────────── */
+@media (min-width: 2560px) {
+  :root {
+    --fs-h1: clamp(2.5rem, 3.5vw, 4rem);
+    --fs-h2: clamp(1.5rem, 1.8vw, 2rem);
+    --fs-body: clamp(1rem, 1.2vw, 1.25rem);
+    --fs-small: clamp(0.8rem, 0.9vw, 0.9rem);
+  }
+
+  .hero-banner {
+    height: clamp(380px, 30vw, 520px);
+  }
+
+  .cta-section {
+    padding: 5rem 6rem;
+  }
+
+  .tp-container {
+    max-width: 1600px;
+  }
+
+  .transparencia-page .content-surface {
+    padding: 3rem 4rem;
+  }
+
+  .bo-sidebar {
+    width: 260px;
+  }
+
+  .bo-main {
+    padding: 2rem 3rem;
+  }
+
+  .auth-container {
+    max-width: 1100px;
+  }
+
+  .auth-form-card {
+    padding: 3rem;
+  }
+}
+
 /* ── PERFIL ───────────────────────────────────────────────── */
 .perfil {
   padding: var(--page-py) var(--page-px);
@@ -2100,4 +2619,170 @@ footer .border-top-section {
     margin: 0;
     padding: 1rem;
   }
+}
+
+
+/* =========================================================
+   MEJORAS EXTRA DE RESPONSIVIDAD (Tablet / Laptop / General)
+   ========================================================= */
+
+/* ── BREAKPOINTS INTERMEDIOS (TABLET Y LAPTOP) ─────────── */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .content-surface {
+    padding: clamp(1.25rem, 2vw, 2rem);
+    border-radius: var(--radius);
+  }
+
+  .inicio,
+  .donacion,
+  .necesidades,
+  .centros,
+  .nosotros,
+  .registro,
+  .login,
+  .backoffice {
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
+  .tp-container {
+    max-width: 100%;
+    padding: 0 clamp(1rem, 2vw, 2rem);
+  }
+}
+
+/* ── GRID RESPONSIVO MEJORADO ───────────────────────────── */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .row {
+    row-gap: 1rem;
+  }
+
+  .col-md-6,
+  .col-lg-6 {
+    width: 100%;
+  }
+
+  .col-md-4,
+  .col-lg-4,
+  .col-md-3,
+  .col-lg-3 {
+    width: 50%;
+  }
+}
+
+/* ── HEADER ADAPTATIVO PARA LAPTOP ──────────────────────── */
+@media (min-width: 768px) and (max-width: 1100px) {
+  header .navbar-nav {
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  header .nav-link {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.5rem !important;
+  }
+
+  header .header-actions {
+    margin-left: 0.5rem;
+    gap: 0.35rem;
+  }
+
+  header .header-actions .btn {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.7rem;
+  }
+}
+
+/* ── HERO BANNERS MEJOR PROPORCIONADOS ─────────────────── */
+@media (min-width: 768px) and (max-width: 1366px) {
+  .hero-banner,
+  .nos-hero,
+  .tp-hero,
+  .banner-centros {
+    min-height: 38vh;
+    height: auto;
+  }
+
+  .hero-banner-content,
+  .nos-hero-content,
+  .tp-hero-content {
+    max-width: 80%;
+  }
+
+  .hero-banner-content p,
+  .nos-hero-desc,
+  .tp-hero-content p {
+    font-size: 0.95rem;
+  }
+}
+
+/* ── FORMULARIOS MÁS CÓMODOS ───────────────────────────── */
+@media (min-width: 768px) and (max-width: 1200px) {
+  .auth-container,
+  .auth-row {
+    max-width: 720px;
+  }
+
+  .auth-form-card {
+    padding: 1.5rem;
+  }
+
+  .form-control,
+  .form-select {
+    padding: 0.65rem 0.9rem;
+  }
+}
+
+/* ── CARRUSEL ADAPTABLE ────────────────────────────────── */
+.carrusel-card {
+  width: clamp(180px, 20vw, 240px);
+}
+
+@media (min-width: 768px) and (max-width: 1200px) {
+  .carrusel-track {
+    gap: 1rem;
+  }
+}
+
+/* ── BACKOFFICE MÁS COMPACTO EN LAPTOP ─────────────────── */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .bo-sidebar {
+    width: 180px;
+  }
+
+  .bo-main {
+    padding: 1.25rem;
+  }
+
+  .bo-card-value {
+    font-size: 1.3rem;
+  }
+
+  .bo-table {
+    font-size: 0.8rem;
+  }
+}
+
+/* ── IMÁGENES RESPONSIVAS ──────────────────────────────── */
+img,
+.nos-image,
+.nos-image-16x9 {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* ── UTILIDADES GLOBALES EXTRA ─────────────────────────── */
+.container,
+.row,
+[class*="col-"] {
+  min-width: 0;
+}
+
+h1, h2, h3, p, span {
+  overflow-wrap: break-word;
+}
+
+section {
+  margin-bottom: clamp(2rem, 5vw, 4rem);
 }
