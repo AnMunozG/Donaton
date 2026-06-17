@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import bannerImg from "../assets/Banner.png";
-import { getTeam, getValores, getHitos } from "../api.js";
+import { getValores, getHitos } from "../api.js";
+
+const TEAM = [
+  { nombre: "Angel Muñoz", cargo: "Desarrollador Frontend", color: "#DD4444" },
+  { nombre: "Yasser Illanes", cargo: "Desarrollador Backend", color: "#3AB795" },
+  { nombre: "Martin Pizarro", cargo: "Desarrollador Backend", color: "#194B4F" },
+];
 
 export default function Nosotros() {
-  const [team, setTeam] = useState([]);
   const [valores, setValores] = useState([]);
   const [hitos, setHitos] = useState([]);
 
   useEffect(() => {
-    getTeam().then(setTeam);
     getValores().then(setValores);
     getHitos().then(setHitos);
   }, []);
@@ -59,7 +63,7 @@ export default function Nosotros() {
             <div key={i} className="nos-milestone">
               <div className="nos-dot">{h.year.slice(-2)}</div>
               <div className="fw-bold c-heading">{h.titulo}</div>
-              <div className="small c-muted">{h.texto}</div>
+              <div className="small c-muted">{h.descripcion}</div>
             </div>
           ))}
         </div>
@@ -88,10 +92,10 @@ export default function Nosotros() {
             <div key={i} className="col-12 col-sm-6 col-lg-3">
               <div className="p-4 rounded-4 h-100 text-center card-surface">
                 <div className="value-icon">
-                  <i className={`bi ${v.icon}`}></i>
+                  <i className={`bi ${v.icono}`}></i>
                 </div>
                 <div className="fw-bold mb-1 c-heading">{v.titulo}</div>
-                <div className="small c-muted">{v.texto}</div>
+                <div className="small c-muted">{v.descripcion}</div>
               </div>
             </div>
           ))}
@@ -104,14 +108,14 @@ export default function Nosotros() {
           <p className="c-muted">Los creadores detrás de Donatón.</p>
         </div>
         <div className="row g-3 justify-content-center">
-          {team.map((p, i) => (
+          {TEAM.map((p, i) => (
             <div key={i} className="col-12 col-md-4">
               <div className="p-4 rounded-4 text-center h-100 card-surface">
                 <div className="team-avatar" style={{ background: p.color }}>
                   {p.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
                 <div className="fw-bold c-heading">{p.nombre}</div>
-                <div className="small c-muted">{p.rol}</div>
+                <div className="small c-muted">{p.cargo}</div>
                 <div className="team-divider" style={{ background: p.color }}></div>
               </div>
             </div>

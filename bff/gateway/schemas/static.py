@@ -23,6 +23,7 @@ class EquipoOut(Schema):
     email: str
     foto_url: str
     activo: bool
+    color: str = ""
 
 
 class GobernanzaOut(Schema):
@@ -87,6 +88,7 @@ class DistribucionFondosOut(Schema):
     code: str
     label: str
     porcentaje: int
+    color: str = ""
 
 
 class CampoOut(Schema):
