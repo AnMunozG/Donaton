@@ -13,18 +13,22 @@ Plataforma web de donaciones transparentes que conecta donantes, municipalidades
                  │  - Auth (login/register/profile)      │────▶│  Logística   │
                  │  - Centros CRUD + inventario          │     │  (Django)    │
                  │  - Donaciones CRUD + stats            │     │  :8001       │
-                 │  - Necesidades ciudadanas             │     ├──────────────┤
+                 │  - Necesidades CRUD + Stats           │     ├──────────────┤
                  │  - Catálogos / contenido estático     │────▶│  Donaciones  │
-                 └─────────────────────────────────────┘     │  (Django)    │
-                                                             │  :8003       │
-                                                             └──────────────┘
-```
-
+                 └─────────────────────────────────────┘        │  (Django)    │
+                                                     |          │  :8003       │
+                                                     |        ├──────────────┤
+                                                     |────▶ │  Necesidades  │
+                                                            │  (Django)    │
+                                                            │  :8003       │
+                                                            └──────────────┘
 - **Frontend**: React 19 + Vite + Bootstrap 5 + Recharts
 - **BFF** (Backend-for-Frontend): Django 5 + Django Ninja (API Gateway)
 - **Usuarios**: Django 5 + DRF + SimpleJWT (gestión de usuarios)
 - **Logística**: Django 5 + DRF + SimpleJWT (centros, inventario JSON)
 - **Donaciones**: Django 5 + DRF + drf-spectacular (donaciones CRUD + estadísticas)
+- **Necesidades**: Django 5 + DRF + drf-spectacular (Necesidades CRUD + estadísticas)
+
 
 ## Requisitos
 
@@ -54,7 +58,7 @@ Servicios disponibles:
 | Logística API | http://localhost:8001/api/ |
 | Logística Docs | http://localhost:8001/api/docs/ |
 | Donaciones API | http://localhost:8003/api/ |
-| Donaciones Docs | http://localhost:8003/api/docs/ |
+| Necesidades Docs | http://localhost:8004/api/docs/ |
 
 ## Comandos útiles (Makefile)
 
@@ -194,11 +198,19 @@ Donaton/
 │   └── requirements.txt
 │
 └── logistica/               # Microservicio de Logística
+|   ├── config/
+|   │   └── settings.py      # Django + DRF + SimpleJWT
+|   ├── logistica/
+|   │   ├── models.py        # CentroAcopio con inventario JSON
+|   │   ├── views.py         # ViewSets con permisos
+|   │   └── serializers.py
+|   └── requirements.txt
+└── Necesidades/               # Microservicio de Necesidades
     ├── config/
     │   └── settings.py      # Django + DRF + SimpleJWT
     ├── logistica/
-    │   ├── models.py        # CentroAcopio con inventario JSON
-    │   ├── views.py         # ViewSets con permisos
+    │   ├── models.py        # JSON de necesidades
+    │   ├── views.py         # ViewSets
     │   └── serializers.py
     └── requirements.txt
 ```
