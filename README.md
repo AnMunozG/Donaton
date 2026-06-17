@@ -19,8 +19,8 @@ Plataforma web de donaciones transparentes que conecta donantes, municipalidades
                                                      |          │  :8003       │
                                                      |        ├──────────────┤
                                                      |────▶ │  Necesidades  │
-                                                            │  (Django)    │
-                                                            │  :8003       │
+                                                             │  (Django)    │
+                                                             │  :8004       │
                                                             └──────────────┘
 - **Frontend**: React 19 + Vite + Bootstrap 5 + Recharts
 - **BFF** (Backend-for-Frontend): Django 5 + Django Ninja (API Gateway)
@@ -58,6 +58,8 @@ Servicios disponibles:
 | Logística API | http://localhost:8001/api/ |
 | Logística Docs | http://localhost:8001/api/docs/ |
 | Donaciones API | http://localhost:8003/api/ |
+| Donaciones Docs | http://localhost:8003/api/docs/ |
+| Necesidades API | http://localhost:8004/api/ |
 | Necesidades Docs | http://localhost:8004/api/docs/ |
 
 ## Comandos útiles (Makefile)
@@ -134,6 +136,19 @@ python manage.py migrate
 python manage.py runserver 8002
 ```
 
+### Necesidades
+
+```bash
+cd necesidades
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+# Requiere MySQL con base 'necesidades_db'
+python manage.py migrate
+python manage.py seed
+python manage.py runserver 8003
+```
+
 ## Variables de entorno
 
 Copia el archivo `.env` incluido y ajusta según sea necesario:
@@ -208,10 +223,11 @@ Donaton/
 └── Necesidades/               # Microservicio de Necesidades
     ├── config/
     │   └── settings.py      # Django + DRF + SimpleJWT
-    ├── logistica/
-    │   ├── models.py        # JSON de necesidades
-    │   ├── views.py         # ViewSets
+    ├── api_necesidades/
+    │   ├── models.py        # Necesidad con centro_acopio, urgencia, estado
+    │   ├── views.py         # ViewSets con filtros + stats
     │   └── serializers.py
+    ├── management/          # Comandos seed
     └── requirements.txt
 ```
 
@@ -235,6 +251,15 @@ Donaton/
 | POST | `/api/donaciones` | JWT | Crear donación (actualiza inventario en logística) |
 | PATCH | `/api/donaciones/{code}/estado` | JWT | Actualizar estado |
 | GET | `/api/donaciones/stats/resumen` | - | Estadísticas de donaciones |
-| GET | `/api/necesidades` | - | Listar necesidades |
+| GET | `/api/necesidades` | - | Listar necesidades (filtros: estado, centro_code, urgencia) |
 | POST | `/api/necesidades` | JWT | Crear necesidad |
+| GET | `/api/necesidades/ciudadanas` | - | Listar necesidades ciudadanas |
+| POST | `/api/necesidades/ciudadanas` | - | Crear necesidad ciudadana |
+| PATCH | `/api/necesidades/ciudadanas/{code}` | - | Actualizar necesidad ciudadana |
+| DELETE | `/api/necesidades/ciudadanas/{code}` | - | Eliminar necesidad ciudadana |
+| GET | `/api/necesidades/{code}` | - | Detalle de necesidad |
+| PUT | `/api/necesidades/{code}` | JWT | Actualizar necesidad |
+| POST | `/api/necesidades/{code}/activar` | - | Activar necesidad (asigna urgencia) |
+| GET | `/api/necesidades/{code}/propuestas` | - | Listar propuestas de una necesidad |
+| POST | `/api/propuestas` | JWT | Crear propuesta |
 | GET | `/api/static/*` | - | Catálogos y contenido estático |
