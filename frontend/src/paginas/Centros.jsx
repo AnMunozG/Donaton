@@ -39,8 +39,9 @@ export default function Centros() {
     ? centros
     : centros.filter((c) => c.region === filtroRegion);
 
+  const needsActivas = necesidades.filter((n) => n.estado !== "Pendiente");
   const necesidadesDelCentro = seleccionado
-    ? necesidades.filter((n) => n.centroId === seleccionado.id)
+    ? needsActivas.filter((n) => n.centroId === seleccionado.id)
     : [];
 
   function fetchRoute(origen, modo) {
@@ -148,7 +149,7 @@ export default function Centros() {
             {centrosFiltrados.map((c) => {
               const pct = Math.round((c.capacidadUsada / c.capacidadTotal) * 100);
               const barColor = capacidadColor(pct);
-              const necesidadesCount = necesidades.filter((n) => n.centroId === c.id).length;
+              const necesidadesCount = needsActivas.filter((n) => n.centroId === c.id).length;
 
               return (
                 <div key={c.id}

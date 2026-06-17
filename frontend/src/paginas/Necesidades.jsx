@@ -37,7 +37,7 @@ export default function Necesidades() {
     setForm({ ...form, recurso: nuevoRecurso, unidad: unidades[0] || "" });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errores = validarForm(form, [
       { campo: "reportadoPor", nombre: "Reportado por", validaciones: [validarRequerido] },
@@ -48,20 +48,23 @@ export default function Necesidades() {
     ]);
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
-    agregarNecesidadUsuario({
-      recurso: form.recurso,
-      cantidad: form.cantidad,
-      unidad: form.unidad,
-      descripcion: form.descripcion,
-      reportadoPor: form.reportadoPor,
-      centroId: form.centroAcopio,
-      centro: centros.find((c) => c.id === form.centroAcopio)?.nombre || "",
-    });
-    setEnviado(true);
-    setFormErrors({});
-    clearTimeout(enviadoTimer.current);
-    enviadoTimer.current = setTimeout(() => setEnviado(false), 4000);
-    setForm({ recurso: "", cantidad: "", unidad: "", descripcion: "", reportadoPor: "", centroAcopio: "" });
+    try {
+      await agregarNecesidadUsuario({
+        recurso: form.recurso,
+        cantidad: form.cantidad,
+        unidad: form.unidad,
+        descripcion: form.descripcion,
+        reportadoPor: form.reportadoPor,
+        centroId: form.centroAcopio,
+      });
+      setEnviado(true);
+      setFormErrors({});
+      clearTimeout(enviadoTimer.current);
+      enviadoTimer.current = setTimeout(() => setEnviado(false), 4000);
+      setForm({ recurso: "", cantidad: "", unidad: "", descripcion: "", reportadoPor: "", centroAcopio: "" });
+    } catch {
+      alert("Error al reportar la necesidad. Intente nuevamente.");
+    }
   };
 
   const unidadesDisponibles = unidadesPorTipo[form.recurso] || [];

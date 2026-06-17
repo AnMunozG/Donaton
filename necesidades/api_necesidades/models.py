@@ -10,6 +10,13 @@ class Necesidad(models.Model):
         ('VOLUNTARIADO', 'Voluntariado / Mano de Obra'),
         ('OTROS', 'Otros'),
     ]
+
+    URGENCIAS = [
+        ('', 'Pendiente de asignación'),
+        ('ALTA', 'Alta'),
+        ('MEDIA', 'Media'),
+        ('BAJA', 'Baja'),
+    ]
     
     ESTADOS = [
         ('PENDIENTE', 'Pendiente de Validación'),
@@ -17,10 +24,12 @@ class Necesidad(models.Model):
         ('EN_PROCESO', 'En Camino / Asignada'),
         ('CUBIERTA', 'Meta Alcanzada / Finalizada'),
         ('RECHAZADA', 'Rechazada / Cancelada'),
+        ('Activa', 'Activa'),
+        ('Pendiente', 'Pendiente'),
+        ('Cubierto', 'Cubierto'),
     ]
 
     # --- Relación Inter-Microservicios (Logística) ---
-    # Guardamos solo el ID del centro de acopio. Logística nos dirá el nombre y dirección mediante este ID.
     centro_acopio_id = models.PositiveIntegerField(
         verbose_name="ID del Centro de Acopio destino",
         help_text="Enlace lógico al microservicio de Logística"
@@ -28,9 +37,10 @@ class Necesidad(models.Model):
 
     # --- Información de la Necesidad ---
     titulo = models.CharField(max_length=150, verbose_name="Título corto (ej: Pañales para niños)")
-    descripcion = models.TextField(verbose_name="Detalle de la urgencia o requerimiento")
+    descripcion = models.TextField(blank=True, default="", verbose_name="Detalle de la urgencia o requerimiento")
     categoria = models.CharField(max_length=20, choices=CATEGORIAS, default='OTROS')
-    estado = models.CharField(max_length=20, choices=ESTADOS, default='PENDIENTE')
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='Pendiente')
+    urgencia = models.CharField(max_length=10, choices=URGENCIAS, default='', blank=True)
     
     # --- Control de Cantidades y Trazabilidad ---
     cantidad_requerida = models.PositiveIntegerField(default=1, verbose_name="Cantidad Total Necesitada")
@@ -39,7 +49,10 @@ class Necesidad(models.Model):
 
     # --- Datos de Contacto/Validación ---
     solicitante_nombre = models.CharField(max_length=100, verbose_name="Nombre de quien solicita / Organización")
-    solicitante_contacto = models.CharField(max_length=150, verbose_name="Contacto (Teléfono o Email)")
+    solicitante_contacto = models.CharField(max_length=150, default="", blank=True, verbose_name="Contacto (Teléfono o Email)")
+
+    # --- Campos Extensibles (compatibilidad con BFF) ---
+    detalles = models.JSONField(default=dict, blank=True, verbose_name="Metadatos adicionales (urgencia original, etc.)")
     
     # --- Auditoría ---
     fecha_creacion = models.DateTimeField(auto_now_add=True)

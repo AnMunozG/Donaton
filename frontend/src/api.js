@@ -146,6 +146,10 @@ export async function eliminarNecesidad(id) {
   return necesidadesService.delete(id);
 }
 
+export async function activarNecesidad(id, urgencia) {
+  return necesidadesService.activar(id, urgencia);
+}
+
 // ── Necesidades ciudadanas ───────────────────────────────────
 
 export async function getNecesidadesUsuario() {

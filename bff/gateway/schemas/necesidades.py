@@ -41,6 +41,10 @@ class NecesidadOut(Schema):
     detalles: dict = {}
 
 
+class ActivarNecesidadIn(Schema):
+    urgencia: str = "Media"
+
+
 class PropuestaCreate(Schema):
     necesidad_code: str
     mensaje: str

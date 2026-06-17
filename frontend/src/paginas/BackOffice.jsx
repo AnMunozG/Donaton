@@ -10,6 +10,7 @@ import {
   crearNecesidad, actualizarNecesidad, eliminarNecesidad,
   crearCentro, actualizarCentro, eliminarCentro,
   getNecesidadesUsuario, eliminarNecesidadUsuario, actualizarNecesidadUsuario,
+  activarNecesidad,
   estadoColor, CHART_COLORS,
 } from "../api.js";
 import { centrosService } from "../servicios/centros.js";
@@ -44,6 +45,7 @@ export default function BackOffice() {
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState({});
   const [formErrors, setFormErrors] = useState({});
+  const [userNeeds, setUserNeeds] = useState([]);
   const [userNecKey, setUserNecKey] = useState(0);
 
   useEffect(() => {
@@ -51,6 +53,10 @@ export default function BackOffice() {
     getNecesidades().then(setNecesidades);
     getCentros().then(setCentros);
   }, []);
+
+  useEffect(() => {
+    getNecesidadesUsuario().then(setUserNeeds);
+  }, [userNecKey]);
 
   const donacionesFiltradas = filtroEstado === "Todas"
     ? donaciones
@@ -226,16 +232,7 @@ export default function BackOffice() {
       alert("Debe asignar un nivel de urgencia antes de activar la necesidad.");
       return;
     }
-    await crearNecesidad({
-      recurso: userNeed.recurso,
-      cantidad: userNeed.cantidad,
-      unidad: userNeed.unidad,
-      urgencia: userNeed.urgencia,
-      centroId: userNeed.centroId,
-      reportadoPor: userNeed.reportadoPor,
-      descripcion: userNeed.descripcion || "",
-    });
-    eliminarNecesidadUsuario(userNeed.id);
+    await activarNecesidad(userNeed.id, userNeed.urgencia);
     getNecesidades().then(setNecesidades);
     setUserNecKey((k) => k + 1);
   };
@@ -457,74 +454,70 @@ export default function BackOffice() {
               </div>
 
               {/* Pendientes de revisión */}
-              {(() => {
-                const userNeeds = getNecesidadesUsuario();
-                if (!userNeeds.length) return null;
-                return (
-                  <div className="mb-4">
-                    <h5 className="c-heading mb-2">
-                      <i className="bi bi-clock-history me-2 c-warning"></i>Pendientes de revisión
-                      <span className="badge bg-warning text-dark ms-2">{userNeeds.length}</span>
-                    </h5>
-                    <div className="bo-table-wrapper">
-                      <table className="bo-table">
-                        <thead>
-                          <tr>
-                            <th>ID</th>
-                            <th>Recurso</th>
-                            <th>Cantidad</th>
-                            <th>Centro destino</th>
-                            <th>Urgencia</th>
-                            <th>Estado</th>
-                            <th>Reportado por</th>
-                      <th className="bo-actions-th">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {userNeeds.map((n) => {
-                            const centroNec = centros.find((c) => c.id === n.centroId);
-                            return (
-                              <tr key={n.id}>
-                                <td><span className="bo-id">{n.id}</span></td>
-                                <td className="fw-medium">{n.recurso}</td>
-                                <td>{n.cantidad} {n.unidad}</td>
-                                <td>{centroNec ? centroNec.nombre : n.centro || "—"}</td>
-                                <td>
-                                  <select className="form-select form-select-sm bo-select-sm"
-                                    value={n.urgencia || ""}
-                                    onChange={(e) => {
-                                      actualizarNecesidadUsuario(n.id, { urgencia: e.target.value });
-                                      setUserNecKey((k) => k + 1);
-                                    }}>
-                                    <option value="">Asignar</option>
-                                    <option value="Alta">Alta</option>
-                                    <option value="Media">Media</option>
-                                    <option value="Baja">Baja</option>
-                                  </select>
-                                </td>
-                                <td><BadgeEstado estado={n.estado} /></td>
-                                <td>{n.reportadoPor}</td>
-                                <td>
-                                  <div className="d-flex gap-1">
-                                    <button className="btn btn-sm btn-outline-success py-0 px-1" title="Activar"
-                                      onClick={() => handleActivarNecesidad(n)}>
-                                      <i className="bi bi-check-lg"></i>
-                                    </button>
-                                    <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar"
-                                      onClick={() => { eliminarNecesidadUsuario(n.id); setUserNecKey((k) => k + 1); }}>
-                                      <i className="bi bi-trash"></i>
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+              {userNeeds.length > 0 && (
+                <div className="mb-4">
+                  <h5 className="c-heading mb-2">
+                    <i className="bi bi-clock-history me-2 c-warning"></i>Pendientes de revisión
+                    <span className="badge bg-warning text-dark ms-2">{userNeeds.length}</span>
+                  </h5>
+                  <div className="bo-table-wrapper">
+                    <table className="bo-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Recurso</th>
+                          <th>Cantidad</th>
+                          <th>Centro destino</th>
+                          <th>Urgencia</th>
+                          <th>Estado</th>
+                          <th>Reportado por</th>
+                    <th className="bo-actions-th">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {userNeeds.map((n) => {
+                          const centroNec = centros.find((c) => c.id === n.centroId);
+                          return (
+                            <tr key={n.id}>
+                              <td><span className="bo-id">{n.id}</span></td>
+                              <td className="fw-medium">{n.recurso}</td>
+                              <td>{n.cantidad} {n.unidad}</td>
+                              <td>{centroNec ? centroNec.nombre : n.centro || "—"}</td>
+                              <td>
+                                <select className="form-select form-select-sm bo-select-sm"
+                                  value={n.urgencia || ""}
+                                  onChange={(e) => {
+                                    actualizarNecesidadUsuario(n.id, { urgencia: e.target.value });
+                                    setUserNecKey((k) => k + 1);
+                                  }}>
+                                  <option value="">Asignar</option>
+                                  <option value="Alta">Alta</option>
+                                  <option value="Media">Media</option>
+                                  <option value="Baja">Baja</option>
+                                </select>
+                              </td>
+                              <td><BadgeEstado estado={n.estado} /></td>
+                              <td>{n.reportadoPor}</td>
+                              <td>
+                                <div className="d-flex gap-1">
+                                  <button className="btn btn-sm btn-outline-success py-0 px-1" title="Activar"
+                                    onClick={() => handleActivarNecesidad(n)}>
+                                    <i className="bi bi-check-lg"></i>
+                                  </button>
+                                  <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar"
+                                    onClick={() => { eliminarNecesidadUsuario(n.id); setUserNecKey((k) => k + 1); }}>
+                                    <i className="bi bi-trash"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                );
-              })()}
+                </div>
+              )}
 
               {/* Necesidades activas */}
               <div>
@@ -546,7 +539,7 @@ export default function BackOffice() {
                       </tr>
                     </thead>
                     <tbody>
-                      {necesidades.map((n) => {
+                      {necesidades.filter((n) => n.estado !== "Pendiente").map((n) => {
                         const centroNec = centros.find((c) => c.id === n.centroId);
                         return (
                           <tr key={n.id}>

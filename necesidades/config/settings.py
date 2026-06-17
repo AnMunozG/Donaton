@@ -23,12 +23,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-++g$f0lmdpcqy6zag-_3&3vfg7j5dai=v)k$otwbatl^+yr8qs'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-++g$f0lmdpcqy6zag-_3&3vfg7j5dai=v)k$otwbatl^+yr8qs')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
 
 
 # Application definition
@@ -82,15 +81,22 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'necesidades_db'),  # Nombre BD
+        'NAME': os.getenv('DB_NAME', 'necesidades_db'),
         'USER': os.getenv('DB_USER', 'root'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''), 
+        'PASSWORD': os.getenv('DB_PASSWORD', 'admin'),
         'HOST': os.getenv('DB_HOST', '127.0.0.1'),
         'PORT': os.getenv('DB_PORT', '3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
 }
 
 
@@ -135,19 +141,4 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = True  # conector frontend
-
-# ==============================================================================
-# PARCHE MAESTRO PARA MARIADB ANTIGUO (XAMPP) EN DJANGO 5.2+
-# ==============================================================================
-from django.db.backends.base.base import BaseDatabaseWrapper
-from django.db.backends.mysql.features import DatabaseFeatures as MySQLFeatures
-
-# 1. Saltarse el bloqueo de la versión al iniciar
-BaseDatabaseWrapper.check_database_version_supported = lambda self: None
-
-# 2. Desactivar la sintaxis 'RETURNING' que rompe tu MariaDB 10.4
-MySQLFeatures.can_return_rows_from_bulk_insert = False
-MySQLFeatures.can_return_id_from_insert = False
-MySQLFeatures.has_select_for_update_skip_locked = False
-# ==============================================================================
+CORS_ALLOW_ALL_ORIGINS = True
