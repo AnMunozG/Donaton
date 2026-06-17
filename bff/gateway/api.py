@@ -143,9 +143,13 @@ async def list_donaciones(request, estado: Optional[str] = None, centro_code: Op
 async def get_donacion(request, code: str):
     return await donacion_service.get_by_code(code)
 
-@api.post("/donaciones", response={201: DonacionOut})
+@api.post("/donaciones", auth=None, response={201: DonacionOut})
 async def create_donacion(request, body: DonacionCreate):
-    return await donacion_service.create(body, rut=request.user["rut"])
+    user = getattr(request, "user", None)
+    rut = body.origen
+    if user is not None and hasattr(user, "get"):
+        rut = user.get("rut", body.origen)
+    return await donacion_service.create(body, rut=rut)
 
 @api.patch("/donaciones/{code}/estado", response=DonacionOut)
 async def update_donacion_estado(request, code: str, body: DonacionUpdate):

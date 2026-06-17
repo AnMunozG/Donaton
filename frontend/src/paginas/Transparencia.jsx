@@ -1,19 +1,24 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getImpactoStats, getDistribucionFondos, getReportes, getGobernanza } from "../api.js";
+import { getImpactoStats, getDistribucionFondos, getReportes } from "../api.js";
+import { descargarPDF } from "../utils/pdfGenerator.js";
 import banner3Img from "../assets/Banner3.png";
+
+const GOBERNANZA = [
+  { nombre: "Angel Muñoz", cargo: "Desarrollador Frontend", color: "#DD4444" },
+  { nombre: "Yasser Illanes", cargo: "Desarrollador Backend", color: "#3AB795" },
+  { nombre: "Martin Pizarro", cargo: "Desarrollador Backend", color: "#194B4F" },
+];
 
 export default function Transparencia() {
   const [impactoStats, setImpactoStats] = useState([]);
   const [distribucionFondos, setDistribucionFondos] = useState([]);
   const [reportes, setReportes] = useState([]);
-  const [gobernanza, setGobernanza] = useState([]);
 
   useEffect(() => {
     getImpactoStats().then(setImpactoStats);
     getDistribucionFondos().then(setDistribucionFondos);
     getReportes().then(setReportes);
-    getGobernanza().then(setGobernanza);
   }, []);
 
   return (
@@ -56,8 +61,8 @@ export default function Transparencia() {
                     <i className={`bi ${s.icono}`}></i>
                   </div>
                   <div className="tp-stat-valor">{s.valor}</div>
-                  <div className="tp-stat-texto">{s.texto}</div>
-                  <div className="tp-stat-detalle">{s.detalle}</div>
+                  <div className="tp-stat-texto">{s.label}</div>
+                  <div className="tp-stat-detalle">{s.detalle || ""}</div>
                 </div>
               </div>
             ))}
@@ -77,7 +82,7 @@ export default function Transparencia() {
                 {distribucionFondos.map((item, i) => (
                   <div key={i}>
                     <div className="d-flex justify-content-between mb-1">
-                      <span className="fw-medium">{item.concepto}</span>
+                      <span className="fw-medium">{item.label}</span>
                       <span className="fw-bold" style={{ color: item.color }}>{item.porcentaje}%</span>
                     </div>
                     <div className="tp-progress-bar">
@@ -106,7 +111,7 @@ export default function Transparencia() {
                         </div>
                       </div>
                       <div className="small c-muted tp-chart-label">
-                        {item.concepto}
+                        {item.label}
                       </div>
                     </div>
                   ))}
@@ -129,8 +134,8 @@ export default function Transparencia() {
             {reportes.map((r, i) => (
               <div key={i} className="col-md-6 col-lg-4">
                 <div className="tp-report-card" role="button" tabIndex={0}
-                  onClick={() => alert(`Descargando: ${r.titulo} (${r.size})`)}
-                  onKeyDown={(e) => e.key === "Enter" && alert(`Descargando: ${r.titulo} (${r.size})`)}>
+                  onClick={() => descargarPDF(r.titulo)}
+                  onKeyDown={(e) => e.key === "Enter" && descargarPDF(r.titulo)}>
                   <div className="d-flex align-items-center gap-3">
                     <i className={`bi ${r.icono} fs-2`} style={{ color: r.color }}></i>
                     <div className="flex-grow-1 min-width-0">
@@ -155,16 +160,14 @@ export default function Transparencia() {
             </p>
           </div>
           <div className="row g-4 justify-content-center">
-            {gobernanza.map((p, i) => (
+            {GOBERNANZA.map((p, i) => (
               <div key={i} className="col-sm-6 col-lg-3">
                 <div className="tp-team-card text-center">
                   <div className="rounded-circle mx-auto mb-3 tp-gov-avatar"
-                    style={{ backgroundImage: p.img ? `url(${p.img})` : undefined, backgroundColor: p.img ? undefined : "var(--primary)" }}>
-                    {!p.img && (
-                      <span className="fw-bold c-white fs-2">
-                        {p.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                      </span>
-                    )}
+                    style={{ backgroundColor: p.color }}>
+                    <span className="fw-bold c-white fs-2">
+                      {p.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                    </span>
                   </div>
                   <div className="fw-bold c-heading">{p.nombre}</div>
                   <div className="small c-muted">{p.cargo}</div>
