@@ -36,6 +36,9 @@ async def create(body, rut: str) -> DonacionOut:
     if not donacion_real_data:
         raise NotFoundError("El microservicio de donaciones no procesó la solicitud.")
 
+    if "error" in donacion_real_data:
+        raise Exception(donacion_real_data.get("error", "Error del microservicio de donaciones"))
+
     tipo_recurso = donacion_real_data.get("tipo")
     cantidad_donada = int(donacion_real_data.get("cantidad", 0))
     unidad_donada = donacion_real_data.get("unidad")

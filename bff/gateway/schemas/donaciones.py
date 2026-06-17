@@ -1,6 +1,7 @@
 from ninja import Schema
 from typing import Optional, Any
 from datetime import datetime
+from pydantic import field_validator
 
 
 class DonacionCreate(Schema):
@@ -10,6 +11,7 @@ class DonacionCreate(Schema):
     origen: str = ""  # nombre o RUT del donante
     centroId: str  # centro code
     fecha: str = ""
+    estado: str = "Recibido"
     comprobante: str = ""
     detalles: dict = {}
 
@@ -31,6 +33,13 @@ class DonacionOut(Schema):
     detalles: dict = {}
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    @field_validator("id", "cantidad", mode="before")
+    @classmethod
+    def coerce_to_str(cls, v):
+        if v is not None:
+            return str(v)
+        return v
 
 
 class DonacionStatsOut(Schema):
