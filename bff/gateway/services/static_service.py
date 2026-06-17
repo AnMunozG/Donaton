@@ -32,10 +32,10 @@ IMPACTO_STATS = [
 ]
 
 DISTRIBUCION_FONDOS = [
-    {"code": "df1", "label": "Ayuda directa", "porcentaje": 75},
-    {"code": "df2", "label": "Logística", "porcentaje": 12},
-    {"code": "df3", "label": "Administración", "porcentaje": 8},
-    {"code": "df4", "label": "Campañas futuras", "porcentaje": 5},
+    {"code": "df1", "label": "Ayuda directa", "porcentaje": 75, "color": "#DD4444"},
+    {"code": "df2", "label": "Logística", "porcentaje": 12, "color": "#3AB795"},
+    {"code": "df3", "label": "Administración", "porcentaje": 8, "color": "#194B4F"},
+    {"code": "df4", "label": "Campañas futuras", "porcentaje": 5, "color": "#F48080"},
 ]
 
 REPORTES = [
@@ -54,9 +54,9 @@ GOBERNANZA = [
 ]
 
 EQUIPO = [
-    {"code": "t1", "nombre": "Usuario 1", "cargo": "Administrador", "email": "admin@donaton.cl", "foto_url": "", "activo": True},
-    {"code": "t2", "nombre": "Usuario 2", "cargo": "Donante", "email": "user@donaton.cl", "foto_url": "", "activo": True},
-    {"code": "t3", "nombre": "Usuario 3", "cargo": "Voluntario", "email": "voluntario@donaton.cl", "foto_url": "", "activo": True},
+    {"code": "t1", "nombre": "Usuario 1", "cargo": "Administrador", "email": "admin@donaton.cl", "foto_url": "", "activo": True, "color": "#DD4444"},
+    {"code": "t2", "nombre": "Usuario 2", "cargo": "Donante", "email": "user@donaton.cl", "foto_url": "", "activo": True, "color": "#3AB795"},
+    {"code": "t3", "nombre": "Usuario 3", "cargo": "Voluntario", "email": "voluntario@donaton.cl", "foto_url": "", "activo": True, "color": "#194B4F"},
 ]
 
 VALORES = [

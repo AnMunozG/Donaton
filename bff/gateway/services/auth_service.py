@@ -26,7 +26,11 @@ def _crear_bff_token(user: dict, uat: str = "") -> str:
 
 async def login(data: LoginIn) -> dict:
     # 1. Pedir token al microservicio de Usuarios
-    token_resp = await usuarios_client.login(data.rut, data.password)
+    try:
+        token_resp = await usuarios_client.login(data.rut, data.password)
+    except Exception:
+        raise AuthError("Error de conexión con el servicio de usuarios")
+
     if "error" in token_resp or "access" not in token_resp:
         raise AuthError("RUT o contraseña incorrectos")
 
@@ -34,13 +38,21 @@ async def login(data: LoginIn) -> dict:
 
     # 2. Extraer user_id del JWT de Usuarios SIN validar firma
     #    (está firmado con el secret de Usuarios, no el del BFF)
-    payload = jwt.decode(uat, options={"verify_signature": False})
+    try:
+        payload = jwt.decode(uat, options={"verify_signature": False})
+    except Exception:
+        raise AuthError("Token inválido recibido del servicio de usuarios")
+
     user_id = payload.get("user_id")
     if not user_id:
         raise AuthError("Token inválido: sin user_id")
 
     # 3. Obtener perfil desde Usuarios usando su propio token
-    user = await usuarios_client.obtener_usuario(user_id, token=uat)
+    try:
+        user = await usuarios_client.obtener_usuario(user_id, token=uat)
+    except Exception:
+        raise AuthError("Error de conexión al obtener perfil de usuario")
+
     if not user or "error" in user or "detail" in user:
         raise AuthError("Error al obtener perfil de usuario")
 
