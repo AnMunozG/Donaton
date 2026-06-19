@@ -6,4 +6,6 @@ django-filter>=25.1,<26.0
 drf-spectacular>=0.29,<1.0
 PyMySQL>=1.1,<2.0
 cryptography>=44,<45
+pytest>=9,<10
+pytest-django>=4,<5
 pytest-html>=4.1.1

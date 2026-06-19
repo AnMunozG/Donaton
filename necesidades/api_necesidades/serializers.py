@@ -9,6 +9,11 @@ class NecesidadSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['fecha_creacion', 'fecha_actualizacion', 'cantidad_recibida']
 
+    def validate_titulo(self, value):
+        if len(value) < 5:
+            raise serializers.ValidationError("El título debe tener al menos 5 caracteres.")
+        return value
+
     def validate_centro_acopio_id(self, value):
         if value <= 0:
             raise serializers.ValidationError("El ID del centro de acopio debe ser un identificador válido.")

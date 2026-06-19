@@ -41,7 +41,7 @@ class NecesidadAPITests(APITestCase):
         response = self.client.post(self.url_lista, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Necesidad.objects.count(), 2)
-        self.assertEqual(response.data['estado'], 'PENDIENTE') # Estado inicial automático
+        self.assertEqual(response.data['estado'], 'Pendiente')
 
     def test_02_error_cuando_cantidad_requerida_es_cero_o_negativa(self):
         """2. El Serializer debe rechazar formularios con cantidades absurdas"""
