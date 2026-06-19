@@ -161,6 +161,14 @@ async def get_inventario(code: str) -> list[InventarioItem]:
     ]
 
 
+async def delete(code: str) -> None:
+    try:
+        id_ = int(code)
+    except ValueError:
+        raise NotFoundError("Centro no encontrado")
+    await logistica_client.eliminar_centro(id_)
+
+
 async def get_stats(code: str) -> CentroStatsOut:
     try:
         centro = await get_by_code(code)
