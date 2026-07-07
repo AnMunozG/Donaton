@@ -81,6 +81,7 @@ UNIDADES_POR_TIPO = {
     "Ropa y abrigo": ["prendas", "cajas", "kits"],
     "Donación Monetaria": ["CLP", "USD"],
     "Utensilios del hogar": ["unidades", "juegos", "cajas"],
+    "Otros": ["unidades", "kg", "cajas", "kits"],
 }
 
 CAMPOS_POR_TIPO = {
@@ -119,6 +120,10 @@ CAMPOS_POR_TIPO = {
         {"name": "estadoUtensilio", "label": "Estado", "type": "select", "options": ["Nuevo", "Semi-nuevo", "Usado en buen estado"]},
         {"name": "material", "label": "Material predominante", "type": "text", "placeholder": "Ej: Acero inoxidable, Plástico"},
     ],
+    "Otros": [
+        {"name": "tipoPersonalizado", "label": "Describe el artículo", "type": "text", "placeholder": "Ej: Instrumentos musicales, juguetes, libros..."},
+        {"name": "condicion", "label": "Condición", "type": "select", "options": ["Nuevo", "Semi-nuevo", "Usado en buen estado"]},
+    ],
 }
 
 UNIDADES = [
@@ -141,6 +146,7 @@ TIPOS_RECURSO = [
     {"code": "higiene", "nombre": "Artículos de higiene", "descripcion": "Jabón, pasta dental, pañales, toallitas", "activo": True},
     {"code": "dinero", "nombre": "Donación Monetaria", "descripcion": "Aporte económico vía transferencia o webpay", "activo": True},
     {"code": "utensilios", "nombre": "Utensilios del hogar", "descripcion": "Ollas, vajilla, ropa de cama", "activo": True},
+    {"code": "otros", "nombre": "Otros", "descripcion": "Otros artículos no listados", "activo": True},
 ]
 
 async def get_tipos_recurso():

@@ -106,17 +106,26 @@ export default function Donacion() {
     setForm({ ...form, detalles: { ...form.detalles, [name]: value } });
   };
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validarFormulario()) return;
-    const centroSel = centros.find((c) => c.id === form.centroId);
+    const detalles = { ...form.detalles };
+    if (form.tipo && form.tipo !== "Donación Monetaria") {
+      detalles.direccion_retiro = form.direccion;
+      if (form.direccionDetalle) detalles.direccion_retiro += `, ${form.direccionDetalle}`;
+      detalles.fecha_retiro = form.fechaRetiro;
+    }
+    if (form.notas) detalles.notas = form.notas;
+    const tipoFinal = form.tipo === "Otros" && form.detalles?.tipoPersonalizado
+      ? `Otros - ${form.detalles.tipoPersonalizado}`
+      : form.tipo;
     await crearDonacion({
-      tipo: form.tipo,
+      tipo: tipoFinal,
       cantidad: form.cantidad,
       unidad: form.unidad,
       origen: form.origen,
       centroId: form.centroId,
-      detalles: form.detalles,
+      detalles,
       fecha: new Date().toISOString().split("T")[0],
     });
     setEnviado(true);
@@ -193,6 +202,9 @@ export default function Donacion() {
                     <option value="">Selecciona un tipo...</option>
                     {tiposRecurso.map((t) => <option key={t}>{t}</option>)}
                   </select>
+                  {form.tipo === "Otros" && (
+                    <div className="small c-muted mt-1"><i className="bi bi-info-circle me-1"></i>Describe el artículo en "Detalles adicionales"</div>
+                  )}
                   {formErrors.tipo && <div className="invalid-feedback d-block">{formErrors.tipo}</div>}
                   {pagado && <div className="small c-accent mt-1"><i className="bi bi-lock-fill me-1"></i>Tipo bloqueado por pago</div>}
                 </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { validarRequerido, validarEnteroPositivo, validarRut, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
+import RichTextEditor from "../componentes/RichTextEditor";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -15,6 +16,7 @@ import {
 } from "../api.js";
 import { centrosService } from "../servicios/centros.js";
 import SelectRegion from "../componentes/SelectRegion";
+import AddressPicker from "../componentes/AddressPicker";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: "bi-speedometer2" },
@@ -27,7 +29,7 @@ const estadosDonacion = ["En acopio", "En tránsito", "Entregado"];
 const urgencias = ["Alta", "Media", "Baja"];
 
 function emptyForm(entity) {
-  if (entity === "donacion") return { tipo: "", cantidad: "", unidad: "", origen: "", centroId: "", estado: "En acopio" };
+  if (entity === "donacion") return { tipo: "", cantidad: "", unidad: "", origen: "", centroId: "", estado: "En acopio", tipoPersonalizado: "" };
   if (entity === "necesidad") return { recurso: "", cantidad: "", unidad: "", urgencia: "Media", estado: "Pendiente", centroId: "", reportadoPor: "", descripcion: "" };
   return { nombre: "", region: "", direccion: "", telefono: "", encargado: "", latitud: "", longitud: "", capacidadTotal: "", capacidadUsada: "", estado: "Activo" };
 }
@@ -153,8 +155,11 @@ export default function BackOffice() {
       if (editItem) {
         await actualizarDonacion(editItem.id, { estado: form.estado });
       } else {
+        const tipoFinal = form.tipo === "Otros" && form.tipoPersonalizado
+          ? `Otros - ${form.tipoPersonalizado}`
+          : form.tipo;
         await crearDonacion({
-          tipo: form.tipo,
+          tipo: tipoFinal,
           cantidad: form.cantidad,
           unidad: form.unidad,
           origen: form.origen,
@@ -696,7 +701,17 @@ export default function BackOffice() {
                       <>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Tipo</label>
-                          <input name="tipo" className={`form-control${formErrors.tipo ? " is-invalid" : ""}`} value={form.tipo || ""} onChange={handleFormChange} />
+                          {editItem ? (
+                            <input name="tipo" className={`form-control${formErrors.tipo ? " is-invalid" : ""}`} value={form.tipo || ""} onChange={handleFormChange} />
+                          ) : (
+                            <select name="tipo" className={`form-select${formErrors.tipo ? " is-invalid" : ""}`} value={form.tipo || ""} onChange={handleFormChange}>
+                              <option value="">Selecciona...</option>
+                              {["Alimentos no perecibles", "Ropa y abrigo", "Insumos médicos", "Artículos de higiene", "Donación Monetaria", "Utensilios del hogar", "Otros"].map((t) => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          )}
+                          {form.tipo === "Otros" && !editItem && (
+                            <input name="tipoPersonalizado" className="form-control mt-2" placeholder="Describe el tipo..." value={form.tipoPersonalizado || ""} onChange={handleFormChange} />
+                          )}
                           {formErrors.tipo && <div className="invalid-feedback d-block">{formErrors.tipo}</div>}
                         </div>
                         <div className="col-md-3">
@@ -776,7 +791,7 @@ export default function BackOffice() {
                         </div>
                         <div className="col-12">
                           <label className="form-label small fw-semibold">Descripción</label>
-                          <textarea name="descripcion" className="form-control" rows="2" value={form.descripcion || ""} onChange={handleFormChange}></textarea>
+                          <RichTextEditor content={form.descripcion || ""} onChange={(value) => setForm({ ...form, descripcion: value })} placeholder="Describe la necesidad en detalle..." />
                         </div>
                       </>
                     )}
@@ -791,10 +806,6 @@ export default function BackOffice() {
                           <SelectRegion value={form.region} onChange={handleFormChange} error={formErrors.region} />
                         </div>
                         <div className="col-md-6">
-                          <label className="form-label small fw-semibold">Dirección</label>
-                          <input name="direccion" className="form-control" value={form.direccion || ""} onChange={handleFormChange} placeholder="Calle, número, comuna" />
-                        </div>
-                        <div className="col-md-6">
                           <label className="form-label small fw-semibold">Teléfono</label>
                           <input name="telefono" className="form-control" value={form.telefono || ""} onChange={handleFormChange} placeholder="+56 9 XXXX XXXX" />
                         </div>
@@ -803,13 +814,12 @@ export default function BackOffice() {
                           <input name="encargado" className={`form-control${formErrors.encargado ? " is-invalid" : ""}`} value={form.encargado || ""} onChange={handleFormChange} />
                           {formErrors.encargado && <div className="invalid-feedback d-block">{formErrors.encargado}</div>}
                         </div>
-                        <div className="col-md-3">
-                          <label className="form-label small fw-semibold">Latitud</label>
-                          <input name="latitud" type="number" step="any" className="form-control" value={form.latitud || ""} onChange={handleFormChange} placeholder="-33.4489" />
-                        </div>
-                        <div className="col-md-3">
-                          <label className="form-label small fw-semibold">Longitud</label>
-                          <input name="longitud" type="number" step="any" className="form-control" value={form.longitud || ""} onChange={handleFormChange} placeholder="-70.6693" />
+                        <div className="col-12">
+                          <AddressPicker
+                            label="Dirección (búsqueda + mapa)"
+                            initialLocation={form.latitud && form.longitud ? { lat: parseFloat(form.latitud), lng: parseFloat(form.longitud) } : null}
+                            onLocationChange={({ lat, lng }) => setForm({ ...form, latitud: lat.toString(), longitud: lng.toString() })}
+                          />
                         </div>
                         <div className="col-md-3">
                           <label className="form-label small fw-semibold">Capacidad total</label>

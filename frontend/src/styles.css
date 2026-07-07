@@ -2786,3 +2786,23 @@ h1, h2, h3, p, span {
 section {
   margin-bottom: clamp(2rem, 5vw, 4rem);
 }
+
+/* ── LEAFLET MAP ───────────────────────────────────────── */
+.mapa-libre {
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.marker-selected {
+  filter: hue-rotate(0deg) saturate(2);
+}
+
+.mapa-libre .leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.address-picker .list-group-item:hover {
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}

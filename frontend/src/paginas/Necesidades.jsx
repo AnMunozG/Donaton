@@ -34,7 +34,7 @@ export default function Necesidades() {
   const handleRecursoChange = (e) => {
     const nuevoRecurso = e.target.value;
     const unidades = unidadesPorTipo[nuevoRecurso] || [];
-    setForm({ ...form, recurso: nuevoRecurso, unidad: unidades[0] || "" });
+    setForm({ ...form, recurso: nuevoRecurso, unidad: unidades[0] || "", recursoPersonalizado: "" });
   };
 
   const handleSubmit = async (e) => {
@@ -49,8 +49,11 @@ export default function Necesidades() {
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
     try {
+      const recursoFinal = form.recurso === "Otros" && form.recursoPersonalizado
+        ? `Otros - ${form.recursoPersonalizado}`
+        : form.recurso;
       await agregarNecesidadUsuario({
-        recurso: form.recurso,
+        recurso: recursoFinal,
         cantidad: form.cantidad,
         unidad: form.unidad,
         descripcion: form.descripcion,
@@ -61,7 +64,7 @@ export default function Necesidades() {
       setFormErrors({});
       clearTimeout(enviadoTimer.current);
       enviadoTimer.current = setTimeout(() => setEnviado(false), 4000);
-      setForm({ recurso: "", cantidad: "", unidad: "", descripcion: "", reportadoPor: "", centroAcopio: "" });
+      setForm({ recurso: "", cantidad: "", unidad: "", descripcion: "", reportadoPor: "", centroAcopio: "", recursoPersonalizado: "" });
     } catch {
       alert("Error al reportar la necesidad. Intente nuevamente.");
     }
@@ -118,6 +121,9 @@ export default function Necesidades() {
                     <option value="">Selecciona...</option>
                     {tiposRecurso.map((t) => <option key={t}>{t}</option>)}
                   </select>
+                  {form.recurso === "Otros" && (
+                    <input type="text" name="recursoPersonalizado" className="form-control mt-2" placeholder="Describe el recurso..." value={form.recursoPersonalizado || ""} onChange={handleChange} />
+                  )}
                   {formErrors.recurso && <div className="invalid-feedback d-block">{formErrors.recurso}</div>}
                 </div>
 
