@@ -16,21 +16,56 @@ class DonacionCreate(Schema):
     detalles: dict = {}
 
 
+class ItemDonacionCreate(Schema):
+    tipo: str
+    cantidad: float
+    unidad: str
+    detalles: dict = {}
+
+
+class DonacionMultiCreate(Schema):
+    items: list[ItemDonacionCreate]
+    origen: str = ""
+    centroId: str
+    fecha: str = ""
+    estado: str = "Recibido"
+    notas: str = ""
+    direccion_retiro: str = ""
+    fecha_retiro: str = ""
+    detalles: dict = {}
+
+
 class DonacionUpdate(Schema):
     estado: Optional[str] = None
 
 
+class ItemDonacionOut(Schema):
+    id: str
+    tipo: str
+    cantidad: str
+    unidad: str
+    detalles: dict = {}
+
+    @field_validator("id", "cantidad", mode="before")
+    @classmethod
+    def coerce_to_str(cls, v):
+        if v is not None:
+            return str(v)
+        return v
+
+
 class DonacionOut(Schema):
     id: str  # code
-    tipo: str
-    cantidad: str  # string formateada (ej: "50")
-    unidad: str
+    tipo: Optional[str] = None
+    cantidad: Optional[str] = None  # string formateada (ej: "50")
+    unidad: Optional[str] = None
     origen: str
     centroId: str
     centro: str = ""  # nombre del centro (se resuelve si está disponible)
     fecha: str
     estado: str
     detalles: dict = {}
+    items: list[ItemDonacionOut] = []
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

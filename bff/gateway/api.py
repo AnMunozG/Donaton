@@ -8,7 +8,7 @@ from typing import Optional
 from .exceptions import BffError
 from .schemas.auth import LoginIn, LoginOut, RegisterIn, UserOut, UserUpdateIn
 from .schemas.centros import CentroCreate, CentroUpdate, CentroOut, CentroStatsOut, InventarioItem, RutaRequest, RutaOut
-from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionOut, DonacionStatsOut
+from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionMultiCreate, DonacionOut, DonacionStatsOut
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, ActivarNecesidadIn, PropuestaCreate, PropuestaOut
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut,
                              RegionOut, CategoriaDonacionOut, PasoFuncionamientoOut, ImpactoStatsOut, DistribucionFondosOut,
@@ -139,6 +139,14 @@ async def get_ruta(request, origen_lat: float, origen_lng: float, dest_lat: floa
 @api.get("/donaciones", auth=None, response=list[DonacionOut])
 async def list_donaciones(request, estado: Optional[str] = None, centro_code: Optional[str] = None, tipo: Optional[str] = None):
     return await donacion_service.list_all(estado=estado, centro_code=centro_code, tipo=tipo)
+
+@api.post("/donaciones/multi", auth=None, response={201: DonacionOut})
+async def create_donacion_multi(request, body: DonacionMultiCreate):
+    user = getattr(request, "user", None)
+    rut = body.origen
+    if user is not None and hasattr(user, "get"):
+        rut = user.get("rut", body.origen)
+    return await donacion_service.create_multi(body, rut=rut)
 
 @api.get("/donaciones/{code}", auth=None, response=DonacionOut)
 async def get_donacion(request, code: str):

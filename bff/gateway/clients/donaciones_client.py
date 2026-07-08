@@ -20,6 +20,9 @@ class DonacionesClient(ServiceClient):
     async def crear_donacion(self, data: dict) -> dict:
         return await self.post("/api/donaciones/", data)
 
+    async def crear_donacion_multi(self, data: dict) -> dict:
+        return await self.post("/api/donaciones/multi/", data)
+
     async def actualizar_estado_donacion(self, code: str, data: dict) -> dict:
         return await self.patch(f"/api/donaciones/{code}/", data)
 

@@ -1,9 +1,10 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Sum
-from .models import Donacion
-from .serializers import DonacionSerializer
+from .models import Donacion, ItemDonacion
+from .serializers import DonacionSerializer, ItemDonacionSerializer
+
 
 class DonacionViewSet(viewsets.ModelViewSet):
     queryset = Donacion.objects.all()
@@ -21,6 +22,24 @@ class DonacionViewSet(viewsets.ModelViewSet):
         if tipo:
             qs = qs.filter(tipo=tipo)
         return qs
+
+    @action(detail=False, methods=["post"], url_path="multi")
+    def crear_multi(self, request):
+        data = request.data.copy()
+        items_data = data.pop("items", [])
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        donacion = serializer.save()
+
+        items_creados = []
+        for item_data in items_data:
+            item = ItemDonacion.objects.create(donacion=donacion, **item_data)
+            items_creados.append(item)
+
+        out = DonacionSerializer(donacion).data
+        out["items"] = ItemDonacionSerializer(items_creados, many=True).data
+        return Response(out, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"], url_path="stats")
     def stats(self, request):

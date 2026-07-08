@@ -115,6 +115,10 @@ export async function crearDonacion(data) {
   return donacionesService.create(data);
 }
 
+export async function crearDonacionMultiItem(data) {
+  return api.post("/donaciones/multi", data);
+}
+
 export async function actualizarEstadoDonacion(id, estado) {
   return donacionesService.update(id, { estado });
 }
