@@ -15,12 +15,15 @@ class DonacionViewSet(viewsets.ModelViewSet):
         estado = self.request.query_params.get("estado")
         centro_code = self.request.query_params.get("centro_code")
         tipo = self.request.query_params.get("tipo")
+        origen = self.request.query_params.get("origen")
         if estado:
             qs = qs.filter(estado=estado)
         if centro_code:
             qs = qs.filter(centroId=centro_code)
         if tipo:
             qs = qs.filter(tipo=tipo)
+        if origen:
+            qs = qs.filter(origen=origen)
         return qs
 
     @action(detail=False, methods=["post"], url_path="multi")

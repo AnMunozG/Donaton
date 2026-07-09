@@ -151,4 +151,11 @@ REST_FRAMEWORK = {
     ],
 }
 
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

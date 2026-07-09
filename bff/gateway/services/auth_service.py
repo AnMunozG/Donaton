@@ -10,7 +10,7 @@ def _rol_from_user(user: dict) -> str:
     return "admin" if user.get("is_staff", False) else "donante"
 
 
-def _crear_bff_token(user: dict, uat: str = "") -> str:
+def _crear_bff_token(user: dict, uat: str = "", uat_refresh: str = "") -> str:
     nombre = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
     payload = {
         "rut": user.get("rut", ""),
@@ -18,6 +18,7 @@ def _crear_bff_token(user: dict, uat: str = "") -> str:
         "email": user.get("email", ""),
         "rol": _rol_from_user(user),
         "uat": uat,
+        "uat_refresh": uat_refresh,
         "exp": datetime.now(timezone.utc) + timedelta(hours=24),
     }
     secret = getattr(settings, "JWT_SECRET", settings.SECRET_KEY)
@@ -34,7 +35,8 @@ async def login(data: LoginIn) -> dict:
     if "error" in token_resp or "access" not in token_resp:
         raise AuthError("RUT o contraseña incorrectos")
 
-    uat = token_resp["access"]  # usuarios access token
+    uat = token_resp["access"]
+    uat_refresh = token_resp.get("refresh", "")
 
     # 2. Extraer user_id del JWT de Usuarios SIN validar firma
     #    (está firmado con el secret de Usuarios, no el del BFF)
@@ -56,8 +58,8 @@ async def login(data: LoginIn) -> dict:
     if not user or "error" in user or "detail" in user:
         raise AuthError("Error al obtener perfil de usuario")
 
-    # 4. Crear JWT del BFF (incluye uat para futuras llamadas a Usuarios)
-    bff_token = _crear_bff_token(user, uat=uat)
+    # 4. Crear JWT del BFF (incluye uat y uat_refresh para futuras llamadas a Usuarios)
+    bff_token = _crear_bff_token(user, uat=uat, uat_refresh=uat_refresh)
 
     nombre = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
     return {

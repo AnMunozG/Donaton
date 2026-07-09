@@ -249,7 +249,12 @@ export default function Donacion() {
                           {tiposRecurso.map((t) => <option key={t}>{t}</option>)}
                         </select>
                         {item.tipo === "Otros" && (
-                          <div className="small c-muted mt-1"><i className="bi bi-info-circle me-1"></i>Describe el artículo en "Detalles adicionales"</div>
+                          <div className="mt-2">
+                            <label className="form-label fw-semibold small">Nombre del tipo personalizado</label>
+                            <input type="text" className="form-control form-control-sm" placeholder="Ej: Equipo médico, juguetes..."
+                              value={item.detalles?.tipoPersonalizado || ""}
+                              onChange={(e) => handleItemChange(activeIdx, "detalles", { tipoPersonalizado: e.target.value })} />
+                          </div>
                         )}
                         {formErrors[`item_${activeIdx}_tipo`] && <div className="invalid-feedback d-block">{formErrors[`item_${activeIdx}_tipo`]}</div>}
                       </div>

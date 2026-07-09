@@ -13,7 +13,12 @@ from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut,
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut,
                              RegionOut, CategoriaDonacionOut, PasoFuncionamientoOut, ImpactoStatsOut, DistribucionFondosOut,
                              CampoOut)
+from .schemas.agradecimientos import AgradecimientoCreate, AgradecimientoOut
+from .schemas.seguimiento import SeguirCentroIn, SeguimientoOut
+from .schemas.logros import LogroOut, LogroUsuarioOut, VerificarLogrosIn
+from .schemas.impacto import ImpactoOut
 from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service, routing_service
+from .services import agradecimiento_service, seguimiento_service, logro_service, impacto_service, certificado_service
 from .clients import usuarios_client
 
 
@@ -116,7 +121,7 @@ async def get_centro(request, code: str):
 async def create_centro(request, body: CentroCreate):
     return await centro_service.create(body)
 
-@api.put("/centros/{code}", response=CentroOut)
+@api.put("/centros/{code}", auth=AdminBearer(), response=CentroOut)
 async def update_centro(request, code: str, body: CentroUpdate):
     return await centro_service.update(code, body)
 
@@ -137,8 +142,8 @@ async def get_ruta(request, origen_lat: float, origen_lng: float, dest_lat: floa
 # ── Donaciones ──
 
 @api.get("/donaciones", auth=None, response=list[DonacionOut])
-async def list_donaciones(request, estado: Optional[str] = None, centro_code: Optional[str] = None, tipo: Optional[str] = None):
-    return await donacion_service.list_all(estado=estado, centro_code=centro_code, tipo=tipo)
+async def list_donaciones(request, estado: Optional[str] = None, centro_code: Optional[str] = None, tipo: Optional[str] = None, origen: Optional[str] = None):
+    return await donacion_service.list_all(estado=estado, centro_code=centro_code, tipo=tipo, origen=origen)
 
 @api.post("/donaciones/multi", auth=None, response={201: DonacionOut})
 async def create_donacion_multi(request, body: DonacionMultiCreate):
@@ -160,11 +165,11 @@ async def create_donacion(request, body: DonacionCreate):
         rut = user.get("rut", body.origen)
     return await donacion_service.create(body, rut=rut)
 
-@api.patch("/donaciones/{code}/estado", response=DonacionOut)
+@api.patch("/donaciones/{code}/estado", auth=AdminBearer(), response=DonacionOut)
 async def update_donacion_estado(request, code: str, body: DonacionUpdate):
     return await donacion_service.update_estado(code, body.estado)
 
-@api.delete("/donaciones/{code}", response={204: None})
+@api.delete("/donaciones/{code}", auth=AdminBearer(), response={204: None})
 async def delete_donacion(request, code: str):
     await donacion_service.delete(code)
     return 204, None
@@ -180,7 +185,7 @@ async def get_donacion_stats(request):
 async def list_necesidades(request, estado: Optional[str] = None, centro_code: Optional[str] = None, urgencia: Optional[str] = None):
     return await necesidad_service.list_all(estado=estado, centro_code=centro_code, urgencia=urgencia)
 
-@api.post("/necesidades", response={201: NecesidadOut})
+@api.post("/necesidades", auth=AdminBearer(), response={201: NecesidadOut})
 async def create_necesidad(request, body: NecesidadCreate):
     return await necesidad_service.create(body, rut=request.user["rut"])
 
@@ -211,11 +216,11 @@ async def delete_necesidad_ciudadana(request, code: str):
 async def get_necesidad(request, code: str):
     return await necesidad_service.get_by_code(code)
 
-@api.put("/necesidades/{code}", response=NecesidadOut)
+@api.put("/necesidades/{code}", auth=AdminBearer(), response=NecesidadOut)
 async def update_necesidad(request, code: str, body: NecesidadUpdate):
     return await necesidad_service.update(code, body)
 
-@api.post("/necesidades/{code}/activar", auth=None, response=NecesidadOut)
+@api.post("/necesidades/{code}/activar", auth=AdminBearer(), response=NecesidadOut)
 async def activar_necesidad(request, code: str, body: ActivarNecesidadIn):
     return await necesidad_service.activar(code, urgencia=body.urgencia)
 
@@ -274,6 +279,76 @@ async def list_unidades_por_tipo(request): return await static_service.get_unida
 
 @api.get("/static/campos-por-tipo", auth=None)
 async def list_campos_por_tipo(request): return await static_service.get_campos_por_tipo()
+
+
+# ── Agradecimientos ──
+
+@api.post("/auth/agradecimientos", auth=AdminBearer(), response={201: AgradecimientoOut})
+async def create_agradecimiento(request, body: AgradecimientoCreate):
+    return await agradecimiento_service.crear(body)
+
+@api.get("/auth/agradecimientos/recibidos", response=list[AgradecimientoOut])
+async def mis_agradecimientos(request):
+    return await agradecimiento_service.listar_para_usuario(request.user["rut"])
+
+@api.get("/centros/{code}/agradecimientos", auth=None, response=list[AgradecimientoOut])
+async def agradecimientos_centro(request, code: str):
+    return await agradecimiento_service.listar_para_centro(code)
+
+
+# ── Seguimiento de centros ──
+
+@api.post("/auth/centros/seguir", response=SeguimientoOut)
+async def seguir_centro(request, body: SeguirCentroIn):
+    return await seguimiento_service.seguir(request.user["rut"], body.centro_id)
+
+@api.delete("/auth/centros/{code}/seguir", response={204: None})
+async def dejar_seguir_centro(request, code: str):
+    await seguimiento_service.dejar_de_seguir(request.user["rut"], code)
+    return 204, None
+
+@api.get("/auth/centros/seguidos", response=list[SeguimientoOut])
+async def centros_seguidos(request):
+    return await seguimiento_service.listar_seguidos(request.user["rut"])
+
+@api.get("/centros/{code}/seguido", response=bool)
+async def es_centro_seguido(request, code: str):
+    rut = getattr(request, "user", {}).get("rut", "")
+    if not rut:
+        return False
+    return await seguimiento_service.es_seguido(rut, code)
+
+
+# ── Logros ──
+
+@api.get("/auth/logros", response=list[LogroOut])
+async def list_logros(request):
+    return await logro_service.listar_logros(request)
+
+@api.get("/auth/logros/mis-logros", response=list[LogroUsuarioOut])
+async def mis_logros(request):
+    return await logro_service.mis_logros(request)
+
+@api.post("/auth/logros/verificar")
+async def verificar_logros(request, body: VerificarLogrosIn):
+    return await logro_service.verificar(request, body)
+
+
+# ── Impacto ──
+
+@api.get("/auth/impacto", response=ImpactoOut)
+async def impacto(request):
+    return await impacto_service.get_impacto(request.user["rut"])
+
+
+# ── Certificado anual ──
+
+@api.get("/auth/certificado/{year}")
+async def certificado(request, year: int):
+    pdf_buf = await certificado_service.generar_certificado(request.user["rut"], year)
+    from django.http import HttpResponse
+    return HttpResponse(pdf_buf.read(), content_type="application/pdf",
+                        headers={"Content-Disposition": f"attachment; filename=certificado_{request.user['rut']}_{year}.pdf"})
 
 
 

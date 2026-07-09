@@ -12,6 +12,7 @@ import {
   crearCentro, actualizarCentro, eliminarCentro,
   getNecesidadesUsuario, eliminarNecesidadUsuario, actualizarNecesidadUsuario,
   activarNecesidad,
+  crearAgradecimiento,
   estadoColor, CHART_COLORS,
 } from "../api.js";
 import { centrosService } from "../servicios/centros.js";
@@ -49,6 +50,10 @@ export default function BackOffice() {
   const [formErrors, setFormErrors] = useState({});
   const [userNeeds, setUserNeeds] = useState([]);
   const [userNecKey, setUserNecKey] = useState(0);
+  const [showAgradecerModal, setShowAgradecerModal] = useState(false);
+  const [agradecerDonacion, setAgradecerDonacion] = useState(null);
+  const [agradecerMensaje, setAgradecerMensaje] = useState("");
+  const [agradecerEnviando, setAgradecerEnviando] = useState(false);
 
   useEffect(() => {
     getDonaciones().then(setDonaciones);
@@ -143,12 +148,12 @@ export default function BackOffice() {
       { campo: "region", nombre: "Región", validaciones: [validarRequerido] },
       { campo: "capacidadTotal", nombre: "Capacidad total", validaciones: [validarRequerido, validarEnteroPositivo] },
     ] : [];
+    const errores = validarForm(form, reglas);
     if (entity === "centro" && form.capacidadUsada !== "" && form.capacidadTotal !== "") {
       const usada = parseInt(form.capacidadUsada, 10) || 0;
       const total = parseInt(form.capacidadTotal, 10) || 0;
       if (usada > total) errores.capacidadUsada = "No puede superar la capacidad total";
     }
-    const errores = validarForm(form, reglas);
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
     if (entity === "donacion") {
@@ -433,6 +438,9 @@ export default function BackOffice() {
                             </button>
                             <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar" onClick={() => handleDelete("donacion", d.id)}>
                               <i className="bi bi-trash"></i>
+                            </button>
+                            <button className="btn btn-sm btn-outline-success py-0 px-1" title="Agradecer" onClick={() => { setAgradecerDonacion(d); setAgradecerMensaje(""); setShowAgradecerModal(true); }}>
+                              <i className="bi bi-heart-fill"></i>
                             </button>
                           </div>
                         </td>
@@ -849,6 +857,60 @@ export default function BackOffice() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      { /* ── AGRADECIMIENTO MODAL ── */ }
+      {showAgradecerModal && agradecerDonacion && (
+        <div className="modal d-block modal-overlay" tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="bi bi-heart-fill me-2 c-danger"></i>Agradecer a donante
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setShowAgradecerModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <p className="small c-muted mb-2">
+                  Donaci&oacute;n #{agradecerDonacion.id} de <strong>{agradecerDonacion.origen}</strong>
+                  {" — "}{agradecerDonacion.tipo} x{agradecerDonacion.cantidad} {agradecerDonacion.unidad}
+                </p>
+                <label className="form-label small fw-semibold">Mensaje de agradecimiento</label>
+                <textarea
+                  className="form-control"
+                  rows={4}
+                  value={agradecerMensaje}
+                  onChange={(e) => setAgradecerMensaje(e.target.value)}
+                  placeholder="Escribe un mensaje para agradecer al donante..."
+                />
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAgradecerModal(false)}>Cancelar</button>
+                <button type="button" className="btn btn-danger"
+                  disabled={!agradecerMensaje.trim() || agradecerEnviando}
+                  onClick={async () => {
+                    setAgradecerEnviando(true);
+                    try {
+                      await crearAgradecimiento({
+                        centro_id: agradecerDonacion.centroId,
+                        usuario_rut: agradecerDonacion.origen,
+                        donacion_id: agradecerDonacion.id,
+                        mensaje: agradecerMensaje.trim(),
+                      });
+                      setShowAgradecerModal(false);
+                      alert("¡Agradecimiento enviado!");
+                    } catch {
+                      alert("Error al enviar agradecimiento");
+                    } finally {
+                      setAgradecerEnviando(false);
+                    }
+                  }}>
+                  {agradecerEnviando ? "Enviando..." : <><i className="bi bi-send me-1"></i>Enviar</>}
+                </button>
+              </div>
             </div>
           </div>
         </div>

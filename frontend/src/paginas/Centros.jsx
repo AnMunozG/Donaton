@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { getCentros, getNecesidades, getRuta, urgenciaColorMap, estadoNecColorMap } from "../api.js";
+import { getCentros, getNecesidades, getRuta, seguirCentro, dejarSeguirCentro, esCentroSeguido, urgenciaColorMap, estadoNecColorMap } from "../api.js";
 import { capacidadColor } from "../componentes/Validaciones.js";
+import { useAuth } from "../componentes/AuthContext";
 import Mapa from "../componentes/Mapa";
 import banner2Img from "../assets/Banner2.png";
 
@@ -11,9 +12,11 @@ const TRAVEL_MODES = [
 ];
 
 export default function Centros() {
+  const { isAuth } = useAuth();
   const [centros, setCentros] = useState([]);
   const [necesidades, setNecesidades] = useState([]);
   const [seleccionado, setSeleccionado] = useState(null);
+  const [seguido, setSeguido] = useState(false);
   const [filtroRegion, setFiltroRegion] = useState("Todas");
   const [routeLine, setRouteLine] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
@@ -31,7 +34,12 @@ export default function Centros() {
     setRouteLine(null);
     setRouteInfo(null);
     setRouteError(null);
-  }, [seleccionado]);
+    if (seleccionado && isAuth) {
+      esCentroSeguido(seleccionado.id).then(setSeguido);
+    } else {
+      setSeguido(false);
+    }
+  }, [seleccionado, isAuth]);
 
   const regiones = ["Todas", ...new Set(centros.map((c) => c.region))];
 
@@ -210,7 +218,23 @@ export default function Centros() {
                   <span className="center-id">{seleccionado.id}</span>
                   <h2 className="fw-bold fs-5 mb-0 c-heading">{seleccionado.nombre}</h2>
                 </div>
-                <span className={`badge ${seleccionado.estado === "Activo" ? "bg-success" : "bg-danger"}`}>{seleccionado.estado}</span>
+                <div className="d-flex align-items-center gap-2">
+                  <span className={`badge ${seleccionado.estado === "Activo" ? "bg-success" : "bg-danger"}`}>{seleccionado.estado}</span>
+                  {isAuth && (
+                    <button className={`btn btn-sm ${seguido ? "btn-danger" : "btn-outline-danger"}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (seguido) {
+                          dejarSeguirCentro(seleccionado.id).then(() => setSeguido(false));
+                        } else {
+                          seguirCentro(seleccionado.id).then(() => setSeguido(true));
+                        }
+                      }}
+                      title={seguido ? "Dejar de seguir" : "Seguir este centro"}>
+                      <i className={`bi ${seguido ? "bi-heart-fill" : "bi-heart"}`}></i>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="row g-3 mb-4">

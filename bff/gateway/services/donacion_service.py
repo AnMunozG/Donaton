@@ -7,13 +7,14 @@ donaciones_client = DonacionesClient()
 logistica_client = LogisticaClient()
 
 
-async def list_all(estado: str = None, centro_code: str = None, tipo: str = None) -> list[DonacionOut]:
+async def list_all(estado: str = None, centro_code: str = None, tipo: str = None, origen: str = None) -> list[DonacionOut]:
     try:
         params = {}
         if estado: params["estado"] = estado
         if centro_code: params["centro_code"] = centro_code
         if tipo: params["tipo"] = tipo
-        
+        if origen: params["origen"] = origen
+
         donaciones_data = await donaciones_client.listar_donaciones(params=params)
         return [DonacionOut(**d) for d in donaciones_data]
     except Exception:
@@ -40,7 +41,7 @@ async def create(body, rut: str) -> DonacionOut:
         raise Exception(donacion_real_data.get("error", "Error del microservicio de donaciones"))
 
     tipo_recurso = donacion_real_data.get("tipo")
-    cantidad_donada = int(donacion_real_data.get("cantidad", 0))
+    cantidad_donada = int(float(donacion_real_data.get("cantidad", 0)))
     unidad_donada = donacion_real_data.get("unidad")
     centro_id = donacion_real_data.get("centroId")
 
@@ -57,7 +58,7 @@ async def create(body, rut: str) -> DonacionOut:
                 for item in inventario_actual:
                     nombre_item = item.get("item") or item.get("tipo")
                     if nombre_item == tipo_recurso and item.get("unidad") == unidad_donada:
-                        cantidad_actual = int(str(item["cantidad"]).split()[0].replace(".", ""))
+                        cantidad_actual = int(float(str(item["cantidad"]).split()[0].replace(".", "", 1)))
                         item["cantidad"] = str(cantidad_actual + cantidad_donada)
                         encontrado = True
                         break
@@ -131,7 +132,7 @@ async def create_multi(body: DonacionMultiCreate, rut: str) -> DonacionOut:
 
     for item in items_data:
         tipo_recurso = item["tipo"]
-        cantidad_donada = int(item["cantidad"])
+        cantidad_donada = int(float(item["cantidad"]))
         unidad_donada = item["unidad"]
 
         if tipo_recurso != "Donación Monetaria" and centro_id:
@@ -147,7 +148,7 @@ async def create_multi(body: DonacionMultiCreate, rut: str) -> DonacionOut:
                     for inv_item in inventario_actual:
                         nombre_item = inv_item.get("item") or inv_item.get("tipo")
                         if nombre_item == tipo_recurso and inv_item.get("unidad") == unidad_donada:
-                            cantidad_actual = int(str(inv_item["cantidad"]).split()[0].replace(".", ""))
+                            cantidad_actual = int(float(str(inv_item["cantidad"]).split()[0].replace(".", "", 1)))
                             inv_item["cantidad"] = str(cantidad_actual + cantidad_donada)
                             encontrado = True
                             break

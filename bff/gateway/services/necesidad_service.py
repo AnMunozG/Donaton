@@ -33,12 +33,16 @@ def _model_to_out(n: dict) -> dict:
 
 
 def _out_to_model(body) -> dict:
+    try:
+        centro_id_int = int(body.centroId)
+    except (ValueError, TypeError):
+        centro_id_int = body.centroId
     data = {
         "titulo": body.recurso,
         "descripcion": body.descripcion,
-        "cantidad_requerida": int(body.cantidad),
+        "cantidad_requerida": int(float(body.cantidad)),
         "unidad_medida": body.unidad,
-        "centro_acopio_id": int(body.centroId),
+        "centro_acopio_id": centro_id_int,
         "solicitante_nombre": body.reportadoPor or "anónimo",
         "solicitante_contacto": "",
         "urgencia": (body.urgencia or "MEDIA").upper(),

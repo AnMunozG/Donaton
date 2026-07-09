@@ -190,3 +190,66 @@ export async function crearCuenta(rut, data) {
 export async function actualizarCuenta(rut, data) {
   return api.put("/auth/profile", data);
 }
+
+// ── Agradecimientos ──────────────────────────────────────────
+
+export async function crearAgradecimiento(data) {
+  return api.post("/auth/agradecimientos", data);
+}
+
+export async function getMisAgradecimientos() {
+  try {
+    const data = await api.get("/auth/agradecimientos/recibidos");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function getAgradecimientosCentro(code) {
+  try {
+    const data = await api.get(`/centros/${code}/agradecimientos`);
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+// ── Seguimiento de centros ───────────────────────────────────
+
+export async function seguirCentro(centroId) {
+  return api.post("/auth/centros/seguir", { centro_id: centroId });
+}
+
+export async function dejarSeguirCentro(centroId) {
+  await api.delete(`/auth/centros/${centroId}/seguir`);
+}
+
+export async function getCentrosSeguidos() {
+  try {
+    const data = await api.get("/auth/centros/seguidos");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function esCentroSeguido(centroId) {
+  try {
+    return await api.get(`/centros/${centroId}/seguido`);
+  } catch { return false; }
+}
+
+// ── Logros ───────────────────────────────────────────────────
+
+export async function getLogros() {
+  try {
+    const data = await api.get("/auth/logros");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function getMisLogros() {
+  try {
+    const data = await api.get("/auth/logros/mis-logros");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function verificarLogros(stats) {
+  return api.post("/auth/logros/verificar", stats);
+}
