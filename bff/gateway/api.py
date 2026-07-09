@@ -1,6 +1,6 @@
 from ninja import NinjaAPI
 from ninja.security import HttpBearer
-from ninja.errors import ValidationError as NinjaValidationError
+from ninja.errors import ValidationError as NinjaValidationError, HttpError
 import jwt
 from django.conf import settings
 from typing import Optional
@@ -37,6 +37,27 @@ class AdminBearer(AuthBearer):
         payload = await super().authenticate(request, token)
         if payload and payload.get("rol") == "admin":
             return payload
+        return None
+
+
+class EncargadoOrAdminBearer(AuthBearer):
+    async def authenticate(self, request, token):
+        payload = await super().authenticate(request, token)
+        if payload and payload.get("rol") in ("admin", "encargado"):
+            return payload
+        return None
+
+
+def _get_user_from_request(request):
+    """Decode JWT from Authorization header without requiring auth.
+    Returns the payload dict or None."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    token = auth[7:]
+    try:
+        return jwt.decode(token, getattr(settings, "JWT_SECRET", settings.SECRET_KEY), algorithms=["HS256"])
+    except Exception:
         return None
 
 
@@ -106,12 +127,34 @@ async def me(request):
 async def update_profile(request, body: UserUpdateIn):
     return await auth_service.update_profile(request.user["rut"], body, uat=request.user.get("uat"))
 
+@api.get("/auth/usuarios", auth=AdminBearer(), response=list[UserOut])
+async def list_usuarios(request):
+    return await auth_service.list_usuarios(uat=request.user.get("uat"))
+
+@api.patch("/auth/usuarios/{rut}", auth=AdminBearer(), response=UserOut)
+async def update_usuario_admin(request, rut: str, body: UserUpdateIn):
+    data = {}
+    if body.nombre is not None:
+        data["first_name"] = body.nombre
+    if body.email is not None:
+        data["email"] = body.email
+    if body.telefono is not None:
+        data["telefono"] = body.telefono
+    if body.direccion is not None:
+        data["direccion"] = body.direccion
+    if body.centro_acopio_id is not None:
+        data["centro_acopio_id"] = body.centro_acopio_id
+    if body.is_staff is not None:
+        data["is_staff"] = body.is_staff
+    return await auth_service.admin_update_user(rut, data, uat=request.user.get("uat"))
+
 
 # ── Centros ──
 
 @api.get("/centros", auth=None, response=list[CentroOut])
 async def list_centros(request):
-    return await centro_service.list_all()
+    user = _get_user_from_request(request)
+    return await centro_service.list_all(user=user)
 
 @api.get("/centros/{code}", auth=None, response=CentroOut)
 async def get_centro(request, code: str):
@@ -121,8 +164,11 @@ async def get_centro(request, code: str):
 async def create_centro(request, body: CentroCreate):
     return await centro_service.create(body)
 
-@api.put("/centros/{code}", auth=AdminBearer(), response=CentroOut)
+@api.put("/centros/{code}", auth=EncargadoOrAdminBearer(), response=CentroOut)
 async def update_centro(request, code: str, body: CentroUpdate):
+    user = request.user
+    if user.get("rol") == "encargado" and user.get("centro_acopio_id") != code:
+        raise HttpError(403, "No tienes permiso para editar este centro")
     return await centro_service.update(code, body)
 
 @api.get("/centros/{code}/stats", auth=None, response=CentroStatsOut)
@@ -143,11 +189,12 @@ async def get_ruta(request, origen_lat: float, origen_lng: float, dest_lat: floa
 
 @api.get("/donaciones", auth=None, response=list[DonacionOut])
 async def list_donaciones(request, estado: Optional[str] = None, centro_code: Optional[str] = None, tipo: Optional[str] = None, origen: Optional[str] = None):
-    return await donacion_service.list_all(estado=estado, centro_code=centro_code, tipo=tipo, origen=origen)
+    user = _get_user_from_request(request)
+    return await donacion_service.list_all(estado=estado, centro_code=centro_code, tipo=tipo, origen=origen, user=user)
 
 @api.post("/donaciones/multi", auth=None, response={201: DonacionOut})
 async def create_donacion_multi(request, body: DonacionMultiCreate):
-    user = getattr(request, "user", None)
+    user = _get_user_from_request(request)
     rut = body.origen
     if user is not None and hasattr(user, "get"):
         rut = user.get("rut", body.origen)
@@ -159,15 +206,15 @@ async def get_donacion(request, code: str):
 
 @api.post("/donaciones", auth=None, response={201: DonacionOut})
 async def create_donacion(request, body: DonacionCreate):
-    user = getattr(request, "user", None)
+    user = _get_user_from_request(request)
     rut = body.origen
     if user is not None and hasattr(user, "get"):
         rut = user.get("rut", body.origen)
     return await donacion_service.create(body, rut=rut)
 
-@api.patch("/donaciones/{code}/estado", auth=AdminBearer(), response=DonacionOut)
+@api.patch("/donaciones/{code}/estado", auth=EncargadoOrAdminBearer(), response=DonacionOut)
 async def update_donacion_estado(request, code: str, body: DonacionUpdate):
-    return await donacion_service.update_estado(code, body.estado)
+    return await donacion_service.update_estado(code, body.estado, user=request.user)
 
 @api.delete("/donaciones/{code}", auth=AdminBearer(), response={204: None})
 async def delete_donacion(request, code: str):
@@ -183,10 +230,15 @@ async def get_donacion_stats(request):
 
 @api.get("/necesidades", auth=None, response=list[NecesidadOut])
 async def list_necesidades(request, estado: Optional[str] = None, centro_code: Optional[str] = None, urgencia: Optional[str] = None):
-    return await necesidad_service.list_all(estado=estado, centro_code=centro_code, urgencia=urgencia)
+    user = _get_user_from_request(request)
+    return await necesidad_service.list_all(estado=estado, centro_code=centro_code, urgencia=urgencia, user=user)
 
-@api.post("/necesidades", auth=AdminBearer(), response={201: NecesidadOut})
+@api.post("/necesidades", auth=EncargadoOrAdminBearer(), response={201: NecesidadOut})
 async def create_necesidad(request, body: NecesidadCreate):
+    user = request.user
+    if user.get("rol") == "encargado":
+        if body.centroId != user.get("centro_acopio_id"):
+            raise HttpError(403, "Solo puedes crear necesidades para tu centro")
     return await necesidad_service.create(body, rut=request.user["rut"])
 
 # Rutas fijas (antes de {code} para evitar conflictos)
@@ -197,7 +249,7 @@ async def list_necesidades_ciudadanas(request):
 
 @api.post("/necesidades/ciudadanas", auth=None, response={201: NecesidadOut})
 async def create_necesidad_ciudadana(request, body: NecesidadCreate):
-    user = getattr(request, "user", None)
+    user = _get_user_from_request(request)
     rut = "anónimo"
     if user is not None and hasattr(user, "get"):
         rut = user.get("rut", "anónimo")
@@ -216,13 +268,13 @@ async def delete_necesidad_ciudadana(request, code: str):
 async def get_necesidad(request, code: str):
     return await necesidad_service.get_by_code(code)
 
-@api.put("/necesidades/{code}", auth=AdminBearer(), response=NecesidadOut)
+@api.put("/necesidades/{code}", auth=EncargadoOrAdminBearer(), response=NecesidadOut)
 async def update_necesidad(request, code: str, body: NecesidadUpdate):
-    return await necesidad_service.update(code, body)
+    return await necesidad_service.update(code, body, user=request.user)
 
-@api.post("/necesidades/{code}/activar", auth=AdminBearer(), response=NecesidadOut)
+@api.post("/necesidades/{code}/activar", auth=EncargadoOrAdminBearer(), response=NecesidadOut)
 async def activar_necesidad(request, code: str, body: ActivarNecesidadIn):
-    return await necesidad_service.activar(code, urgencia=body.urgencia)
+    return await necesidad_service.activar(code, urgencia=body.urgencia, user=request.user)
 
 
 # ── Propuestas ──
@@ -283,7 +335,7 @@ async def list_campos_por_tipo(request): return await static_service.get_campos_
 
 # ── Agradecimientos ──
 
-@api.post("/auth/agradecimientos", auth=AdminBearer(), response={201: AgradecimientoOut})
+@api.post("/auth/agradecimientos", auth=EncargadoOrAdminBearer(), response={201: AgradecimientoOut})
 async def create_agradecimiento(request, body: AgradecimientoCreate):
     return await agradecimiento_service.crear(body)
 

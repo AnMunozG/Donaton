@@ -41,6 +41,12 @@ class Usuario(AbstractUser):
         validators=[validar_rut_chileno],
         help_text="Formato: 12345678-K o 12345678K"
     )
+    centro_acopio_id = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="ID del centro de acopio asignado (solo para rol encargado)"
+    )
 
     # Definimos el RUT como el campo de inicio de sesión (ID principal)
     USERNAME_FIELD = 'rut' 

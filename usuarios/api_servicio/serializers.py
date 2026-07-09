@@ -11,8 +11,7 @@ class RegistroSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ['id', 'rut', 'email', 'first_name', 'last_name', 'password', 'is_staff']
-        extra_kwargs = {'is_staff': {'read_only': True}}
+        fields = ['id', 'rut', 'email', 'first_name', 'last_name', 'password', 'is_staff', 'centro_acopio_id']
 
     def validate_rut(self, value):
         # Tu lógica de validación está perfecta, la mantenemos

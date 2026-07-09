@@ -1,5 +1,5 @@
 from ..schemas.donaciones import DonacionOut, DonacionMultiCreate
-from ..exceptions import NotFoundError
+from ..exceptions import NotFoundError, BffError
 from ..clients.donaciones_client import DonacionesClient
 from ..clients.logistica_client import LogisticaClient
 
@@ -7,9 +7,11 @@ donaciones_client = DonacionesClient()
 logistica_client = LogisticaClient()
 
 
-async def list_all(estado: str = None, centro_code: str = None, tipo: str = None, origen: str = None) -> list[DonacionOut]:
+async def list_all(estado: str = None, centro_code: str = None, tipo: str = None, origen: str = None, user=None) -> list[DonacionOut]:
     try:
         params = {}
+        if isinstance(user, dict) and user.get("rol") == "encargado":
+            params["centro_code"] = user.get("centro_acopio_id")
         if estado: params["estado"] = estado
         if centro_code: params["centro_code"] = centro_code
         if tipo: params["tipo"] = tipo
@@ -107,7 +109,7 @@ async def create_multi(body: DonacionMultiCreate, rut: str) -> DonacionOut:
         "origen": data["origen"],
         "centroId": data["centroId"],
         "fecha": data.get("fecha", ""),
-        "estado": data.get("estado", "Recibido"),
+        "estado": data.get("estado", "Donación Registrada"),
         "detalles": detalles,
         "items": [
             {
@@ -180,7 +182,11 @@ async def create_multi(body: DonacionMultiCreate, rut: str) -> DonacionOut:
     return DonacionOut(**donacion_real_data)
 
 
-async def update_estado(code: str, nuevo_estado: str) -> DonacionOut:
+async def update_estado(code: str, nuevo_estado: str, user=None) -> DonacionOut:
+    if isinstance(user, dict) and user.get("rol") == "encargado":
+        donacion_data = await donaciones_client.obtener_donacion(code)
+        if donacion_data and donacion_data.get("centroId") != user.get("centro_acopio_id"):
+            raise BffError("No tienes permiso para actualizar donaciones de este centro", status=403)
     donacion_actualizada = await donaciones_client.actualizar_estado_donacion(code, {"estado": nuevo_estado})
     if not donacion_actualizada:
         raise NotFoundError(f"No se pudo actualizar la donación {code}")

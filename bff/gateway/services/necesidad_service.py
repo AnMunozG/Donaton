@@ -1,5 +1,5 @@
 from ..schemas.necesidades import NecesidadOut, PropuestaOut
-from ..exceptions import NotFoundError
+from ..exceptions import NotFoundError, BffError
 from ..clients.necesidades_client import NecesidadesClient
 from . import centro_service
 
@@ -67,9 +67,11 @@ async def _enrich_one(n: dict) -> dict:
     return out
 
 
-async def list_all(estado=None, centro_code=None, urgencia=None) -> list[NecesidadOut]:
+async def list_all(estado=None, centro_code=None, urgencia=None, user=None) -> list[NecesidadOut]:
     try:
         params = {}
+        if isinstance(user, dict) and user.get("rol") == "encargado":
+            params["centro_id"] = user.get("centro_acopio_id")
         if estado:
             params["estado"] = estado
         if centro_code:
@@ -99,10 +101,13 @@ async def create(body, rut: str) -> NecesidadOut:
     return await _enrich_one(n)
 
 
-async def update(code: str, body) -> NecesidadOut:
+async def update(code: str, body, user=None) -> NecesidadOut:
     n = await necesidades_client.obtener_necesidad(code)
     if not n or "error" in n:
         raise NotFoundError("Necesidad no encontrada")
+    if isinstance(user, dict) and user.get("rol") == "encargado":
+        if str(n.get("centro_acopio_id", "")) != user.get("centro_acopio_id"):
+            raise BffError("No tienes permiso para modificar necesidades de otro centro", status=403)
     update_data = {}
     if body.cantidad is not None:
         update_data["cantidad_requerida"] = int(body.cantidad)
@@ -120,10 +125,13 @@ async def update(code: str, body) -> NecesidadOut:
     return await _enrich_one(n)
 
 
-async def activar(code: str, urgencia: str = "MEDIA") -> NecesidadOut:
+async def activar(code: str, urgencia: str = "MEDIA", user=None) -> NecesidadOut:
     n = await necesidades_client.obtener_necesidad(code)
     if not n or "error" in n:
         raise NotFoundError("Necesidad no encontrada")
+    if isinstance(user, dict) and user.get("rol") == "encargado":
+        if str(n.get("centro_acopio_id", "")) != user.get("centro_acopio_id"):
+            raise BffError("No tienes permiso para activar necesidades de otro centro", status=403)
     update = {"estado": "Activa"}
     if urgencia:
         update["urgencia"] = urgencia.upper()

@@ -23,7 +23,7 @@ export default function Perfil() {
 
   useEffect(() => {
     if (!isAuth) return;
-    getDonaciones().then((lista) => setDonaciones(lista.reverse()));
+    getDonaciones(user.rut).then((lista) => setDonaciones(lista.reverse()));
     getLogros().then(setTodosLogros);
     getMisLogros().then(setLogros);
     getMisAgradecimientos().then(setAgradecimientos);
@@ -67,7 +67,7 @@ export default function Perfil() {
   };
 
   const estadoBadge = (est) => {
-    const map = { "Entregado": "bg-success", "En tránsito": "bg-info text-dark", "En acopio": "bg-warning text-dark" };
+    const map = { "Recibida": "bg-success", "En transporte": "bg-info text-dark", "Donación Registrada": "bg-warning text-dark", "En Recolección": "bg-primary text-dark" };
     return <span className={`badge ${map[est] || "bg-secondary"}`}>{est}</span>;
   };
 
@@ -109,8 +109,8 @@ export default function Perfil() {
                 </div>
                 <div>
                   <h2 className="fw-bold fs-5 mb-0">{user.nombre || "Usuario"}</h2>
-                  <span className={`badge ${user.rol === "admin" ? "bg-warning text-dark" : "bg-primary"}`}>
-                    {user.rol === "admin" ? "Administrador" : "Usuario"}
+                  <span className={`badge ${user.rol === "admin" ? "bg-warning text-dark" : user.rol === "encargado" ? "bg-info text-dark" : "bg-primary"}`}>
+                    {user.rol === "admin" ? "Administrador" : user.rol === "encargado" ? "Encargado de centro" : "Usuario"}
                   </span>
                 </div>
               </div>
@@ -119,6 +119,9 @@ export default function Perfil() {
                 <div>
                   <div className="mb-2"><span className="c-muted small">RUT:</span><br />{user.rut ? `${user.rut.slice(0, -1)}-${user.rut.slice(-1)}` : ""}</div>
                   <div className="mb-2"><span className="c-muted small">Correo:</span><br />{user.email || "—"}</div>
+                  {user.rol === "encargado" && user.centro_acopio_id && (
+                    <div className="mb-2"><span className="c-muted small">Centro asignado:</span><br /><span className="fw-semibold">{user.centro_acopio_id}</span></div>
+                  )}
                   <button className="btn btn-outline-accent w-100 mt-2" onClick={() => setEditando(true)}>
                     <i className="bi bi-pencil me-1"></i>Editar perfil
                   </button>

@@ -19,7 +19,10 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        data = request.data.copy()
+        data.pop('is_staff', None)
+        data.pop('centro_acopio_id', None)
+        serializer = self.get_serializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
             return Response({

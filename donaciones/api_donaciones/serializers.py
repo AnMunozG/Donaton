@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Donacion, ItemDonacion
+from .models import Donacion, ItemDonacion, EstadoDonacion
 
 
 class ItemDonacionSerializer(serializers.ModelSerializer):
@@ -11,6 +11,7 @@ class ItemDonacionSerializer(serializers.ModelSerializer):
 class DonacionSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source='idDonacion', read_only=True)
     items = ItemDonacionSerializer(many=True, read_only=True)
+    estado = serializers.SlugRelatedField(slug_field='nombre', queryset=EstadoDonacion.objects.all())
 
     class Meta:
         model = Donacion

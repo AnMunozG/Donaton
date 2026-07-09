@@ -45,9 +45,13 @@ def _to_out(data: dict) -> CentroOut:
     )
 
 
-async def list_all() -> list[CentroOut]:
+async def list_all(user=None) -> list[CentroOut]:
     data = await logistica_client.listar_centros()
-    return [_to_out(c) for c in data]
+    centros = [_to_out(c) for c in data]
+    if isinstance(user, dict) and user.get("rol") == "encargado":
+        centro_id = user.get("centro_acopio_id")
+        centros = [c for c in centros if c.id == centro_id]
+    return centros
 
 
 async def get_by_code(code: str) -> CentroOut:

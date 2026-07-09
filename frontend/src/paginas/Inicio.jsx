@@ -22,7 +22,7 @@ export default function Inicio() {
   const items = [...categorias, ...categorias];
   const urgenciaPeso = { Alta: 0, Media: 1, Baja: 2 };
   const activas = necesidades
-    .filter((n) => n.estado !== "Cubierto" && n.estado !== "Pendiente")
+    .filter((n) => n.estado !== "Cubierta" && n.estado !== "Pendiente")
     .sort((a, b) => {
       const ua = urgenciaPeso[a.urgencia] ?? 99;
       const ub = urgenciaPeso[b.urgencia] ?? 99;
@@ -137,25 +137,40 @@ export default function Inicio() {
               const donado = Number(n.donado) || 0;
               const pct = total > 0 ? Math.round((donado / total) * 100) : 0;
               const falta = total - donado;
+              const fecha = n.fecha ? new Date(n.fecha).toLocaleDateString("es-CL", { year: "numeric", month: "long", day: "numeric" }) : "";
               return (
                 <div key={n.id} className="col-12 col-md-6 col-lg-4">
                   <div className="project-card">
                     <div className="d-flex align-items-start justify-content-between mb-2">
                       <span className={`badge bg-${n.urgencia === "Alta" ? "danger" : n.urgencia === "Media" ? "warning" : "secondary"}`}>
-                        {n.urgencia}
+                        <i className="bi bi-exclamation-triangle-fill me-1"></i>{n.urgencia}
                       </span>
-                      <span className="project-id">{n.id}</span>
+                      <span className="project-id">#{n.id}</span>
                     </div>
                     <h3 className="project-resource">{n.recurso}</h3>
-                    <p className="project-goal">
-                      <i className="bi bi-building me-1 c-accent"></i>{centroNombre(n.centroId) || n.centro || "Sin centro"}
-                    </p>
+                    <div className="d-flex gap-3 small c-muted mb-2">
+                      <span>
+                        <i className="bi bi-building me-1 c-accent"></i>{centroNombre(n.centroId) || n.centro || "Sin centro"}
+                      </span>
+                      {fecha && (
+                        <span>
+                          <i className="bi bi-calendar3 me-1 c-accent"></i>{fecha}
+                        </span>
+                      )}
+                    </div>
                     {n.descripcion && (
-                      <div className="project-desc small c-muted mb-2" dangerouslySetInnerHTML={{ __html: n.descripcion }} />
+                      <div className="project-desc small mb-2" dangerouslySetInnerHTML={{ __html: n.descripcion }} />
+                    )}
+                    {n.detalles && Object.keys(n.detalles).length > 0 && (
+                      <div className="small c-muted mb-2">
+                        {Object.entries(n.detalles).map(([k, v]) => (
+                          <span key={k} className="me-2"><i className="bi bi-info-circle me-1"></i>{k}: {v}</span>
+                        ))}
+                      </div>
                     )}
                     <div className="mb-2">
                       <div className="d-flex justify-content-between small mb-1">
-                        <span className="c-muted">{donado} / {total} {n.unidad}</span>
+                        <span className="c-muted"><strong className="c-heading">Recaudado:</strong> {donado} / {total} {n.unidad}</span>
                         <span className="fw-semibold" style={{ color: pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}>{pct}%</span>
                       </div>
                       <div className="progress progress-height-6">

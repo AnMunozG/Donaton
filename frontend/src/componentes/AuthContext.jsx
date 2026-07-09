@@ -8,8 +8,8 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const login = (rut, nombre, rol, email, token) => {
-    const u = { rut, nombre, rol, email: email || "" };
+  const login = (rut, nombre, rol, email, token, centro_acopio_id) => {
+    const u = { rut, nombre, rol, email: email || "", centro_acopio_id: centro_acopio_id || null };
     setUser(u);
     localStorage.setItem("donaton_user", JSON.stringify(u));
     if (token) localStorage.setItem("donaton_token", token);

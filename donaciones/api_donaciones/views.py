@@ -7,7 +7,7 @@ from .serializers import DonacionSerializer, ItemDonacionSerializer
 
 
 class DonacionViewSet(viewsets.ModelViewSet):
-    queryset = Donacion.objects.all()
+    queryset = Donacion.objects.select_related("estado").all()
     serializer_class = DonacionSerializer
 
     def get_queryset(self):
@@ -17,7 +17,7 @@ class DonacionViewSet(viewsets.ModelViewSet):
         tipo = self.request.query_params.get("tipo")
         origen = self.request.query_params.get("origen")
         if estado:
-            qs = qs.filter(estado=estado)
+            qs = qs.filter(estado__nombre=estado)
         if centro_code:
             qs = qs.filter(centroId=centro_code)
         if tipo:
@@ -56,6 +56,6 @@ class DonacionViewSet(viewsets.ModelViewSet):
             "total_monto": float(total_monto),
             "total_beneficiarios": 0,
             "centros_activos": centros,
-            "por_estado": dict(qs.values_list("estado").annotate(c=Count("idDonacion"))),
+            "por_estado": dict(qs.values_list("estado__nombre").annotate(c=Count("idDonacion"))),
             "por_tipo": dict(qs.values_list("tipo").annotate(c=Count("idDonacion"))),
         })

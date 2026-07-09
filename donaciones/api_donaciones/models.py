@@ -1,5 +1,18 @@
 from django.db import models
 
+
+class EstadoDonacion(models.Model):
+    nombre = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        verbose_name = "Estado de donación"
+        verbose_name_plural = "Estados de donación"
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class Donacion(models.Model):
     idDonacion = models.AutoField(primary_key=True)
     tipo = models.CharField(max_length=100, null=True, blank=True)
@@ -8,7 +21,7 @@ class Donacion(models.Model):
     origen = models.CharField(max_length=150)
     centroId = models.CharField(max_length=50)
     fecha = models.DateField()
-    estado = models.CharField(max_length=50)
+    estado = models.ForeignKey(EstadoDonacion, on_delete=models.PROTECT)
     detalles = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

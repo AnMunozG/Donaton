@@ -6,18 +6,19 @@ import api from "./servicios/api.js";
 // ── Colores y constantes ─────────────────────────────────
 
 export const estadoColor = {
-  "Entregado": "#3AB795",
-  "En tránsito": "#0dcaf0",
-  "En acopio": "#FFC107",
+  "Donación Registrada": "#FFC107",
+  "En Recolección": "#0d6efd",
+  "En transporte": "#0dcaf0",
+  "Recibida": "#3AB795",
   "Pendiente": "#DD4444",
-  "Asignado": "#0d6efd",
-  "Cubierto": "#3AB795",
+  "Activa": "#0d6efd",
+  "Cubierta": "#3AB795",
 };
 
 export const CHART_COLORS = ["#DD4444", "#F48080", "#3AB795", "#194B4F"];
 
 export const urgenciaColorMap = { Alta: "danger", Media: "warning", Baja: "secondary" };
-export const estadoNecColorMap = { Pendiente: "danger", Asignado: "warning", Cubierto: "success" };
+export const estadoNecColorMap = { Pendiente: "danger", Activa: "warning", Cubierta: "success" };
 
 // ── Catálogos / Estáticos (desde BFF) ────────────────────
 
@@ -106,8 +107,9 @@ export async function eliminarCentro(id) {
 
 // ── Donaciones ───────────────────────────────────────────────
 
-export async function getDonaciones() {
-  const data = await donacionesService.getAll();
+export async function getDonaciones(origen) {
+  const params = origen ? { origen } : {};
+  const data = await donacionesService.getAll(params);
   return Array.isArray(data) ? data : [];
 }
 
@@ -189,6 +191,19 @@ export async function crearCuenta(rut, data) {
 
 export async function actualizarCuenta(rut, data) {
   return api.put("/auth/profile", data);
+}
+
+// ── Usuarios (admin) ─────────────────────────────────────────
+
+export async function getUsuarios() {
+  try {
+    const data = await api.get("/auth/usuarios");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function actualizarUsuario(rut, data) {
+  return api.patch(`/auth/usuarios/${rut}`, data);
 }
 
 // ── Agradecimientos ──────────────────────────────────────────

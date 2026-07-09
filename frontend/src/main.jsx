@@ -42,7 +42,7 @@ const router = createBrowserRouter([
       { path: "donacion", element: <Donacion /> },
       { path: "necesidades", element: <Necesidades /> },
       { path: "registro", element: <Registro /> },
-      { path: "dashboard", element: <ProtectedRoute requiredRole="admin"><BackOffice /></ProtectedRoute> },
+      { path: "dashboard", element: <ProtectedRoute requiredRole={["admin", "encargado"]}><BackOffice /></ProtectedRoute> },
       { path: "login", element: <Login /> },
       { path: "perfil", element: <ProtectedRoute><Perfil /></ProtectedRoute> },
       { path: "impacto", element: <ProtectedRoute><Impacto /></ProtectedRoute> },

@@ -11,7 +11,7 @@ class DonacionCreate(Schema):
     origen: str = ""  # nombre o RUT del donante
     centroId: str  # centro code
     fecha: str = ""
-    estado: str = "Recibido"
+    estado: str = "Donación Registrada"
     comprobante: str = ""
     detalles: dict = {}
 
@@ -28,7 +28,7 @@ class DonacionMultiCreate(Schema):
     origen: str = ""
     centroId: str
     fecha: str = ""
-    estado: str = "Recibido"
+    estado: str = "Donación Registrada"
     notas: str = ""
     direccion_retiro: str = ""
     fecha_retiro: str = ""

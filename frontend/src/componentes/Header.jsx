@@ -102,7 +102,7 @@ export default function Header() {
                 </button>
                 {dropdownOpen && (
                   <ul className="dropdown-menu dropdown-menu-end show user-dropdown-menu">
-                    {user.rol === "admin" && (
+                    {(user.rol === "admin" || user.rol === "encargado") && (
                       <li>
                         <Link to="/dashboard" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                           <i className="bi bi-speedometer2 me-2"></i>Dashboard

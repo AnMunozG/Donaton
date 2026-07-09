@@ -26,8 +26,8 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await apiLogin(rut, password);
-      login(user.rut, user.nombre, user.rol, user.email, user.token);
-      navigate(user.rol === "admin" ? "/dashboard" : "/perfil");
+      login(user.rut, user.nombre, user.rol, user.email, user.token, user.centro_acopio_id);
+      navigate(user.rol === "admin" || user.rol === "encargado" ? "/dashboard" : "/perfil");
     } catch (err) {
       setError("RUT o contraseña incorrectos");
     } finally {

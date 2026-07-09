@@ -7,7 +7,11 @@ from ..exceptions import AuthError, ValidationError
 
 
 def _rol_from_user(user: dict) -> str:
-    return "admin" if user.get("is_staff", False) else "donante"
+    if user.get("is_staff", False):
+        return "admin"
+    if user.get("centro_acopio_id"):
+        return "encargado"
+    return "donante"
 
 
 def _crear_bff_token(user: dict, uat: str = "", uat_refresh: str = "") -> str:
@@ -17,6 +21,7 @@ def _crear_bff_token(user: dict, uat: str = "", uat_refresh: str = "") -> str:
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
         "rol": _rol_from_user(user),
+        "centro_acopio_id": user.get("centro_acopio_id"),
         "uat": uat,
         "uat_refresh": uat_refresh,
         "exp": datetime.now(timezone.utc) + timedelta(hours=24),
@@ -67,6 +72,7 @@ async def login(data: LoginIn) -> dict:
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
         "rol": _rol_from_user(user),
+        "centro_acopio_id": user.get("centro_acopio_id"),
         "token": bff_token,
     }
 
@@ -134,6 +140,35 @@ async def update_profile(rut: str, data: UserUpdateIn, uat: str = None) -> dict:
     return _user_from_usuarios(user)
 
 
+async def list_usuarios(uat: str = None) -> list:
+    if not uat:
+        raise AuthError("Sesión expirada")
+    users = await usuarios_client.listar_usuarios(token=uat)
+    return [_user_from_usuarios(u) for u in (users or [])]
+
+
+async def admin_update_user(rut: str, data: dict, uat: str = None) -> dict:
+    if not uat:
+        raise AuthError("Sesión expirada")
+    users = await usuarios_client.listar_usuarios(token=uat)
+    user = None
+    for u in (users or []):
+        if u.get("rut") == rut:
+            user = u
+            break
+    if not user:
+        raise AuthError("Usuario no encontrado")
+    payload = {}
+    if "centro_acopio_id" in data:
+        payload["centro_acopio_id"] = data["centro_acopio_id"] or None
+    if "is_staff" in data:
+        payload["is_staff"] = data["is_staff"]
+    if payload:
+        updated = await usuarios_client.actualizar_usuario(user["id"], payload, token=uat)
+        return _user_from_usuarios(updated)
+    return _user_from_usuarios(user)
+
+
 def _user_from_usuarios(user: dict) -> dict:
     nombre = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
     date_joined = user.get("date_joined") or datetime.now(timezone.utc)
@@ -142,6 +177,7 @@ def _user_from_usuarios(user: dict) -> dict:
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
         "rol": _rol_from_user(user),
+        "centro_acopio_id": user.get("centro_acopio_id"),
         "telefono": "",
         "direccion": "",
         "activo": user.get("is_active", True),

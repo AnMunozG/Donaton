@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import Necesidad
+from .models import Necesidad, EstadoNecesidad
 
 class NecesidadSerializer(serializers.ModelSerializer):
     porcentaje_progreso = serializers.ReadOnlyField(source='porcentaje_cubierto')
+    estado = serializers.SlugRelatedField(slug_field='nombre', queryset=EstadoNecesidad.objects.all())
 
     class Meta:
         model = Necesidad

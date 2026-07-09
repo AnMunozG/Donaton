@@ -13,33 +13,40 @@ import {
   getNecesidadesUsuario, eliminarNecesidadUsuario, actualizarNecesidadUsuario,
   activarNecesidad,
   crearAgradecimiento,
+  getUsuarios, actualizarUsuario,
   estadoColor, CHART_COLORS,
 } from "../api.js";
 import { centrosService } from "../servicios/centros.js";
 import SelectRegion from "../componentes/SelectRegion";
 import AddressPicker from "../componentes/AddressPicker";
+import { useAuth } from "../componentes/AuthContext";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: "bi-speedometer2" },
   { id: "donaciones", label: "Donaciones", icon: "bi-gift-fill" },
   { id: "necesidades", label: "Necesidades", icon: "bi-exclamation-triangle-fill" },
   { id: "centros", label: "Centros", icon: "bi-building-fill" },
+  { id: "usuarios", label: "Usuarios", icon: "bi-people-fill" },
 ];
 
-const estadosDonacion = ["En acopio", "En tránsito", "Entregado"];
+const estadosDonacion = ["Donación Registrada", "En Recolección", "En transporte", "Recibida"];
 const urgencias = ["Alta", "Media", "Baja"];
 
 function emptyForm(entity) {
-  if (entity === "donacion") return { tipo: "", cantidad: "", unidad: "", origen: "", centroId: "", estado: "En acopio", tipoPersonalizado: "" };
+  if (entity === "donacion") return { tipo: "", cantidad: "", unidad: "", origen: "", centroId: "", estado: "Donación Registrada", tipoPersonalizado: "" };
   if (entity === "necesidad") return { recurso: "", cantidad: "", unidad: "", urgencia: "Media", estado: "Pendiente", centroId: "", reportadoPor: "", descripcion: "" };
   return { nombre: "", region: "", direccion: "", telefono: "", encargado: "", latitud: "", longitud: "", capacidadTotal: "", capacidadUsada: "", estado: "Activo" };
 }
 
 export default function BackOffice() {
+  const { user } = useAuth();
+  const esEncargado = user?.rol === "encargado";
+  const esAdmin = user?.rol === "admin";
+
   const [donaciones, setDonaciones] = useState([]);
   const [necesidades, setNecesidades] = useState([]);
   const [centros, setCentros] = useState([]);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(esEncargado ? "dashboard" : "dashboard");
   const [filtroEstado, setFiltroEstado] = useState("Todas");
   const [centroSeleccionado, setCentroSeleccionado] = useState(null);
 
@@ -55,11 +62,22 @@ export default function BackOffice() {
   const [agradecerMensaje, setAgradecerMensaje] = useState("");
   const [agradecerEnviando, setAgradecerEnviando] = useState(false);
 
+  const [usuarios, setUsuarios] = useState([]);
+  const [usuariosKey, setUsuariosKey] = useState(0);
+
+  const tabsDisponibles = esEncargado
+    ? tabs.filter((t) => t.id !== "usuarios")
+    : tabs;
+
   useEffect(() => {
     getDonaciones().then(setDonaciones);
     getNecesidades().then(setNecesidades);
     getCentros().then(setCentros);
   }, []);
+
+  useEffect(() => {
+    if (esAdmin) getUsuarios().then(setUsuarios);
+  }, [esAdmin, usuariosKey]);
 
   useEffect(() => {
     getNecesidadesUsuario().then(setUserNeeds);
@@ -81,7 +99,7 @@ export default function BackOffice() {
     return Object.entries(counts).map(([name, cantidad]) => ({ name, cantidad }));
   }, [donaciones]);
 
-  const necesidadesPendientes = necesidades.filter((n) => n.estado !== "Cubierto").length;
+  const necesidadesPendientes = necesidades.filter((n) => n.estado !== "Cubierta").length;
   const totalCapacidad = centros.reduce((a, c) => a + c.capacidadTotal, 0);
   const capacidadUsada = centros.reduce((a, c) => a + c.capacidadUsada, 0);
 
@@ -277,7 +295,7 @@ export default function BackOffice() {
           </div>
 
           <nav className="bo-nav">
-            {tabs.map((tab) => (
+            {tabsDisponibles.map((tab) => (
               <button key={tab.id}
                 className={`bo-nav-btn${activeTab === tab.id ? " active" : ""}`}
                 onClick={() => setActiveTab(tab.id)}>
@@ -436,9 +454,11 @@ export default function BackOffice() {
                             <button className="btn btn-sm btn-outline-primary py-0 px-1" title="Editar" onClick={() => openEdit("donacion", d)}>
                               <i className="bi bi-pencil"></i>
                             </button>
-                            <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar" onClick={() => handleDelete("donacion", d.id)}>
-                              <i className="bi bi-trash"></i>
-                            </button>
+                            {!esEncargado && (
+                              <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar" onClick={() => handleDelete("donacion", d.id)}>
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            )}
                             <button className="btn btn-sm btn-outline-success py-0 px-1" title="Agradecer" onClick={() => { setAgradecerDonacion(d); setAgradecerMensaje(""); setShowAgradecerModal(true); }}>
                               <i className="bi bi-heart-fill"></i>
                             </button>
@@ -576,9 +596,11 @@ export default function BackOffice() {
                                 <button className="btn btn-sm btn-outline-primary py-0 px-1" title="Editar" onClick={() => openEdit("necesidad", n)}>
                                   <i className="bi bi-pencil"></i>
                                 </button>
-                                <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar" onClick={() => handleDelete("necesidad", n.id)}>
-                                  <i className="bi bi-trash"></i>
-                                </button>
+                                {!esEncargado && (
+                                  <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar" onClick={() => handleDelete("necesidad", n.id)}>
+                                    <i className="bi bi-trash"></i>
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -600,9 +622,11 @@ export default function BackOffice() {
                 <h2 className="m-0 c-heading">
                   <i className="bi bi-building-fill me-2 c-primary"></i>Centros de acopio
                 </h2>
-                <button className="btn btn-sm btn-success" onClick={() => openCreate("centro")}>
-                  <i className="bi bi-plus-lg me-1"></i>Crear
-                </button>
+                {!esEncargado && (
+                  <button className="btn btn-sm btn-success" onClick={() => openCreate("centro")}>
+                    <i className="bi bi-plus-lg me-1"></i>Crear
+                  </button>
+                )}
               </div>
 
               <div className="bo-table-wrapper">
@@ -653,9 +677,11 @@ export default function BackOffice() {
                               <button className="btn btn-sm btn-outline-primary py-0 px-1" title="Editar" onClick={() => openEdit("centro", c)}>
                                 <i className="bi bi-pencil"></i>
                               </button>
-                              <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar" onClick={() => handleDelete("centro", c.id)}>
-                                <i className="bi bi-trash"></i>
-                              </button>
+                              {!esEncargado && (
+                                <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar" onClick={() => handleDelete("centro", c.id)}>
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -684,6 +710,79 @@ export default function BackOffice() {
                 </div>
               )}
 
+            </>
+          )}
+
+          {/* USUARIOS (solo admin) */}
+          {activeTab === "usuarios" && (
+            <>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2 className="m-0 c-heading">
+                  <i className="bi bi-people-fill me-2 c-primary"></i>Usuarios
+                </h2>
+              </div>
+
+              <div className="bo-table-wrapper">
+                <table className="bo-table">
+                  <thead>
+                    <tr>
+                      <th>RUT</th>
+                      <th>Nombre</th>
+                      <th>Email</th>
+                      <th>Rol</th>
+                      <th>Centro asignado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usuarios.map((u) => {
+                      const esAdmin = u.rol === "admin";
+                      return (
+                        <tr key={u.rut}>
+                          <td><span className="bo-id">{u.rut ? `${u.rut.slice(0, -1)}-${u.rut.slice(-1)}` : ""}</span></td>
+                          <td className="fw-medium">{u.nombre}</td>
+                          <td>{u.email}</td>
+                          <td>
+                            <select className="form-select form-select-sm"
+                              value={u.rol}
+                              onChange={async (e) => {
+                                const newRol = e.target.value;
+                                if (newRol === "admin") {
+                                  await actualizarUsuario(u.rut, { is_staff: true, centro_acopio_id: null });
+                                } else if (newRol === "encargado") {
+                                  await actualizarUsuario(u.rut, { is_staff: false });
+                                } else {
+                                  await actualizarUsuario(u.rut, { is_staff: false, centro_acopio_id: null });
+                                }
+                                setUsuariosKey((k) => k + 1);
+                              }}>
+                              <option value="donante">Donante</option>
+                              <option value="encargado">Encargado</option>
+                              <option value="admin">Administrador</option>
+                            </select>
+                          </td>
+                          <td>
+                            {esAdmin ? (
+                              <span className="c-muted small">—</span>
+                            ) : (
+                              <select className="form-select form-select-sm"
+                                value={u.centro_acopio_id || ""}
+                                onChange={async (e) => {
+                                  await actualizarUsuario(u.rut, { centro_acopio_id: e.target.value || null });
+                                  setUsuariosKey((k) => k + 1);
+                                }}>
+                                <option value="">Sin centro</option>
+                                {centros.map((c) => (
+                                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                                ))}
+                              </select>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
 
@@ -747,7 +846,7 @@ export default function BackOffice() {
                         </div>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Estado</label>
-                          <select name="estado" className="form-select" value={form.estado || "En acopio"} onChange={handleFormChange}>
+                          <select name="estado" className="form-select" value={form.estado || "Donación Registrada"} onChange={handleFormChange}>
                             {estadosDonacion.map((est) => <option key={est} value={est}>{est}</option>)}
                           </select>
                         </div>
@@ -788,8 +887,8 @@ export default function BackOffice() {
                           <label className="form-label small fw-semibold">Estado</label>
                           <select name="estado" className="form-select" value={form.estado || "Pendiente"} onChange={handleFormChange}>
                             <option value="Pendiente">Pendiente</option>
-                            <option value="Asignado">Asignado</option>
-                            <option value="Cubierto">Cubierto</option>
+                            <option value="Activa">Activa</option>
+                            <option value="Cubierta">Cubierta</option>
                           </select>
                         </div>
                         <div className="col-md-6">
