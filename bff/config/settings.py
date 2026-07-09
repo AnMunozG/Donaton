@@ -81,7 +81,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ── CORS ──
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost:8002,http://localhost,http://localhost:80").split(",")
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = ["*"]
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 
 # ── JWT del BFF (para crear tokens que entiende el frontend) ──
 JWT_SECRET = os.getenv("BFF_JWT_SECRET", SECRET_KEY)
@@ -102,6 +112,7 @@ USUARIOS_URL = os.getenv("USUARIOS_URL", "http://localhost:8002")
 LOGISTICA_URL = os.getenv("LOGISTICA_URL", "http://localhost:8001")
 DONACIONES_URL = os.getenv("DONACIONES_URL", "http://localhost:8003")
 NECESIDADES_URL = os.getenv("NECESIDADES_URL", "http://localhost:8004")
+VOLUNTARIOS_URL = os.getenv("VOLUNTARIOS_URL", "http://localhost:8005")
 
 # ── Logging ──
 LOGGING = {

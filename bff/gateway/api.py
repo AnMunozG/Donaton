@@ -12,13 +12,17 @@ from .schemas.donaciones import DonacionCreate, DonacionUpdate, DonacionMultiCre
 from .schemas.necesidades import NecesidadCreate, NecesidadUpdate, NecesidadOut, ActivarNecesidadIn, PropuestaCreate, PropuestaOut
 from .schemas.static import (TipoRecursoOut, UnidadOut, EquipoOut, GobernanzaOut, HitoOut, ValorOut, ReporteOut, HealthOut,
                              RegionOut, CategoriaDonacionOut, PasoFuncionamientoOut, ImpactoStatsOut, DistribucionFondosOut,
-                             CampoOut)
+                             CampoOut, HabilidadVoluntarioOut)
 from .schemas.agradecimientos import AgradecimientoCreate, AgradecimientoOut
 from .schemas.seguimiento import SeguirCentroIn, SeguimientoOut
 from .schemas.logros import LogroOut, LogroUsuarioOut, VerificarLogrosIn
 from .schemas.impacto import ImpactoOut
+from .schemas.voluntarios import (VoluntarioCreate, VoluntarioUpdate, VoluntarioOut,
+                                  VoluntarioListOut, RegistrarHorasIn, HorasVoluntarioOut,
+                                  CambiarEstadoVoluntarioIn)
 from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service, routing_service
 from .services import agradecimiento_service, seguimiento_service, logro_service, impacto_service, certificado_service
+from .services import voluntario_service
 from .clients import usuarios_client
 
 
@@ -99,6 +103,7 @@ async def health(request):
         "logistica": await check("logistica", "LOGISTICA_URL"),
         "donaciones": await check("donaciones", "DONACIONES_URL"),
         "necesidades": await check("necesidades", "NECESIDADES_URL"),
+        "voluntarios": await check("voluntarios", "VOLUNTARIOS_URL"),
     }
     return {
         "db": "n/a (BFF sin BD de dominio)",
@@ -332,6 +337,9 @@ async def list_unidades_por_tipo(request): return await static_service.get_unida
 @api.get("/static/campos-por-tipo", auth=None)
 async def list_campos_por_tipo(request): return await static_service.get_campos_por_tipo()
 
+@api.get("/static/habilidades-voluntario", response=list[HabilidadVoluntarioOut], auth=None)
+async def list_habilidades_voluntario(request): return await static_service.get_habilidades_voluntario()
+
 
 # ── Agradecimientos ──
 
@@ -392,6 +400,57 @@ async def verificar_logros(request, body: VerificarLogrosIn):
 async def impacto(request):
     return await impacto_service.get_impacto(request.user["rut"])
 
+
+# ── Voluntarios ──
+
+@api.get("/voluntarios", auth=None, response=list[VoluntarioListOut])
+async def list_voluntarios(request, centro_preferido: Optional[str] = None, disponibilidad: Optional[str] = None, habilidad: Optional[str] = None):
+    user = _get_user_from_request(request)
+    uat = user.get("uat") if user else None
+    return await voluntario_service.list_all(user=user, uat=uat)
+
+@api.get("/voluntarios/mi-perfil", response=VoluntarioOut)
+async def mi_perfil_voluntario(request):
+    uat = request.user.get("uat")
+    perfil = await voluntario_service.get_by_rut(request.user["rut"], uat=uat)
+    if not perfil:
+        raise HttpError(404, "No estás registrado como voluntario")
+    return perfil
+
+@api.post("/voluntarios", auth=AuthBearer(), response={201: VoluntarioOut})
+async def crear_voluntario(request, body: VoluntarioCreate):
+    uat = request.user.get("uat")
+    return await voluntario_service.create(body, rut=request.user["rut"], uat=uat)
+
+@api.get("/voluntarios/{code}", auth=AuthBearer(), response=VoluntarioOut)
+async def get_voluntario(request, code: str):
+    uat = request.user.get("uat")
+    return await voluntario_service.get_by_code(code, uat=uat)
+
+@api.put("/voluntarios/{code}", auth=AuthBearer(), response=VoluntarioOut)
+async def update_voluntario(request, code: str, body: VoluntarioUpdate):
+    uat = request.user.get("uat")
+    return await voluntario_service.update(code, body, user=request.user, uat=uat)
+
+@api.patch("/voluntarios/{code}/estado", auth=EncargadoOrAdminBearer(), response=VoluntarioOut)
+async def cambiar_estado_voluntario(request, code: str, body: CambiarEstadoVoluntarioIn):
+    uat = request.user.get("uat")
+    return await voluntario_service.cambiar_estado(code, body.estado, user=request.user, uat=uat)
+
+@api.delete("/voluntarios/{code}", auth=AdminBearer(), response={204: None})
+async def delete_voluntario(request, code: str):
+    await voluntario_service.delete(code, user=request.user)
+    return 204, None
+
+@api.post("/voluntarios/{code}/horas", auth=AuthBearer(), response=HorasVoluntarioOut)
+async def registrar_horas_voluntario(request, code: str, body: RegistrarHorasIn):
+    uat = request.user.get("uat")
+    return await voluntario_service.registrar_horas(code, body, user=request.user, uat=uat)
+
+@api.get("/voluntarios/{code}/horas", auth=AuthBearer(), response=HorasVoluntarioOut)
+async def listar_horas_voluntario(request, code: str):
+    uat = request.user.get("uat")
+    return await voluntario_service.listar_horas(code, user=request.user, uat=uat)
 
 # ── Certificado anual ──
 

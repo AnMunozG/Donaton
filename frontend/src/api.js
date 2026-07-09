@@ -268,3 +268,51 @@ export async function getMisLogros() {
 export async function verificarLogros(stats) {
   return api.post("/auth/logros/verificar", stats);
 }
+
+// ── Voluntarios ──────────────────────────────────────────────
+
+export async function getVoluntarios(params) {
+  try {
+    const data = await api.get("/voluntarios", { params });
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function getMiPerfilVoluntario() {
+  try {
+    return await api.get("/voluntarios/mi-perfil");
+  } catch { return null; }
+}
+
+export async function crearVoluntario(data) {
+  return api.post("/voluntarios", data);
+}
+
+export async function actualizarVoluntario(id, data) {
+  return api.put(`/voluntarios/${id}`, data);
+}
+
+export async function eliminarVoluntario(id) {
+  await api.delete(`/voluntarios/${id}`);
+}
+
+export async function cambiarEstadoVoluntario(id, estado) {
+  return api.patch(`/voluntarios/${id}/estado`, { estado });
+}
+
+export async function registrarHorasVoluntario(id, horas, descripcion) {
+  return api.post(`/voluntarios/${id}/horas`, { horas, descripcion });
+}
+
+export async function getHorasVoluntario(id) {
+  try {
+    return await api.get(`/voluntarios/${id}/horas`);
+  } catch { return { horas_acumuladas: 0, registros: [] }; }
+}
+
+export async function getHabilidadesVoluntario() {
+  try {
+    const data = await api.get("/static/habilidades-voluntario");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}

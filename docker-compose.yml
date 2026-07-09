@@ -113,6 +113,34 @@ services:
       mysql-necesidades:
         condition: service_healthy
 
+  mysql-voluntarios:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      MYSQL_DATABASE: voluntarios_db
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql_voluntarios_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  voluntarios:
+    build: ./voluntarios
+    ports:
+      - "8005:8005"
+    environment:
+      DB_HOST: mysql-voluntarios
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      DEBUG: ${DJANGO_DEBUG:-True}
+      ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,voluntarios
+    depends_on:
+      mysql-voluntarios:
+        condition: service_healthy
+
   bff:
     build: ./bff
     ports:
@@ -122,6 +150,7 @@ services:
       LOGISTICA_URL: http://logistica:8001
       DONACIONES_URL: http://donaciones:8002
       NECESIDADES_URL: http://necesidades:8003
+      VOLUNTARIOS_URL: http://voluntarios:8005
       LOGISTICA_JWT_SECRET: ${LOGISTICA_JWT_SECRET}
       BFF_JWT_SECRET: ${BFF_JWT_SECRET:-bff-jwt-secret-change-in-production}
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:8002,http://localhost,http://localhost:80,http://localhost:8080
@@ -137,6 +166,8 @@ services:
       donaciones:
         condition: service_started
       necesidades:
+        condition: service_started
+      voluntarios:
         condition: service_started
 
   frontend:
@@ -154,4 +185,5 @@ volumes:
   mysql_logistica_data:
   mysql_donaciones_data:
   mysql_necesidades_data:
+  mysql_voluntarios_data:
   bff_data:

@@ -126,6 +126,21 @@ CAMPOS_POR_TIPO = {
     ],
 }
 
+HABILIDADES_VOLUNTARIO = [
+    {"code": "carga", "nombre": "Carga y descarga", "descripcion": "Apoyo en carga/descarga de donaciones"},
+    {"code": "enfermeria", "nombre": "Enfermería / Primeros auxilios", "descripcion": "Atención básica de salud"},
+    {"code": "conduccion", "nombre": "Conducción / Transporte", "descripcion": "Transporte de insumos o personas"},
+    {"code": "clasificacion", "nombre": "Clasificación de donaciones", "descripcion": "Organizar y clasificar artículos"},
+    {"code": "atencion", "nombre": "Atención al público", "descripcion": "Recepción y orientación de donantes"},
+    {"code": "logistica", "nombre": "Logística y organización", "descripcion": "Coordinación de operaciones"},
+    {"code": "cocina", "nombre": "Preparación de alimentos", "descripcion": "Cocina para comedores comunitarios"},
+    {"code": "construccion", "nombre": "Construcción / Reparaciones", "descripcion": "Reparación de infraestructura"},
+    {"code": "educacion", "nombre": "Apoyo educacional", "descripcion": "Clases o tutorías"},
+    {"code": "limpieza", "nombre": "Limpieza y saneamiento", "descripcion": "Desinfección de espacios"},
+    {"code": "administracion", "nombre": "Administración", "descripcion": "Apoyo en tareas administrativas"},
+    {"code": "otros", "nombre": "Otra", "descripcion": "Otra habilidad no listada"},
+]
+
 UNIDADES = [
     {"code": "kg", "nombre": "Kilogramo", "abreviatura": "kg"},
     {"code": "unid", "nombre": "Unidad", "abreviatura": "unidades"},
@@ -203,3 +218,6 @@ async def get_impacto_stats():
 
 async def get_distribucion_fondos():
     return DISTRIBUCION_FONDOS
+
+async def get_habilidades_voluntario():
+    return HABILIDADES_VOLUNTARIO

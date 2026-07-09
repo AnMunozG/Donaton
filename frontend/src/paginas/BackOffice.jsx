@@ -14,6 +14,9 @@ import {
   activarNecesidad,
   crearAgradecimiento,
   getUsuarios, actualizarUsuario,
+  getVoluntarios, actualizarVoluntario, eliminarVoluntario,
+  cambiarEstadoVoluntario,
+  registrarHorasVoluntario, getHorasVoluntario,
   estadoColor, CHART_COLORS,
 } from "../api.js";
 import { centrosService } from "../servicios/centros.js";
@@ -26,6 +29,7 @@ const tabs = [
   { id: "donaciones", label: "Donaciones", icon: "bi-gift-fill" },
   { id: "necesidades", label: "Necesidades", icon: "bi-exclamation-triangle-fill" },
   { id: "centros", label: "Centros", icon: "bi-building-fill" },
+  { id: "voluntarios", label: "Voluntarios", icon: "bi-person-arms-up" },
   { id: "usuarios", label: "Usuarios", icon: "bi-people-fill" },
 ];
 
@@ -65,6 +69,16 @@ export default function BackOffice() {
   const [usuarios, setUsuarios] = useState([]);
   const [usuariosKey, setUsuariosKey] = useState(0);
 
+  const [voluntarios, setVoluntarios] = useState([]);
+  const [voluntariosKey, setVoluntariosKey] = useState(0);
+  const [showHorasModal, setShowHorasModal] = useState(false);
+  const [horasVoluntario, setHorasVoluntario] = useState(null);
+  const [horasForm, setHorasForm] = useState({ horas: "", descripcion: "" });
+  const [horasData, setHorasData] = useState(null);
+  const [filtroVoluntarioCentro, setFiltroVoluntarioCentro] = useState("");
+
+  const voluntariosPendientes = voluntarios.filter((v) => v.estado === "pendiente").length;
+
   const tabsDisponibles = esEncargado
     ? tabs.filter((t) => t.id !== "usuarios")
     : tabs;
@@ -78,6 +92,10 @@ export default function BackOffice() {
   useEffect(() => {
     if (esAdmin) getUsuarios().then(setUsuarios);
   }, [esAdmin, usuariosKey]);
+
+  useEffect(() => {
+    getVoluntarios().then(setVoluntarios);
+  }, [voluntariosKey]);
 
   useEffect(() => {
     getNecesidadesUsuario().then(setUserNeeds);
@@ -295,14 +313,22 @@ export default function BackOffice() {
           </div>
 
           <nav className="bo-nav">
-            {tabsDisponibles.map((tab) => (
-              <button key={tab.id}
-                className={`bo-nav-btn${activeTab === tab.id ? " active" : ""}`}
-                onClick={() => setActiveTab(tab.id)}>
-                <i className={`bi ${tab.icon}`}></i>
-                <span>{tab.label}</span>
-              </button>
-            ))}
+            {tabsDisponibles.map((tab) => {
+              const pendientes = tab.id === "voluntarios"
+                ? voluntarios.filter((v) => v.estado === "pendiente").length
+                : 0;
+              return (
+                <button key={tab.id}
+                  className={`bo-nav-btn${activeTab === tab.id ? " active" : ""}`}
+                  onClick={() => setActiveTab(tab.id)}>
+                  <i className={`bi ${tab.icon}`}></i>
+                  <span>{tab.label}</span>
+                  {pendientes > 0 && (
+                    <span className="badge bg-danger ms-1" style={{ fontSize: "0.65rem" }}>{pendientes}</span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
 
           <div className="bo-sidebar-footer">
@@ -706,6 +732,211 @@ export default function BackOffice() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+            </>
+          )}
+
+          {/* VOLUNTARIOS */}
+          {activeTab === "voluntarios" && (
+            <>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2 className="m-0 c-heading">
+                  <i className="bi bi-person-arms-up me-2 c-primary"></i>Voluntarios
+                </h2>
+                <div className="d-flex gap-2 align-items-center">
+                  <select className="form-select form-select-sm" style={{ width: "auto" }}
+                    value={filtroVoluntarioCentro}
+                    onChange={(e) => setFiltroVoluntarioCentro(e.target.value)}>
+                    <option value="">Todos los centros</option>
+                    {[...new Set(voluntarios.map((v) => v.centro_preferido).filter(Boolean))].map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {voluntariosPendientes > 0 && (
+                <div className="alert alert-warning py-2 d-flex align-items-center gap-2">
+                  <i className="bi bi-exclamation-triangle-fill"></i>
+                  <strong>{voluntariosPendientes}</strong> voluntario(s) pendiente(s) de aprobación.
+                </div>
+              )}
+
+              <div className="bo-table-wrapper">
+                <table className="bo-table">
+                  <thead>
+                    <tr>
+                      <th>RUT</th>
+                      <th>Nombre</th>
+                      <th>Email</th>
+                      <th>Disponibilidad</th>
+                      <th>Centro preferido</th>
+                      <th>Horas</th>
+                      <th>Estado</th>
+                      <th className="bo-actions-th">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const filtrados = filtroVoluntarioCentro
+                        ? voluntarios.filter((v) => v.centro_preferido === filtroVoluntarioCentro)
+                        : voluntarios;
+                      const pendientes = filtrados.filter((v) => v.estado === "pendiente");
+                      const activos = filtrados.filter((v) => v.estado === "activo");
+                      const inactivos = filtrados.filter((v) => v.estado === "inactivo");
+                      const ordenados = [...pendientes, ...activos, ...inactivos];
+                      return ordenados.length === 0 ? (
+                        <tr><td colSpan="8" className="text-center text-muted py-4">No hay voluntarios registrados</td></tr>
+                      ) : ordenados.map((v) => (
+                        <tr key={v.id} className={v.estado === "pendiente" ? "table-warning" : ""}>
+                          <td><span className="bo-id">{v.rut ? `${v.rut.slice(0, -1)}-${v.rut.slice(-1)}` : ""}</span></td>
+                          <td className="fw-medium">{v.nombre || "—"}</td>
+                          <td>{v.email || "—"}</td>
+                          <td className="text-capitalize">{v.disponibilidad?.replace("_", " ")}</td>
+                          <td>{v.centro_preferido || "—"}</td>
+                          <td><span className="badge bg-accent">{v.horas_acumuladas || 0}h</span></td>
+                          <td>
+                            <span className="bo-badge" style={{
+                              background: v.estado === "activo" ? "rgba(58,183,149,0.12)" : v.estado === "pendiente" ? "rgba(255,193,7,0.2)" : "rgba(221,68,68,0.12)",
+                              color: v.estado === "activo" ? "#3AB795" : v.estado === "pendiente" ? "#cc9a00" : "#DD4444",
+                            }}>
+                              {v.estado === "activo" ? "Activo" : v.estado === "pendiente" ? "Pendiente" : "Inactivo"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="d-flex gap-1">
+                              {v.estado === "pendiente" && (esAdmin || esEncargado) && (
+                                <>
+                                  <button className="btn btn-sm btn-outline-success py-0 px-1" title="Aceptar voluntario"
+                                    onClick={async () => {
+                                      await cambiarEstadoVoluntario(v.id, "activo");
+                                      setVoluntariosKey((k) => k + 1);
+                                    }}>
+                                    <i className="bi bi-check-lg"></i>
+                                  </button>
+                                  <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Rechazar voluntario"
+                                    onClick={async () => {
+                                      if (window.confirm(`¿Rechazar a ${v.nombre || v.rut}?`)) {
+                                        await cambiarEstadoVoluntario(v.id, "inactivo");
+                                        setVoluntariosKey((k) => k + 1);
+                                      }
+                                    }}>
+                                    <i className="bi bi-x-lg"></i>
+                                  </button>
+                                </>
+                              )}
+                              {v.estado === "activo" && (esAdmin || esEncargado) && (
+                                <button className="btn btn-sm btn-outline-warning py-0 px-1" title="Desactivar"
+                                  onClick={async () => {
+                                    await cambiarEstadoVoluntario(v.id, "inactivo");
+                                    setVoluntariosKey((k) => k + 1);
+                                  }}>
+                                  <i className="bi bi-pause-fill"></i>
+                                </button>
+                              )}
+                              {v.estado === "inactivo" && esAdmin && (
+                                <button className="btn btn-sm btn-outline-success py-0 px-1" title="Reactivar"
+                                  onClick={async () => {
+                                    await cambiarEstadoVoluntario(v.id, "activo");
+                                    setVoluntariosKey((k) => k + 1);
+                                  }}>
+                                  <i className="bi bi-play-fill"></i>
+                                </button>
+                              )}
+                              <button className="btn btn-sm btn-outline-primary py-0 px-1" title="Registrar horas"
+                                onClick={async () => {
+                                  setHorasVoluntario(v);
+                                  setHorasForm({ horas: "", descripcion: "" });
+                                  const data = await getHorasVoluntario(v.id);
+                                  setHorasData(data);
+                                  setShowHorasModal(true);
+                                }}>
+                                <i className="bi bi-clock-history"></i>
+                              </button>
+                              {esAdmin && (
+                                <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar"
+                                  onClick={async () => {
+                                    if (window.confirm(`¿Eliminar voluntario ${v.rut}?`)) {
+                                      await eliminarVoluntario(v.id);
+                                      setVoluntariosKey((k) => k + 1);
+                                    }
+                                  }}>
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+
+              {showHorasModal && horasVoluntario && (
+                <div className="modal d-block modal-overlay" tabIndex="-1">
+                  <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content">
+                      <div className="modal-header">
+                        <h5 className="modal-title">
+                          <i className="bi bi-clock-history me-2 c-primary"></i>
+                          Horas — {horasVoluntario.nombre || horasVoluntario.rut}
+                        </h5>
+                        <button type="button" className="btn-close" onClick={() => setShowHorasModal(false)} />
+                      </div>
+                      <div className="modal-body">
+                        {horasData && (
+                          <div className="mb-3">
+                            <strong>Total acumulado: </strong>
+                            <span className="badge bg-accent fs-6">{horasData.horas_acumuladas || 0}h</span>
+                            {horasData.registros?.length > 0 && (
+                              <div className="mt-2">
+                                <small className="text-muted">Registros anteriores:</small>
+                                <ul className="list-unstyled mt-1">
+                                  {horasData.registros.map((r) => (
+                                    <li key={r.id} className="small border-bottom py-1">
+                                      <strong>{r.horas}h</strong> — {r.descripcion || "Sin descripción"}
+                                      <span className="text-muted ms-2">({new Date(r.fecha).toLocaleDateString("es-CL")})</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <hr />
+                        <h6>Registrar horas</h6>
+                        <div className="mb-2">
+                          <label className="form-label">Horas</label>
+                          <input type="number" className="form-control" min="1" max="24"
+                            value={horasForm.horas}
+                            onChange={(e) => setHorasForm({ ...horasForm, horas: e.target.value })} />
+                        </div>
+                        <div className="mb-2">
+                          <label className="form-label">Descripción</label>
+                          <textarea className="form-control" rows="2"
+                            value={horasForm.descripcion}
+                            onChange={(e) => setHorasForm({ ...horasForm, descripcion: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowHorasModal(false)}>Cerrar</button>
+                        <button className="btn btn-accent"
+                          onClick={async () => {
+                            if (!horasForm.horas || parseInt(horasForm.horas) <= 0) return;
+                            await registrarHorasVoluntario(horasVoluntario.id, parseInt(horasForm.horas), horasForm.descripcion);
+                            const data = await getHorasVoluntario(horasVoluntario.id);
+                            setHorasData(data);
+                            setHorasForm({ horas: "", descripcion: "" });
+                            setVoluntariosKey((k) => k + 1);
+                          }}>
+                          <i className="bi bi-save me-1"></i>Guardar horas
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

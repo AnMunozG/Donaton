@@ -99,6 +99,11 @@ class CampoOut(Schema):
     placeholder: Optional[str] = None
 
 
+class HabilidadVoluntarioOut(Schema):
+    code: str
+    nombre: str
+    descripcion: str
+
 class HealthOut(Schema):
     db: str
     redis: str

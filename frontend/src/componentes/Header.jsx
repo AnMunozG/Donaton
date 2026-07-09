@@ -72,6 +72,11 @@ export default function Header() {
               </Link>
             </li>
             <li className="nav-item">
+              <Link to="/voluntarios" className={`nav-link${pathname === "/voluntarios" ? " active" : ""}`}>
+                Voluntarios
+              </Link>
+            </li>
+            <li className="nav-item">
               <Link to="/transparencia" className={`nav-link${pathname === "/transparencia" ? " active" : ""}`}>
                 Transparencia
               </Link>
