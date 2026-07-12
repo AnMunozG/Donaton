@@ -3,6 +3,7 @@ import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../componentes/AuthContext";
 import { getDonaciones, actualizarCuenta, getLogros, getMisLogros, getMisAgradecimientos, getCentrosSeguidos, verificarLogros } from "../api.js";
 import api from "../servicios/api.js";
+import { descargarPDF } from "../utils/pdfGenerator.js";
 import { validarRequerido, validarEmail, validarForm } from "../componentes/Validaciones.js";
 import LogrosModal from "../componentes/LogrosModal.jsx";
 
@@ -360,20 +361,7 @@ export default function Perfil() {
               <div className="d-flex gap-2 flex-wrap">
                 {[2026, 2025, 2024].filter((y) => donaciones.some((d) => d.fecha?.startsWith(String(y)))).map((year) => (
                   <button key={year} className="btn btn-outline-danger btn-sm"
-                    onClick={async () => {
-                      try {
-                        const res = await api.get(`/auth/certificado/${year}`, { responseType: "blob" });
-                        const blob = res instanceof Blob ? res : new Blob([res], { type: "application/pdf" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `certificado_${user.rut}_${year}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => URL.revokeObjectURL(url), 3000);
-                      } catch (err) { console.error("Error certificado:", err); alert("Error al descargar el certificado"); }
-                    }}>
+                    onClick={() => descargarPDF(`Certificado de Donación ${year}`)}>
                     <i className="bi bi-download me-1"></i>{year}
                   </button>
                 ))}

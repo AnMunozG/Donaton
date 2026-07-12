@@ -8,7 +8,8 @@ async def generar_certificado(rut: str, year: int) -> BytesIO:
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.units import cm
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.colors import HexColor, colors as rl_colors
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib import colors as rl_colors
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
     PRIMARY = HexColor("#DD4444")
@@ -154,7 +155,8 @@ async def generar_reporte_transparencia(code: str) -> BytesIO:
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.units import cm
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.colors import HexColor, colors as rl_colors
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib import colors as rl_colors
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 
     PRIMARY = HexColor("#194B4F")

@@ -518,22 +518,17 @@ async def eliminar_voluntario_centro(request, vc_code: str):
 
 @api.get("/auth/certificado/{year}")
 async def certificado(request, year: int):
+    import logging
+    _log = logging.getLogger(__name__)
     try:
         pdf_buf = await certificado_service.generar_certificado(request.user["rut"], year)
     except Exception as e:
+        _log.exception("Error generando certificado")
         from django.http import JsonResponse
         return JsonResponse({"error": str(e)}, status=500)
     from django.http import HttpResponse
     return HttpResponse(pdf_buf.read(), content_type="application/pdf",
                         headers={"Content-Disposition": f"attachment; filename=certificado_{request.user['rut']}_{year}.pdf"})
-
-
-@api.get("/reportes/{code}/pdf", auth=None)
-async def reporte_transparencia(request, code: str):
-    pdf_buf = await certificado_service.generar_reporte_transparencia(code)
-    from django.http import HttpResponse
-    return HttpResponse(pdf_buf.read(), content_type="application/pdf",
-                        headers={"Content-Disposition": f"attachment; filename=reporte_{code}.pdf"})
 
 
 
