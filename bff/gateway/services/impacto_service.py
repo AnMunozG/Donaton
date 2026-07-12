@@ -23,13 +23,10 @@ async def get_impacto(rut: str) -> ImpactoOut:
     ultima_donacion = None
 
     for d in donaciones_data:
-        tipo = d.get("tipo", "Otros")
-        cantidad = float(d.get("cantidad", 0) or 0)
-        unidad = d.get("unidad", "")
+        items = d.get("items") or []
+        tipo = d.get("tipo") or "Otros"
         centro_id = str(d.get("centroId", ""))
         fecha_str = d.get("fecha", "")
-
-        por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
 
         if fecha_str and len(fecha_str) >= 7:
             if not ultima_donacion or fecha_str > ultima_donacion:
@@ -46,15 +43,35 @@ async def get_impacto(rut: str) -> ImpactoOut:
                     "total_donaciones": 0,
                     "total_kg": 0,
                 }
-            centros_dict[centro_id]["total_donaciones"] += 1
 
-        if tipo == "Donación Monetaria" or unidad.lower() in ("clp", "usd"):
-            total_monetario += cantidad
+        if items:
+            for it in items:
+                it_tipo = it.get("tipo") or tipo
+                it_cantidad = float(it.get("cantidad", 0) or 0)
+                it_unidad = it.get("unidad", "")
+                por_tipo[it_tipo] = por_tipo.get(it_tipo, 0) + 1
+                if centro_id:
+                    centros_dict[centro_id]["total_donaciones"] += 1
+                if it_tipo == "Donación Monetaria" or it_unidad.lower() in ("clp", "usd"):
+                    total_monetario += it_cantidad
+                else:
+                    total_kg += it_cantidad
+                    total_items += 1
+                    if centro_id in centros_dict:
+                        centros_dict[centro_id]["total_kg"] += it_cantidad
         else:
-            total_kg += cantidad
-            total_items += 1
-            if centro_id in centros_dict:
-                centros_dict[centro_id]["total_kg"] += cantidad
+            cantidad = float(d.get("cantidad", 0) or 0)
+            unidad = d.get("unidad", "")
+            por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
+            if centro_id:
+                centros_dict[centro_id]["total_donaciones"] += 1
+            if tipo == "Donación Monetaria" or unidad.lower() in ("clp", "usd"):
+                total_monetario += cantidad
+            else:
+                total_kg += cantidad
+                total_items += 1
+                if centro_id in centros_dict:
+                    centros_dict[centro_id]["total_kg"] += cantidad
 
     # Enrich centros with names and coordinates
     for c_id in list(centros_dict.keys()):

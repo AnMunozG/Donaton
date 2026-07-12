@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getImpactoStats, getDistribucionFondos, getReportes } from "../api.js";
-import { descargarPDF } from "../utils/pdfGenerator.js";
+import api from "../servicios/api.js";
 import banner3Img from "../assets/Banner3.png";
 
 const GOBERNANZA = [
@@ -20,6 +20,23 @@ export default function Transparencia() {
     getDistribucionFondos().then(setDistribucionFondos);
     getReportes().then(setReportes);
   }, []);
+
+  async function descargarReporte(code) {
+    try {
+      const res = await api.get(`/reportes/${code}/pdf`, { responseType: "blob" });
+      const blob = res instanceof Blob ? res : new Blob([res], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `reporte_${code}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    } catch {
+      alert("No se pudo descargar el reporte.");
+    }
+  }
 
   return (
     <div className="transparencia-page">
@@ -134,8 +151,8 @@ export default function Transparencia() {
             {reportes.map((r, i) => (
               <div key={i} className="col-md-6 col-lg-4">
                 <div className="tp-report-card" role="button" tabIndex={0}
-                  onClick={() => descargarPDF(r.titulo)}
-                  onKeyDown={(e) => e.key === "Enter" && descargarPDF(r.titulo)}>
+                  onClick={() => descargarReporte(r.code)}
+                  onKeyDown={(e) => e.key === "Enter" && descargarReporte(r.code)}>
                   <div className="d-flex align-items-center gap-3">
                     <i className={`bi ${r.icono} fs-2 color-dynamic`} style={{ '--dynamic-color': r.color }}></i>
                     <div className="flex-grow-1 min-width-0">

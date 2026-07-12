@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { useBlocker } from "react-router-dom";
 import { getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo, getCentros, crearDonacionMultiItem } from "../api.js";
 import RichTextEditor from "../componentes/RichTextEditor";
 import { validarRut, validarRequerido, validarEnteroPositivo, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
 import donacionImg from "../assets/Donacion(6).jpg";
 
-const EMPTY_ITEM = { tipo: "", cantidad: "", unidad: "", detalles: {} };
+const EMPTY_ITEM = { tipo: "", cantidad: "", unidad: "", detalles: {}, pagado: false };
 
 export default function Donacion() {
   const [tiposRecurso, setTiposRecurso] = useState([]);
@@ -24,9 +25,22 @@ export default function Donacion() {
   const enviadoTimer = useRef(null);
   const removeConfirmIdx = useRef(null);
 
+  const anyPagado = items.some((i) => i.pagado);
+
   useEffect(() => {
     return () => clearTimeout(enviadoTimer.current);
   }, []);
+
+  useEffect(() => {
+    if (!anyPagado) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [anyPagado]);
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) => anyPagado && currentLocation.pathname !== nextLocation.pathname
+  );
 
   useEffect(() => {
     Promise.all([
@@ -54,7 +68,7 @@ export default function Donacion() {
       const next = [...prev];
       if (field === "tipo") {
         const unidades = unidadesPorTipo[value] || [];
-        next[idx] = { tipo: value, cantidad: prev[idx].cantidad, unidad: unidades[0] || "", detalles: {} };
+        next[idx] = { tipo: value, cantidad: prev[idx].cantidad, unidad: unidades[0] || "", detalles: {}, pagado: false };
       } else if (field === "detalles") {
         next[idx] = { ...next[idx], detalles: { ...next[idx].detalles, ...value } };
       } else {
@@ -279,7 +293,29 @@ export default function Donacion() {
                     </div>
 
                     {/* ── Campos adicionales per item ── */}
-                    {camposAdicionales.length > 0 && (
+                    {item.tipo === "Donación Monetaria" ? (
+                      <div className="mt-3 p-3 rounded-3 bg-page b-card">
+                        <h4 className="fs-6 fw-bold mb-2 c-heading">
+                          <i className="bi bi-credit-card-fill me-2 c-primary"></i>
+                          Pago
+                        </h4>
+                        {!item.pagado ? (
+                          <div>
+                            <p className="small c-muted mb-2"><i className="bi bi-hourglass-split me-1"></i>Comprobando pago...</p>
+                            <button type="button" className="btn btn-success"
+                              onClick={() => { if (item.cantidad) handleItemChange(activeIdx, "pagado", true); }}
+                              disabled={!item.cantidad}>
+                              <i className="bi bi-wallet2 me-1"></i>Ir a portal de pago
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-check-circle-fill fs-5 c-accent"></i>
+                            <span className="fw-semibold c-accent">Pagado</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : camposAdicionales.length > 0 && (
                       <div className="mt-3 p-3 rounded-3 bg-page b-card">
                         <h4 className="fs-6 fw-bold mb-2 c-heading">
                           <i className="bi bi-info-circle-fill me-2 c-primary"></i>
@@ -437,6 +473,28 @@ export default function Donacion() {
                   <i className="bi bi-send-fill me-2"></i>Registrar donación
                   {items.length > 1 && ` (${items.length} artículos)`}
                 </button>
+
+                {blocker.state === "blocked" && (
+                  <div className="modal d-block modal-overlay" tabIndex="-1">
+                    <div className="modal-dialog modal-dialog-centered">
+                      <div className="modal-content">
+                        <div className="modal-header">
+                          <h5 className="modal-title">
+                            <i className="bi bi-exclamation-triangle-fill me-2 c-warning"></i>
+                            ¿Salir sin confirmar?
+                          </h5>
+                        </div>
+                        <div className="modal-body">
+                          <p className="mb-0">Tienes un pago registrado. Si sales perderás los datos de la donación.</p>
+                        </div>
+                        <div className="modal-footer">
+                          <button className="btn btn-secondary" onClick={() => blocker.reset()}>Seguir aquí</button>
+                          <button className="btn btn-danger" onClick={() => blocker.proceed()}>Salir de todas formas</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
           </div>

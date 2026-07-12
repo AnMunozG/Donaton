@@ -7,6 +7,21 @@ donaciones_client = DonacionesClient()
 logistica_client = LogisticaClient()
 
 
+def _enrich_donacion(d: dict) -> dict:
+    items = d.get("items") or []
+    if not d.get("tipo") and items:
+        tipos = [it.get("tipo") for it in items if it.get("tipo")]
+        if len(set(tipos)) == 1:
+            d["tipo"] = tipos[0]
+            d["unidad"] = items[0].get("unidad") or d.get("unidad")
+        elif tipos:
+            d["tipo"] = "Multi-item"
+        total_cant = sum(float(it.get("cantidad", 0) or 0) for it in items)
+        if total_cant and not d.get("cantidad"):
+            d["cantidad"] = str(int(total_cant)) if total_cant == int(total_cant) else str(total_cant)
+    return d
+
+
 async def list_all(estado: str = None, centro_code: str = None, tipo: str = None, origen: str = None, user=None) -> list[DonacionOut]:
     try:
         params = {}
@@ -18,7 +33,7 @@ async def list_all(estado: str = None, centro_code: str = None, tipo: str = None
         if origen: params["origen"] = origen
 
         donaciones_data = await donaciones_client.listar_donaciones(params=params)
-        return [DonacionOut(**d) for d in donaciones_data]
+        return [DonacionOut(**_enrich_donacion(d)) for d in donaciones_data]
     except Exception:
         return []
 
@@ -27,7 +42,7 @@ async def get_by_code(code: str) -> DonacionOut:
     donacion_data = await donaciones_client.obtener_donacion(code)
     if not donacion_data:
         raise NotFoundError(f"No se encontró la donación con el código {code}")
-    return DonacionOut(**donacion_data)
+    return DonacionOut(**_enrich_donacion(donacion_data))
 
 
 async def create(body, rut: str) -> DonacionOut:
@@ -89,7 +104,7 @@ async def create(body, rut: str) -> DonacionOut:
         except Exception as log_error:
             print(f"Alerta: Donación creada, pero falló actualización logística: {str(log_error)}")
 
-    return DonacionOut(**donacion_real_data)
+    return DonacionOut(**_enrich_donacion(donacion_real_data))
 
 
 async def create_multi(body: DonacionMultiCreate, rut: str) -> DonacionOut:
@@ -179,7 +194,7 @@ async def create_multi(body: DonacionMultiCreate, rut: str) -> DonacionOut:
             except Exception as log_error:
                 print(f"Alerta: Donación multi-item creada, pero falló actualización logística para {tipo_recurso}: {str(log_error)}")
 
-    return DonacionOut(**donacion_real_data)
+    return DonacionOut(**_enrich_donacion(donacion_real_data))
 
 
 async def update_estado(code: str, nuevo_estado: str, user=None) -> DonacionOut:
@@ -190,7 +205,7 @@ async def update_estado(code: str, nuevo_estado: str, user=None) -> DonacionOut:
     donacion_actualizada = await donaciones_client.actualizar_estado_donacion(code, {"estado": nuevo_estado})
     if not donacion_actualizada:
         raise NotFoundError(f"No se pudo actualizar la donación {code}")
-    return DonacionOut(**donacion_actualizada)
+    return DonacionOut(**_enrich_donacion(donacion_actualizada))
 
 
 async def delete(code: str) -> None:

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../componentes/AuthContext";
-import { getDonaciones, actualizarCuenta, getLogros, getMisLogros, getMisAgradecimientos, getCentrosSeguidos } from "../api.js";
+import { getDonaciones, actualizarCuenta, getLogros, getMisLogros, getMisAgradecimientos, getCentrosSeguidos, verificarLogros } from "../api.js";
 import api from "../servicios/api.js";
 import { validarRequerido, validarEmail, validarForm } from "../componentes/Validaciones.js";
 import LogrosModal from "../componentes/LogrosModal.jsx";
@@ -23,9 +23,42 @@ export default function Perfil() {
 
   useEffect(() => {
     if (!isAuth) return;
-    getDonaciones(user.rut).then((lista) => setDonaciones(lista.reverse()));
+    getDonaciones(user.rut).then((lista) => {
+      setDonaciones(lista.reverse());
+      const donacionesLista = lista;
+      const centrosSet = new Set(donacionesLista.map((d) => d.centroId));
+      let monetarioT = 0;
+      let kgT = 0;
+      let maxItems = 0;
+      for (const d of donacionesLista) {
+        const items = d.items || [];
+        if (items.length > 0) {
+          maxItems = Math.max(maxItems, items.length);
+          for (const it of items) {
+            if (it.tipo === "Donación Monetaria" || ["clp", "usd"].includes((it.unidad || "").toLowerCase())) {
+              monetarioT += parseFloat(it.cantidad) || 0;
+            } else {
+              kgT += parseFloat(it.cantidad) || 0;
+            }
+          }
+        } else {
+          const cantidad = parseFloat(d.cantidad) || 0;
+          if (d.tipo === "Donación Monetaria" || ["clp", "usd"].includes((d.unidad || "").toLowerCase())) {
+            monetarioT += cantidad;
+          } else {
+            kgT += cantidad;
+          }
+          if (cantidad > 0) maxItems = Math.max(maxItems, 1);
+        }
+      }
+      verificarLogros({
+        total_donaciones: donacionesLista.length,
+        centros_distintos: centrosSet.size,
+        total_kg: kgT,
+        max_items_una_donacion: maxItems,
+      }).then(() => getMisLogros().then(setLogros));
+    });
     getLogros().then(setTodosLogros);
-    getMisLogros().then(setLogros);
     getMisAgradecimientos().then(setAgradecimientos);
     getCentrosSeguidos().then(setSeguidos);
   }, [isAuth, user?.rut]);
@@ -71,10 +104,30 @@ export default function Perfil() {
     return <span className={`badge ${map[est] || "bg-secondary"}`}>{est}</span>;
   };
 
-  const totalDonado = donaciones.reduce((acc, d) => acc + (parseFloat(d.cantidad) || 0), 0);
   const centrosUnicos = new Set(donaciones.map((d) => d.centroId)).size;
-  const monetarioTotal = donaciones.filter((d) => d.tipo === "Donación Monetaria").reduce((acc, d) => acc + (parseFloat(d.cantidad) || 0), 0);
-  const kgTotal = donaciones.filter((d) => d.tipo !== "Donación Monetaria").reduce((acc, d) => acc + (parseFloat(d.cantidad) || 0), 0);
+
+  let monetarioTotal = 0;
+  let kgTotal = 0;
+  for (const d of donaciones) {
+    const items = d.items || [];
+    if (items.length > 0) {
+      for (const it of items) {
+        if (it.tipo === "Donación Monetaria" || ["clp", "usd"].includes((it.unidad || "").toLowerCase())) {
+          monetarioTotal += parseFloat(it.cantidad) || 0;
+        } else {
+          kgTotal += parseFloat(it.cantidad) || 0;
+        }
+      }
+    } else {
+      const tipo = d.tipo || "";
+      const cantidad = parseFloat(d.cantidad) || 0;
+      if (tipo === "Donación Monetaria" || ["clp", "usd"].includes((d.unidad || "").toLowerCase())) {
+        monetarioTotal += cantidad;
+      } else {
+        kgTotal += cantidad;
+      }
+    }
+  }
   const maxItemsUnaDonacion = Math.max(...donaciones.map((d) => (d.items?.length) || (d.cantidad > 0 ? 1 : 0)), 0);
 
   const stats = { total_donaciones: donaciones.length, centros_distintos: centrosUnicos, total_kg: kgTotal, max_items_una_donacion: maxItemsUnaDonacion };
@@ -309,14 +362,17 @@ export default function Perfil() {
                   <button key={year} className="btn btn-outline-danger btn-sm"
                     onClick={async () => {
                       try {
-                        const blob = await api.get(`/auth/certificado/${year}`, { responseType: "blob" });
+                        const res = await api.get(`/auth/certificado/${year}`, { responseType: "blob" });
+                        const blob = res instanceof Blob ? res : new Blob([res], { type: "application/pdf" });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
                         a.href = url;
                         a.download = `certificado_${user.rut}_${year}.pdf`;
+                        document.body.appendChild(a);
                         a.click();
-                        URL.revokeObjectURL(url);
-                      } catch { alert("Error al descargar el certificado"); }
+                        document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(url), 3000);
+                      } catch (err) { console.error("Error certificado:", err); alert("Error al descargar el certificado"); }
                     }}>
                     <i className="bi bi-download me-1"></i>{year}
                   </button>

@@ -141,17 +141,17 @@ async def list_usuarios(request):
 @api.patch("/auth/usuarios/{rut}", auth=AdminBearer(), response=UserOut)
 async def update_usuario_admin(request, rut: str, body: UserUpdateIn):
     data = {}
-    if body.nombre is not None:
+    if "nombre" in body.model_fields_set:
         data["first_name"] = body.nombre
-    if body.email is not None:
+    if "email" in body.model_fields_set:
         data["email"] = body.email
-    if body.telefono is not None:
+    if "telefono" in body.model_fields_set:
         data["telefono"] = body.telefono
-    if body.direccion is not None:
+    if "direccion" in body.model_fields_set:
         data["direccion"] = body.direccion
-    if body.centro_acopio_id is not None:
-        data["centro_acopio_id"] = body.centro_acopio_id
-    if body.is_staff is not None:
+    if "centro_acopio_id" in body.model_fields_set:
+        data["centro_acopio_id"] = body.centro_acopio_id or None
+    if "is_staff" in body.model_fields_set:
         data["is_staff"] = body.is_staff
     return await auth_service.admin_update_user(rut, data, uat=request.user.get("uat"))
 
@@ -518,10 +518,22 @@ async def eliminar_voluntario_centro(request, vc_code: str):
 
 @api.get("/auth/certificado/{year}")
 async def certificado(request, year: int):
-    pdf_buf = await certificado_service.generar_certificado(request.user["rut"], year)
+    try:
+        pdf_buf = await certificado_service.generar_certificado(request.user["rut"], year)
+    except Exception as e:
+        from django.http import JsonResponse
+        return JsonResponse({"error": str(e)}, status=500)
     from django.http import HttpResponse
     return HttpResponse(pdf_buf.read(), content_type="application/pdf",
                         headers={"Content-Disposition": f"attachment; filename=certificado_{request.user['rut']}_{year}.pdf"})
+
+
+@api.get("/reportes/{code}/pdf", auth=None)
+async def reporte_transparencia(request, code: str):
+    pdf_buf = await certificado_service.generar_reporte_transparencia(code)
+    from django.http import HttpResponse
+    return HttpResponse(pdf_buf.read(), content_type="application/pdf",
+                        headers={"Content-Disposition": f"attachment; filename=reporte_{code}.pdf"})
 
 
 
