@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo, getCentros, agregarNecesidadUsuario } from "../api.js";
 import RichTextEditor from "../componentes/RichTextEditor";
 import { validarRequerido, validarEnteroPositivo, validarRut, validarForm, formatearRut, limpiarRut } from "../componentes/Validaciones.js";
+import necesidadesImg from "../assets/Necesidades(7).png";
 
 const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -184,7 +185,7 @@ export default function Necesidades() {
 
         <div className="row g-4">
           <div className="col-12 col-lg-5">
-            <div className="img-placeholder rounded-4" style={{ backgroundImage: "url(https://chile.iom.int/sites/g/files/tmzbdl906/files/coim-chile-francisca-salinas_oim-entrega-alimentos_1.jpg)" }}></div>
+            <div className="img-placeholder rounded-4" style={{ backgroundImage: `url("${necesidadesImg}")` }}></div>
           </div>
 
           <div className="col-12 col-lg-7">
@@ -437,8 +438,7 @@ export default function Necesidades() {
                       placeholder={tipoNecesidad === "voluntarios" ? "Describe el contexto, objetivos y cualquier información relevante para los voluntarios..." : "Describe la necesidad en detalle..."} />
                   </div>
 
-                  <div className="mt-3 d-flex align-items-center gap-2 p-2 rounded-3 small"
-                    style={{ background: "var(--bg-page)" }}>
+                  <div className="mt-3 d-flex align-items-center gap-2 p-2 rounded-3 small bg-page">
                     <span className={`badge ${urgenciaStyle.class} d-flex align-items-center gap-1 py-1 px-2`}>
                       <i className={urgenciaStyle.icon}></i>
                       {urgenciaStyle.label}

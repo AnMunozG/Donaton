@@ -64,8 +64,7 @@ export default function SelectRegion({ value, onChange, error }) {
       {error && <div className="invalid-feedback d-block">{error}</div>}
       {abierto && (
         <ul
-          className="list-group position-absolute w-100 shadow-sm"
-          style={{ zIndex: 1050, maxHeight: 240, overflowY: "auto" }}
+          className="list-group position-absolute w-100 shadow-sm dropdown-scrollable"
         >
           {filtradas.length === 0 ? (
             <li className="list-group-item text-muted small">Sin resultados</li>
@@ -77,7 +76,6 @@ export default function SelectRegion({ value, onChange, error }) {
                   r === value ? "active" : ""
                 }`}
                 onClick={() => seleccionar(r)}
-                style={{ cursor: "pointer" }}
               >
                 {r}
               </li>

@@ -300,14 +300,15 @@ export async function cambiarEstadoVoluntario(id, estado) {
   return api.patch(`/voluntarios/${id}/estado`, { estado });
 }
 
-export async function registrarHorasVoluntario(id, horas, descripcion) {
-  return api.post(`/voluntarios/${id}/horas`, { horas, descripcion });
+export async function registrarHorasVoluntario(id, horas, descripcion, centroId) {
+  return api.post(`/voluntarios/${id}/horas`, { horas, descripcion, centro_id: centroId || "" });
 }
 
-export async function getHorasVoluntario(id) {
+export async function getHorasVoluntario(id, centroId) {
   try {
-    return await api.get(`/voluntarios/${id}/horas`);
-  } catch { return { horas_acumuladas: 0, registros: [] }; }
+    const params = centroId ? { centro_id: centroId } : {};
+    return await api.get(`/voluntarios/${id}/horas`, { params });
+  } catch { return { horas_acumuladas: 0, horas_por_centro: {}, registros: [] }; }
 }
 
 export async function getHabilidadesVoluntario() {
@@ -315,4 +316,38 @@ export async function getHabilidadesVoluntario() {
     const data = await api.get("/static/habilidades-voluntario");
     return Array.isArray(data) ? data : [];
   } catch { return []; }
+}
+
+export async function getVoluntarioCentros(voluntarioId) {
+  try {
+    const data = await api.get(`/voluntarios/${voluntarioId}/centros`);
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function solicitarCentroVoluntario(voluntarioId, centroId) {
+  return api.post(`/voluntarios/${voluntarioId}/centros`, { centro_id: centroId });
+}
+
+export async function actualizarCentroVoluntario(vcId, estado) {
+  return api.patch(`/voluntarios/centros/${vcId}`, { estado });
+}
+
+export async function eliminarCentroVoluntario(vcId) {
+  return api.delete(`/voluntarios/centros/${vcId}`);
+}
+
+export async function enviarNotificacion(data) {
+  return api.post("/voluntarios/notificaciones", data);
+}
+
+export async function getNotificacionesVoluntario(voluntarioId) {
+  try {
+    const data = await api.get(`/voluntarios/${voluntarioId}/notificaciones`);
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function marcarNotificacionLeida(notifId) {
+  return api.patch(`/voluntarios/notificaciones/${notifId}`, { leida: true });
 }

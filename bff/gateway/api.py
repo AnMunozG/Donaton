@@ -19,7 +19,9 @@ from .schemas.logros import LogroOut, LogroUsuarioOut, VerificarLogrosIn
 from .schemas.impacto import ImpactoOut
 from .schemas.voluntarios import (VoluntarioCreate, VoluntarioUpdate, VoluntarioOut,
                                   VoluntarioListOut, RegistrarHorasIn, HorasVoluntarioOut,
-                                  CambiarEstadoVoluntarioIn)
+                                  RegistroHorasOut, CambiarEstadoVoluntarioIn,
+                                  VoluntarioCentroCreate, VoluntarioCentroUpdate, VoluntarioCentroOut,
+                                  NotificacionCreate, NotificacionOut)
 from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service, routing_service
 from .services import agradecimiento_service, seguimiento_service, logro_service, impacto_service, certificado_service
 from .services import voluntario_service
@@ -172,7 +174,7 @@ async def create_centro(request, body: CentroCreate):
 @api.put("/centros/{code}", auth=EncargadoOrAdminBearer(), response=CentroOut)
 async def update_centro(request, code: str, body: CentroUpdate):
     user = request.user
-    if user.get("rol") == "encargado" and user.get("centro_acopio_id") != code:
+    if user.get("rol") == "encargado" and str(user.get("centro_acopio_id")) != str(code):
         raise HttpError(403, "No tienes permiso para editar este centro")
     return await centro_service.update(code, body)
 
@@ -183,6 +185,11 @@ async def get_centro_stats(request, code: str):
 @api.get("/centros/{code}/inventario", auth=None, response=list[InventarioItem])
 async def get_centro_inventario(request, code: str):
     return await centro_service.get_inventario(code)
+
+@api.delete("/centros/{code}", auth=AdminBearer(), response={204: None})
+async def delete_centro(request, code: str):
+    await centro_service.delete(code)
+    return 204, None
 
 
 @api.get("/ruta", auth=None, response=RutaOut)
@@ -242,7 +249,7 @@ async def list_necesidades(request, estado: Optional[str] = None, centro_code: O
 async def create_necesidad(request, body: NecesidadCreate):
     user = request.user
     if user.get("rol") == "encargado":
-        if body.centroId != user.get("centro_acopio_id"):
+        if str(body.centroId) != str(user.get("centro_acopio_id", "")):
             raise HttpError(403, "Solo puedes crear necesidades para tu centro")
     return await necesidad_service.create(body, rut=request.user["rut"])
 
@@ -280,6 +287,11 @@ async def update_necesidad(request, code: str, body: NecesidadUpdate):
 @api.post("/necesidades/{code}/activar", auth=EncargadoOrAdminBearer(), response=NecesidadOut)
 async def activar_necesidad(request, code: str, body: ActivarNecesidadIn):
     return await necesidad_service.activar(code, urgencia=body.urgencia, user=request.user)
+
+@api.delete("/necesidades/{code}", auth=AdminBearer(), response={204: None})
+async def delete_necesidad(request, code: str):
+    await necesidad_service.delete(code)
+    return 204, None
 
 
 # ── Propuestas ──
@@ -371,7 +383,7 @@ async def dejar_seguir_centro(request, code: str):
 async def centros_seguidos(request):
     return await seguimiento_service.listar_seguidos(request.user["rut"])
 
-@api.get("/centros/{code}/seguido", response=bool)
+@api.get("/centros/{code}/seguido", auth=None, response=bool)
 async def es_centro_seguido(request, code: str):
     rut = getattr(request, "user", {}).get("rut", "")
     if not rut:
@@ -401,13 +413,39 @@ async def impacto(request):
     return await impacto_service.get_impacto(request.user["rut"])
 
 
-# ── Voluntarios ──
+# ── Notificaciones (BEFORE {code} routes to avoid route conflicts) ──
+
+@api.post("/voluntarios/notificaciones", auth=EncargadoOrAdminBearer(), response={201: NotificacionOut})
+async def crear_notificacion(request, body: NotificacionCreate):
+    return await voluntario_service.enviar_notificacion(body, user=request.user)
+
+
+@api.get("/voluntarios/{code}/notificaciones", auth=AuthBearer(), response=list[NotificacionOut])
+async def listar_notificaciones_voluntario(request, code: str):
+    return await voluntario_service.listar_notificaciones(code)
+
+
+@api.patch("/voluntarios/notificaciones/{notif_id}", auth=AuthBearer(), response=NotificacionOut)
+async def marcar_notificacion_voluntario(request, notif_id: str):
+    result = await voluntario_service.marcar_notificacion_leida(notif_id)
+    return NotificacionOut(
+        id=str(result.get("id", notif_id)),
+        voluntario=str(result.get("voluntario", "")),
+        titulo=result.get("titulo", ""),
+        mensaje=result.get("mensaje", ""),
+        leida=result.get("leida", True),
+        enviado_por_rut=result.get("enviado_por_rut", ""),
+        fecha_creacion=str(result.get("fecha_creacion", "")),
+    )
+
+
+# ── Voluntarios (by code - AFTER static routes to avoid conflicts) ──
 
 @api.get("/voluntarios", auth=None, response=list[VoluntarioListOut])
-async def list_voluntarios(request, centro_preferido: Optional[str] = None, disponibilidad: Optional[str] = None, habilidad: Optional[str] = None):
+async def list_voluntarios(request, centro_id: Optional[str] = None, disponibilidad: Optional[str] = None, habilidad: Optional[str] = None):
     user = _get_user_from_request(request)
     uat = user.get("uat") if user else None
-    return await voluntario_service.list_all(user=user, uat=uat)
+    return await voluntario_service.list_all(user=user, uat=uat, centro_id=centro_id, disponibilidad=disponibilidad, habilidad=habilidad)
 
 @api.get("/voluntarios/mi-perfil", response=VoluntarioOut)
 async def mi_perfil_voluntario(request):
@@ -442,15 +480,39 @@ async def delete_voluntario(request, code: str):
     await voluntario_service.delete(code, user=request.user)
     return 204, None
 
-@api.post("/voluntarios/{code}/horas", auth=AuthBearer(), response=HorasVoluntarioOut)
+@api.post("/voluntarios/{code}/horas", auth=AuthBearer(), response={201: RegistroHorasOut})
 async def registrar_horas_voluntario(request, code: str, body: RegistrarHorasIn):
     uat = request.user.get("uat")
     return await voluntario_service.registrar_horas(code, body, user=request.user, uat=uat)
 
 @api.get("/voluntarios/{code}/horas", auth=AuthBearer(), response=HorasVoluntarioOut)
-async def listar_horas_voluntario(request, code: str):
+async def listar_horas_voluntario(request, code: str, centro_id: Optional[str] = None):
     uat = request.user.get("uat")
-    return await voluntario_service.listar_horas(code, user=request.user, uat=uat)
+    return await voluntario_service.listar_horas(code, user=request.user, uat=uat, centro_id=centro_id)
+
+
+# ── Voluntario-Centro assignments ──
+
+@api.get("/voluntarios/{code}/centros", auth=AuthBearer(), response=list[VoluntarioCentroOut])
+async def listar_voluntario_centros(request, code: str):
+    return await voluntario_service.listar_centros(code, user=request.user)
+
+
+@api.post("/voluntarios/{code}/centros", auth=AuthBearer(), response={201: VoluntarioCentroOut})
+async def solicitar_centro_voluntario(request, code: str, body: VoluntarioCentroCreate):
+    return await voluntario_service.solicitar_centro(code, body.centro_id, user=request.user)
+
+
+@api.patch("/voluntarios/centros/{vc_code}", auth=EncargadoOrAdminBearer(), response=VoluntarioCentroOut)
+async def actualizar_voluntario_centro(request, vc_code: str, body: VoluntarioCentroUpdate):
+    return await voluntario_service.actualizar_centro(vc_code, body, user=request.user)
+
+
+@api.delete("/voluntarios/centros/{vc_code}", auth=AdminBearer(), response={204: None})
+async def eliminar_voluntario_centro(request, vc_code: str):
+    await voluntario_service.eliminar_centro(vc_code, user=request.user)
+    return 204, None
+
 
 # ── Certificado anual ──
 

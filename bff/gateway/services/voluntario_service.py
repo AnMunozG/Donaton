@@ -1,4 +1,7 @@
-from ..schemas.voluntarios import VoluntarioOut, VoluntarioListOut, HorasVoluntarioOut
+from ..schemas.voluntarios import (
+    VoluntarioOut, VoluntarioListOut, HorasVoluntarioOut,
+    RegistroHorasOut, VoluntarioCentroOut, NotificacionOut,
+)
 from ..exceptions import NotFoundError, ValidationError, AuthError
 from ..clients.voluntarios_client import VoluntariosClient
 from ..clients.usuarios_client import UsuariosClient
@@ -8,7 +11,23 @@ usuarios_client = UsuariosClient()
 
 
 def _estado_desde_voluntario(v: dict) -> str:
-    return v.get("estado", "pendiente")
+    centros = v.get("centros", [])
+    if any(c.get("estado") == "activo" for c in centros):
+        return "activo"
+    if any(c.get("estado") == "pendiente" for c in centros):
+        return "pendiente"
+    return "sin centro"
+
+
+def _centro_to_out(c: dict) -> dict:
+    return {
+        "id": str(c.get("id", "")),
+        "voluntario": str(c.get("voluntario", "")),
+        "centro_id": str(c.get("centro_id", "")),
+        "estado": c.get("estado", "pendiente"),
+        "fecha_registro": str(c.get("fecha_registro", "")),
+        "horas_acumuladas": int(c.get("horas_acumuladas", 0)),
+    }
 
 
 async def _enrich(voluntario: dict, uat: str = None) -> dict:
@@ -27,6 +46,8 @@ async def _enrich(voluntario: dict, uat: str = None) -> dict:
                 }
         except Exception:
             pass
+    centros_raw = voluntario.get("centros", [])
+    centros_out = [_centro_to_out(c) for c in centros_raw]
     return {
         "id": str(voluntario.get("id", "")),
         "rut": rut,
@@ -35,46 +56,66 @@ async def _enrich(voluntario: dict, uat: str = None) -> dict:
         "telefono": datos_usuario["telefono"],
         "disponibilidad": voluntario.get("disponibilidad", "emergencia"),
         "habilidades": voluntario.get("habilidades", []),
-        "centro_preferido": voluntario.get("centro_preferido", ""),
-        "estado": _estado_desde_voluntario(voluntario),
         "fecha_registro": str(voluntario.get("fecha_registro", "")),
         "horas_acumuladas": int(voluntario.get("horas_acumuladas", 0)),
+        "centros": centros_out,
     }
 
 
 def _list_to_out(voluntario: dict) -> dict:
+    centros_raw = voluntario.get("centros", [])
+    centros_out = [_centro_to_out(c) for c in centros_raw]
     return {
         "id": str(voluntario.get("id", "")),
         "rut": voluntario.get("rut", ""),
         "nombre": "",
         "disponibilidad": voluntario.get("disponibilidad", "emergencia"),
         "habilidades": voluntario.get("habilidades", []),
-        "centro_preferido": voluntario.get("centro_preferido", ""),
-        "estado": _estado_desde_voluntario(voluntario),
         "fecha_registro": str(voluntario.get("fecha_registro", "")),
         "horas_acumuladas": int(voluntario.get("horas_acumuladas", 0)),
+        "centros": centros_out,
     }
 
 
-async def list_all(user=None, uat: str = None) -> list:
+async def _enrich_with_centros(voluntario: dict, uat: str = None) -> dict:
+    enriched = await _enrich(voluntario, uat=uat)
+    vol_id = voluntario.get("id")
+    if vol_id:
+        try:
+            centros = await voluntarios_client.listar_voluntario_centros(
+                params={"voluntario_id": vol_id}
+            )
+            enriched["centros"] = [_centro_to_out(c) for c in centros]
+        except Exception:
+            pass
+    return enriched
+
+
+async def list_all(user=None, uat: str = None, centro_id: str = None, disponibilidad: str = None, habilidad: str = None) -> list:
     try:
-        params = {"estado": "activo"}
+        params = {}
         is_backoffice = isinstance(user, dict) and user.get("rol") in ("admin", "encargado")
         if is_backoffice:
             if user.get("rol") == "encargado":
-                params = {"centro_preferido": user.get("centro_acopio_id", "")}
-            else:
-                params = {}
+                params["centro_id"] = user.get("centro_acopio_id", "")
+        if centro_id:
+            params["centro_id"] = centro_id
+        if disponibilidad:
+            params["disponibilidad"] = disponibilidad
+        if habilidad:
+            params["habilidad"] = habilidad
 
         data = await voluntarios_client.listar_voluntarios(params=params)
         items = data if isinstance(data, list) else []
-        if is_backoffice and uat:
-            result = []
-            for v in items:
-                enriched = await _enrich(v, uat=uat)
+
+        result = []
+        for v in items:
+            enriched = await _enrich_with_centros(v, uat=uat if is_backoffice else None)
+            if is_backoffice:
                 result.append(VoluntarioOut(**enriched))
-            return result
-        return [VoluntarioListOut(**(_list_to_out(v))) for v in items]
+            else:
+                result.append(VoluntarioListOut(**enriched))
+        return result
     except Exception:
         return []
 
@@ -83,7 +124,7 @@ async def get_by_code(code: str, uat: str = None) -> VoluntarioOut:
     data = await voluntarios_client.obtener_voluntario(code)
     if not data or "error" in data:
         raise NotFoundError("Voluntario no encontrado")
-    enriched = await _enrich(data, uat=uat)
+    enriched = await _enrich_with_centros(data, uat=uat)
     return VoluntarioOut(**enriched)
 
 
@@ -91,7 +132,7 @@ async def get_by_rut(rut: str, uat: str = None) -> VoluntarioOut | None:
     data = await voluntarios_client.obtener_voluntario_por_rut(rut)
     if not data or "error" in data:
         return None
-    enriched = await _enrich(data, uat=uat)
+    enriched = await _enrich_with_centros(data, uat=uat)
     return VoluntarioOut(**enriched)
 
 
@@ -109,32 +150,40 @@ async def create(body, rut: str, uat: str = None) -> VoluntarioOut:
         "rut": rut,
         "disponibilidad": body.disponibilidad,
         "habilidades": body.habilidades,
-        "centro_preferido": body.centro_preferido,
-        "estado": "pendiente",
     }
     created = await voluntarios_client.crear_voluntario(data)
     if "error" in created:
         raise ValidationError(created.get("error", "Error al crear voluntario"))
-    enriched = await _enrich(created, uat=uat)
+
+    if body.centro_id:
+        vc_data = {
+            "voluntario": int(created.get("id", 0)),
+            "centro_id": body.centro_id,
+        }
+        await voluntarios_client.crear_voluntario_centro(vc_data)
+
+    enriched = await _enrich_with_centros(created, uat=uat)
     return VoluntarioOut(**enriched)
 
 
 async def update(code: str, body, user: dict, uat: str = None) -> VoluntarioOut:
-    if user.get("rol") not in ("admin", "encargado") and user.get("rut") != code:
-        raise AuthError("No tienes permiso para modificar este voluntario")
+    if user.get("rol") not in ("admin", "encargado"):
+        existing = await voluntarios_client.obtener_voluntario(code)
+        if not existing or "error" in existing:
+            raise NotFoundError("Voluntario no encontrado")
+        if user.get("rut") != existing.get("rut"):
+            raise AuthError("No tienes permiso para modificar este voluntario")
 
     data = {}
     if body.disponibilidad is not None:
         data["disponibilidad"] = body.disponibilidad
     if body.habilidades is not None:
         data["habilidades"] = body.habilidades
-    if body.centro_preferido is not None:
-        data["centro_preferido"] = body.centro_preferido
 
     updated = await voluntarios_client.actualizar_voluntario(code, data)
     if "error" in updated:
         raise ValidationError(updated.get("error", "Error al actualizar voluntario"))
-    enriched = await _enrich(updated, uat=uat)
+    enriched = await _enrich_with_centros(updated, uat=uat)
     return VoluntarioOut(**enriched)
 
 
@@ -148,7 +197,7 @@ async def cambiar_estado(code: str, nuevo_estado: str, user: dict, uat: str = No
     updated = await voluntarios_client.actualizar_voluntario(code, data)
     if "error" in updated:
         raise ValidationError(updated.get("error", "Error al cambiar estado"))
-    enriched = await _enrich(updated, uat=uat)
+    enriched = await _enrich_with_centros(updated, uat=uat)
     return VoluntarioOut(**enriched)
 
 
@@ -160,23 +209,124 @@ async def delete(code: str, user: dict) -> None:
         raise ValidationError(result.get("error", "Error al eliminar voluntario"))
 
 
-async def registrar_horas(code: str, body, user: dict, uat: str = None) -> dict:
-    if user.get("rol") not in ("admin", "encargado") and user.get("rut") != code:
-        raise AuthError("No tienes permiso para registrar horas de este voluntario")
+async def registrar_horas(code: str, body, user: dict, uat: str = None) -> RegistroHorasOut:
+    if user.get("rol") not in ("admin", "encargado"):
+        existing = await voluntarios_client.obtener_voluntario(code)
+        if not existing or "error" in existing:
+            raise NotFoundError("Voluntario no encontrado")
+        if user.get("rut") != existing.get("rut"):
+            raise AuthError("No tienes permiso para registrar horas de este voluntario")
+
+    if not (1 <= body.horas <= 24):
+        raise ValidationError("Las horas deben estar entre 1 y 24")
 
     data = {
         "horas": body.horas,
         "descripcion": body.descripcion,
         "registrado_por_rut": user.get("rut", ""),
+        "centro_id": body.centro_id,
     }
     result = await voluntarios_client.registrar_horas(code, data)
     if "error" in result:
         raise ValidationError(result.get("error", "Error al registrar horas"))
-    return result
+    return RegistroHorasOut(
+        id=str(result.get("id", "")),
+        voluntario=str(result.get("voluntario", "")),
+        centro_id=str(result.get("centro_id", "")),
+        horas=result.get("horas", 0),
+        descripcion=result.get("descripcion", ""),
+        registrado_por_rut=result.get("registrado_por_rut", ""),
+        fecha=str(result.get("fecha", "")),
+    )
 
 
-async def listar_horas(code: str, user: dict, uat: str = None) -> HorasVoluntarioOut:
-    data = await voluntarios_client.listar_horas(code)
+async def listar_horas(code: str, user: dict, uat: str = None, centro_id: str = None) -> HorasVoluntarioOut:
+    data = await voluntarios_client.listar_horas(code, centro_id=centro_id)
     if "error" in data:
         raise NotFoundError("Voluntario no encontrado")
     return HorasVoluntarioOut(**data)
+
+
+async def listar_centros(code: str, user: dict, uat: str = None) -> list[VoluntarioCentroOut]:
+    centros = await voluntarios_client.listar_voluntario_centros(
+        params={"voluntario_id": code}
+    )
+    return [VoluntarioCentroOut(**_centro_to_out(c)) for c in centros]
+
+
+async def solicitar_centro(voluntario_id: str, centro_id: str, user: dict) -> VoluntarioCentroOut:
+    data = {
+        "voluntario": int(voluntario_id),
+        "centro_id": centro_id,
+    }
+    result = await voluntarios_client.crear_voluntario_centro(data)
+    if not result or "error" in result:
+        msg = result.get("error", "Error al solicitar centro") if isinstance(result, dict) else "Error al solicitar centro"
+        if isinstance(result, dict) and result.get("status") == 409:
+            raise ValidationError(f"Ya existe una solicitud para el centro {centro_id}")
+        raise ValidationError(msg)
+    return VoluntarioCentroOut(**_centro_to_out(result))
+
+
+async def actualizar_centro(code: str, body, user: dict) -> VoluntarioCentroOut:
+    if user.get("rol") not in ("admin", "encargado"):
+        raise AuthError("Solo admin o encargado pueden actualizar asignaciones de centro")
+    data = {"estado": body.estado}
+    result = await voluntarios_client.actualizar_voluntario_centro(code, data)
+    if not result or "error" in result:
+        raise ValidationError("Error al actualizar asignación de centro")
+    return VoluntarioCentroOut(**_centro_to_out(result))
+
+
+async def eliminar_centro(code: str, user: dict) -> None:
+    result = await voluntarios_client.eliminar_voluntario_centro(code)
+    if result and "error" in result:
+        raise ValidationError("Error al eliminar asignación de centro")
+
+
+async def enviar_notificacion(body, user: dict) -> NotificacionOut:
+    if user.get("rol") not in ("admin", "encargado"):
+        raise AuthError("Solo admin o encargado pueden enviar notificaciones")
+    data = {
+        "voluntario_id": body.voluntario_id,
+        "titulo": body.titulo,
+        "mensaje": body.mensaje,
+        "enviado_por_rut": user.get("rut", ""),
+    }
+    result = await voluntarios_client.crear_notificacion(data)
+    if not result or "error" in result:
+        raise ValidationError("Error al enviar notificación")
+    return NotificacionOut(
+        id=str(result.get("id", "")),
+        voluntario=str(result.get("voluntario", "")),
+        titulo=result.get("titulo", ""),
+        mensaje=result.get("mensaje", ""),
+        leida=result.get("leida", False),
+        enviado_por_rut=result.get("enviado_por_rut", ""),
+        fecha_creacion=str(result.get("fecha_creacion", "")),
+    )
+
+
+async def listar_notificaciones(voluntario_id: str) -> list[NotificacionOut]:
+    items = await voluntarios_client.listar_notificaciones(
+        params={"voluntario_id": voluntario_id}
+    )
+    return [
+        NotificacionOut(
+            id=str(n.get("id", "")),
+            voluntario=str(n.get("voluntario", "")),
+            titulo=n.get("titulo", ""),
+            mensaje=n.get("mensaje", ""),
+            leida=n.get("leida", False),
+            enviado_por_rut=n.get("enviado_por_rut", ""),
+            fecha_creacion=str(n.get("fecha_creacion", "")),
+        )
+        for n in items
+    ]
+
+
+async def marcar_notificacion_leida(notif_id: str) -> dict:
+    result = await voluntarios_client.marcar_notificacion_leida(notif_id)
+    if not result or "error" in result:
+        raise ValidationError("Error al marcar notificación")
+    return result

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { DonatonLogo } from "../componentes/Logos.jsx";
 import { getCategoriasDonacion, getPasosFuncionamiento, getNecesidades, getCentros } from "../api.js";
 import bannerInicioImg from "../assets/BannerInicio.png";
+import inicioImg1 from "../assets/Inicio (1).jpg";
+import inicioImg2 from "../assets/Inicio (2).jpg";
 
 
 export default function Inicio() {
@@ -78,7 +80,7 @@ export default function Inicio() {
       <div className="row g-4 mb-5 align-items-center">
         <div className="col-md-5">
           <div className="img-placeholder rounded-4"
-            style={{ backgroundImage: `url("https://www.worldvision.cl/hs-fs/hubfs/Ecuador/EC-Blog/P%C3%8DA%201.jpg?width=600&name=P%C3%8DA%201.jpg")` }}></div>
+            style={{ backgroundImage: `url("${inicioImg1}")` }}></div>
         </div>
         <div className="col-md-7">
           <div className="row row-cols-2 g-3">
@@ -123,7 +125,7 @@ export default function Inicio() {
         </div>
         <div className="col-md-5">
           <div className="img-placeholder rounded-4"
-            style={{ backgroundImage: "url(https://chile.iom.int/sites/g/files/tmzbdl906/files/styles/card_format/public/banner/37_0.jpg?itok=EVAQURnR)" }}></div>
+            style={{ backgroundImage: `url("${inicioImg2}")` }}></div>
         </div>
       </div>
 
@@ -171,10 +173,10 @@ export default function Inicio() {
                     <div className="mb-2">
                       <div className="d-flex justify-content-between small mb-1">
                         <span className="c-muted"><strong className="c-heading">Recaudado:</strong> {donado} / {total} {n.unidad}</span>
-                        <span className="fw-semibold" style={{ color: pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}>{pct}%</span>
+                        <span className="fw-semibold color-dynamic" style={{ '--dynamic-color': pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}>{pct}%</span>
                       </div>
                       <div className="progress progress-height-6">
-                        <div className="progress-bar progress-bar-rounded" style={{ width: `${pct}%`, background: pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}></div>
+                        <div className="progress-bar progress-bar-rounded progress-dynamic-bar" style={{ '--bar-w': `${pct}%`, '--bar-color': pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}></div>
                       </div>
                     </div>
                     <div className="project-btn">

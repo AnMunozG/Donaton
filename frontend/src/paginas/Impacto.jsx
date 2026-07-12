@@ -33,13 +33,7 @@ export default function Impacto() {
 
   const porTipoData = Object.entries(data.por_tipo || {}).map(([name, value]) => ({ name: name || "Sin tipo", value }));
 
-  const tooltipStyle = {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: 8,
-    color: "var(--text)",
-    fontSize: 12,
-  };
+  const rechartsTooltip = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)", fontSize: 12 };
 
   return (
     <div className="perfil">
@@ -65,13 +59,13 @@ export default function Impacto() {
             { icon: "bi-building-fill", label: "Centros ayudados", value: data.centros_distintos, color: "#0dcaf0" },
           ].map((card, i) => (
             <div key={i} className="col-sm-6 col-xl-3">
-              <div className="p-4 rounded-4 card-surface" style={{ borderLeft: `4px solid ${card.color}` }}>
+              <div className="p-4 rounded-4 card-surface card-accent-left" style={{ '--accent-color': card.color }}>
                 <div className="d-flex justify-content-between align-items-start">
                   <div>
                     <div className="small c-muted">{card.label}</div>
                     <div className="fw-bold fs-4">{card.value}</div>
                   </div>
-                  <div style={{ color: card.color, fontSize: "1.5rem" }}>
+                  <div className="color-dynamic" style={{ '--dynamic-color': card.color, fontSize: "1.5rem" }}>
                     <i className={`bi ${card.icon}`}></i>
                   </div>
                 </div>
@@ -97,7 +91,7 @@ export default function Impacto() {
                         <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
+                    <Tooltip contentStyle={rechartsTooltip} />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -119,7 +113,7 @@ export default function Impacto() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="mes" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
                     <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
-                    <Tooltip contentStyle={tooltipStyle} />
+                    <Tooltip contentStyle={rechartsTooltip} />
                     <Bar dataKey="cantidad" fill="#DD4444" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -136,7 +130,7 @@ export default function Impacto() {
               {data.centros?.length === 0 ? (
                 <p className="c-muted small mb-0">A&uacute;n no has donado a ning&uacute;n centro.</p>
               ) : (
-                <div className="d-flex flex-column gap-2" style={{ maxHeight: 300, overflowY: "auto" }}>
+                <div className="d-flex flex-column gap-2 scroll-panel">
                   {data.centros.map((c, i) => (
                     <div key={c.id} className="d-flex justify-content-between align-items-center p-2 rounded-3 bg-page">
                       <div className="d-flex align-items-center gap-2">

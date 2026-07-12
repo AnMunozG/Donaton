@@ -98,6 +98,8 @@ async def create(body, rut: str) -> NecesidadOut:
     if data.get("solicitante_nombre") == "anónimo" and rut != "anónimo":
         data["solicitante_nombre"] = rut
     n = await necesidades_client.crear_necesidad(data)
+    if not n or "error" in n:
+        raise Exception(n.get("error", "Error al crear necesidad") if isinstance(n, dict) else "Error al crear necesidad")
     return await _enrich_one(n)
 
 
@@ -106,7 +108,7 @@ async def update(code: str, body, user=None) -> NecesidadOut:
     if not n or "error" in n:
         raise NotFoundError("Necesidad no encontrada")
     if isinstance(user, dict) and user.get("rol") == "encargado":
-        if str(n.get("centro_acopio_id", "")) != user.get("centro_acopio_id"):
+        if str(n.get("centro_acopio_id", "")) != str(user.get("centro_acopio_id", "")):
             raise BffError("No tienes permiso para modificar necesidades de otro centro", status=403)
     update_data = {}
     if body.cantidad is not None:
@@ -122,6 +124,8 @@ async def update(code: str, body, user=None) -> NecesidadOut:
     if body.detalles is not None:
         update_data["detalles"] = body.detalles
     n = await necesidades_client.actualizar_necesidad(code, update_data)
+    if not n or "error" in n:
+        raise Exception(n.get("error", "Error al actualizar necesidad") if isinstance(n, dict) else "Error al actualizar necesidad")
     return await _enrich_one(n)
 
 
@@ -130,12 +134,14 @@ async def activar(code: str, urgencia: str = "MEDIA", user=None) -> NecesidadOut
     if not n or "error" in n:
         raise NotFoundError("Necesidad no encontrada")
     if isinstance(user, dict) and user.get("rol") == "encargado":
-        if str(n.get("centro_acopio_id", "")) != user.get("centro_acopio_id"):
+        if str(n.get("centro_acopio_id", "")) != str(user.get("centro_acopio_id", "")):
             raise BffError("No tienes permiso para activar necesidades de otro centro", status=403)
     update = {"estado": "Activa"}
     if urgencia:
         update["urgencia"] = urgencia.upper()
     n = await necesidades_client.actualizar_necesidad(code, update)
+    if not n or "error" in n:
+        raise Exception(n.get("error", "Error al activar necesidad") if isinstance(n, dict) else "Error al activar necesidad")
     return await _enrich_one(n)
 
 
@@ -183,6 +189,8 @@ async def actualizar_ciudadana(code: str, body) -> NecesidadOut:
     if body.reportadoPor is not None:
         update_data["solicitante_nombre"] = body.reportadoPor
     n = await necesidades_client.actualizar_necesidad(code, update_data)
+    if not n or "error" in n:
+        raise Exception(n.get("error", "Error al actualizar necesidad ciudadana") if isinstance(n, dict) else "Error al actualizar necesidad ciudadana")
     return await _enrich_one(n)
 
 
@@ -190,5 +198,13 @@ async def eliminar_ciudadana(code: str) -> dict:
     n = await necesidades_client.obtener_necesidad(code)
     if not n or "error" in n:
         raise NotFoundError("Necesidad ciudadana no encontrada")
+    await necesidades_client.eliminar_necesidad(code)
+    return {"deleted": True}
+
+
+async def delete(code: str) -> dict:
+    n = await necesidades_client.obtener_necesidad(code)
+    if not n or "error" in n:
+        raise NotFoundError("Necesidad no encontrada")
     await necesidades_client.eliminar_necesidad(code)
     return {"deleted": True}

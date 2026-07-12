@@ -159,6 +159,12 @@ async def admin_update_user(rut: str, data: dict, uat: str = None) -> dict:
     if not user:
         raise AuthError("Usuario no encontrado")
     payload = {}
+    if "nombre" in data:
+        parts = (data["nombre"] or "").split(" ", 1)
+        payload["first_name"] = parts[0]
+        payload["last_name"] = parts[1] if len(parts) > 1 else ""
+    if "email" in data:
+        payload["email"] = data["email"]
     if "centro_acopio_id" in data:
         payload["centro_acopio_id"] = data["centro_acopio_id"] or None
     if "is_staff" in data:

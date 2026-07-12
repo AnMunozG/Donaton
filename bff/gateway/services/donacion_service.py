@@ -185,7 +185,7 @@ async def create_multi(body: DonacionMultiCreate, rut: str) -> DonacionOut:
 async def update_estado(code: str, nuevo_estado: str, user=None) -> DonacionOut:
     if isinstance(user, dict) and user.get("rol") == "encargado":
         donacion_data = await donaciones_client.obtener_donacion(code)
-        if donacion_data and donacion_data.get("centroId") != user.get("centro_acopio_id"):
+        if donacion_data and str(donacion_data.get("centroId")) != str(user.get("centro_acopio_id")):
             raise BffError("No tienes permiso para actualizar donaciones de este centro", status=403)
     donacion_actualizada = await donaciones_client.actualizar_estado_donacion(code, {"estado": nuevo_estado})
     if not donacion_actualizada:

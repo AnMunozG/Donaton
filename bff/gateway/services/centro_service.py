@@ -50,7 +50,7 @@ async def list_all(user=None) -> list[CentroOut]:
     centros = [_to_out(c) for c in data]
     if isinstance(user, dict) and user.get("rol") == "encargado":
         centro_id = user.get("centro_acopio_id")
-        centros = [c for c in centros if c.id == centro_id]
+        centros = [c for c in centros if str(c.id) == str(centro_id)]
     return centros
 
 
@@ -174,3 +174,14 @@ async def get_stats(code: str) -> CentroStatsOut:
         id=centro.id, nombre=centro.nombre,
         total_donaciones=0, total_necesidades=0, capacidad_usada=centro.capacidadUsada,
     )
+
+
+async def delete(code: str) -> dict:
+    try:
+        id_ = int(code)
+    except ValueError:
+        raise NotFoundError("Centro no encontrado")
+    data = await logistica_client.eliminar_centro(id_)
+    if data and "error" in data:
+        raise ValidationError(data.get("error", "Error al eliminar centro"))
+    return {"deleted": True}

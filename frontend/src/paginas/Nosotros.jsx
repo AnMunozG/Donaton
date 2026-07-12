@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import bannerImg from "../assets/Banner.png";
+import nosotrosImg3 from "../assets/Nosotros (3).jpg";
+import nosotrosImg4 from "../assets/Nosotros(4).jpg";
+import nosotrosImg5 from "../assets/Nosotros(5).jpg";
 import { getValores, getHitos } from "../api.js";
 
 const TEAM = [
@@ -34,7 +37,7 @@ export default function Nosotros() {
 
       <div className="row g-4 mb-5 align-items-center">
         <div className="col-lg-5">
-          <img src="https://www.agcid.gob.cl/images/08_comu25.png" alt="Nuestra misión en acción" className="nos-image" />
+          <img src={nosotrosImg3} alt="Nuestra misión en acción" className="nos-image" />
         </div>
         <div className="col-lg-7">
           <h2 className="fw-bold mb-3 c-heading">
@@ -72,11 +75,11 @@ export default function Nosotros() {
       <div className="mb-5">
         <div className="row g-3">
           <div className="col-md-6">
-            <img src="https://www.desarrollosocialyfamilia.gob.cl/storage/image/Enero_2026/23.01_Ayuda.jpg"
+            <img src={nosotrosImg4}
               alt="Trabajo en equipo" className="nos-image-16x9" />
           </div>
           <div className="col-md-6">
-            <img src="https://global.unitednations.entermediadb.net/assets/mediadb/services/module/asset/downloads/preset/Libraries/Production%20Library/19-11-2024-WFP-Haiti-food-distribution.jpg/image770x420cropped.jpg"
+            <img src={nosotrosImg5}
               alt="Distribución de alimentos" className="nos-image-16x9" />
           </div>
         </div>
@@ -111,12 +114,12 @@ export default function Nosotros() {
           {TEAM.map((p, i) => (
             <div key={i} className="col-12 col-md-4">
               <div className="p-4 rounded-4 text-center h-100 card-surface">
-                <div className="team-avatar" style={{ background: p.color }}>
+                <div className="team-avatar" style={{ '--dynamic-bg': p.color }}>
                   {p.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
                 <div className="fw-bold c-heading">{p.nombre}</div>
                 <div className="small c-muted">{p.cargo}</div>
-                <div className="team-divider" style={{ background: p.color }}></div>
+                <div className="team-divider bg-dynamic" style={{ '--dynamic-bg': p.color }}></div>
               </div>
             </div>
           ))}

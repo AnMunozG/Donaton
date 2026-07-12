@@ -103,6 +103,12 @@ JWT_SECRET = os.getenv("BFF_JWT_SECRET", SECRET_KEY)
 LOGISTICA_JWT_SECRET = os.getenv("LOGISTICA_JWT_SECRET", "change-me-in-production-logistica-secret")
 LOGISTICA_SYSTEM_USER_ID = int(os.getenv("LOGISTICA_SYSTEM_USER_ID", "1"))
 USUARIOS_JWT_SECRET = os.getenv("USUARIOS_JWT_SECRET", "")
+DONACIONES_JWT_SECRET = os.getenv("DONACIONES_JWT_SECRET", "django-insecure-4#-16w%y8%p#nvvhx9i8wxixi2&o3+)v*ud$)xddjo5%8yp85b")
+DONACIONES_SYSTEM_USER_ID = int(os.getenv("DONACIONES_SYSTEM_USER_ID", "1"))
+NECESIDADES_JWT_SECRET = os.getenv("NECESIDADES_JWT_SECRET", "django-insecure-++g$f0lmdpcqy6zag-_3&3vfg7j5dai=v)k$otwbatl^+yr8qs")
+NECESIDADES_SYSTEM_USER_ID = int(os.getenv("NECESIDADES_SYSTEM_USER_ID", "1"))
+VOLUNTARIOS_JWT_SECRET = os.getenv("VOLUNTARIOS_JWT_SECRET", "django-insecure-voluntarios-dev-key-change-in-production")
+VOLUNTARIOS_SYSTEM_USER_ID = int(os.getenv("VOLUNTARIOS_SYSTEM_USER_ID", "1"))
 
 # ── Redis (circuit breaker, caché, bus de eventos) ──
 REDIS_URL = os.getenv("REDIS_URL", "")

@@ -149,13 +149,12 @@ export default function AddressPicker({ onLocationChange, initialLocation, label
           </div>
         )}
         {suggestions.length > 0 && (
-          <ul className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 1050, maxHeight: 200, overflowY: "auto" }}>
+          <ul className="list-group position-absolute w-100 shadow-sm dropdown-scrollable" style={{ maxHeight: 200 }}>
             {suggestions.map((item, i) => (
               <li
                 key={i}
-                className="list-group-item list-group-item-action py-2 small"
+                className="list-group-item list-group-item-action py-2 small cursor-pointer"
                 onClick={() => selectSuggestion(item)}
-                style={{ cursor: "pointer" }}
               >
                 <i className="bi bi-geo-alt me-1 c-accent"></i>
                 {item.display_name}
@@ -165,7 +164,7 @@ export default function AddressPicker({ onLocationChange, initialLocation, label
         )}
       </div>
       {error && <div className="invalid-feedback d-block">{error}</div>}
-      <div ref={mapRef} style={{ width: "100%", height: 250 }} className="mt-2 rounded-3 border"></div>
+      <div ref={mapRef} className="map-sm mt-2 rounded-3 border"></div>
       {selected && (
         <div className="small c-muted mt-1">
           <i className="bi bi-crosshair me-1"></i>

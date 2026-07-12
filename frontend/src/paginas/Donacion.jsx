@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo, getCentros, crearDonacionMultiItem } from "../api.js";
 import RichTextEditor from "../componentes/RichTextEditor";
 import { validarRut, validarRequerido, validarEnteroPositivo, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
+import donacionImg from "../assets/Donacion(6).jpg";
 
 const EMPTY_ITEM = { tipo: "", cantidad: "", unidad: "", detalles: {} };
 
@@ -312,24 +313,22 @@ export default function Donacion() {
                   </div>
 
                   {/* ── Carousel navigation below item form ── */}
-                  <div className="d-flex align-items-center gap-1 mt-3" style={{ maxWidth: "100%" }}>
+                  <div className="d-flex align-items-center gap-1 mt-3 w-100">
                     <button type="button" className="btn btn-sm btn-outline-secondary flex-shrink-0" disabled={activeIdx === 0}
                       onClick={() => setActiveIdx((i) => i - 1)}>
                       <i className="bi bi-chevron-left"></i>
                     </button>
 
-                    <div className="d-flex align-items-center gap-1 overflow-x-auto" style={{ flex: "1 1 auto", minWidth: 0, scrollbarWidth: "thin" }}>
+                    <div className="d-flex align-items-center gap-1 overflow-x-auto flex-fill-auto">
                       {items.map((_, i) => (
                         <button key={i} type="button"
-                          className={`btn btn-sm rounded-circle flex-shrink-0 p-0 d-flex align-items-center justify-content-center
+                          className={`btn btn-sm rounded-circle flex-shrink-0 p-0 d-flex align-items-center justify-content-center w-32 h-32
                             ${i === activeIdx ? "btn-primary" : i === removeConfirmIdx.current ? "btn-danger" : "btn-outline-secondary"}`}
-                          style={{ width: 34, height: 34 }}
                           onClick={() => { removeConfirmIdx.current = null; setActiveIdx(i); }}>
                           {i + 1}
                         </button>
                       ))}
-                      <button type="button" className="btn btn-sm btn-outline-success rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center"
-                        style={{ width: 34, height: 34 }} onClick={addItem} title="Agregar artículo">
+                      <button type="button" className="btn btn-sm btn-outline-success rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center w-32 h-32" onClick={addItem} title="Agregar artículo">
                         <i className="bi bi-plus-lg"></i>
                       </button>
                     </div>
@@ -411,7 +410,7 @@ export default function Donacion() {
                         {centro.direccion}
                         <div className="mt-1 d-flex align-items-center gap-2">
                           <div className="progress flex-grow-1 progress-height-6">
-                            <div className="progress-bar progress-bar-rounded" style={{ width: `${pct}%`, background: color }}></div>
+                            <div className="progress-bar progress-bar-rounded progress-dynamic-bar" style={{ '--bar-w': `${pct}%`, '--bar-color': color }}></div>
                           </div>
                           <span className="c-muted">{pct}% ocupado</span>
                         </div>
@@ -443,7 +442,7 @@ export default function Donacion() {
           </div>
 
           <div className="col-12 col-lg-5">
-            <div className="img-placeholder rounded-4" style={{ backgroundImage: "url(https://images.squarespace-cdn.com/content/v1/618ac2f3b0b4d00cad7be26b/ff8cb020-626b-4e28-bd2a-b1bdd61799c2/FOTO+SOCIOS+ABCHILE+DONACIONES.png)" }}></div>
+            <div className="img-placeholder rounded-4" style={{ backgroundImage: `url("${donacionImg}")` }}></div>
           </div>
         </div>
       </div>

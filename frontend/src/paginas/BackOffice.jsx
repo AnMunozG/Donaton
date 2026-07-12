@@ -17,6 +17,8 @@ import {
   getVoluntarios, actualizarVoluntario, eliminarVoluntario,
   cambiarEstadoVoluntario,
   registrarHorasVoluntario, getHorasVoluntario,
+  actualizarCentroVoluntario,
+  enviarNotificacion, getHabilidadesVoluntario,
   estadoColor, CHART_COLORS,
 } from "../api.js";
 import { centrosService } from "../servicios/centros.js";
@@ -76,8 +78,15 @@ export default function BackOffice() {
   const [horasForm, setHorasForm] = useState({ horas: "", descripcion: "" });
   const [horasData, setHorasData] = useState(null);
   const [filtroVoluntarioCentro, setFiltroVoluntarioCentro] = useState("");
+  const [horasCentroSeleccionado, setHorasCentroSeleccionado] = useState("");
+  const [habilidadesVol, setHabilidadesVol] = useState([]);
+  const [notifModal, setNotifModal] = useState({ show: false, voluntario: null });
+  const [notifForm, setNotifForm] = useState({ titulo: "", mensaje: "" });
+  const [notifEnviando, setNotifEnviando] = useState(false);
 
-  const voluntariosPendientes = voluntarios.filter((v) => v.estado === "pendiente").length;
+  const voluntariosPendientes = voluntarios.reduce((count, v) => {
+    return count + (v.centros || []).filter((c) => c.estado === "pendiente").length;
+  }, 0);
 
   const tabsDisponibles = esEncargado
     ? tabs.filter((t) => t.id !== "usuarios")
@@ -87,6 +96,7 @@ export default function BackOffice() {
     getDonaciones().then(setDonaciones);
     getNecesidades().then(setNecesidades);
     getCentros().then(setCentros);
+    getHabilidadesVoluntario().then(setHabilidadesVol);
   }, []);
 
   useEffect(() => {
@@ -284,22 +294,17 @@ export default function BackOffice() {
   };
 
   const BadgeEstado = ({ estado }) => (
-    <span className="bo-badge"
+    <span className="bo-badge badge-dynamic"
       style={{
-        background: `${estadoColor[estado] || "#6c757d"}18`,
-        color: estadoColor[estado] || "#6c757d",
-        border: `1px solid ${estadoColor[estado] || "#6c757d"}35`,
+        '--badge-bg': `${estadoColor[estado] || "#6c757d"}18`,
+        '--badge-color': estadoColor[estado] || "#6c757d",
+        '--badge-border': `${estadoColor[estado] || "#6c757d"}35`,
       }}>
       {estado}
     </span>
   );
 
-  const tooltipStyle = {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: 8,
-    color: "var(--text)",
-  };
+  const rechartsTooltip = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)" };
 
   return (
     <div className="backoffice-page">
@@ -324,7 +329,7 @@ export default function BackOffice() {
                   <i className={`bi ${tab.icon}`}></i>
                   <span>{tab.label}</span>
                   {pendientes > 0 && (
-                    <span className="badge bg-danger ms-1" style={{ fontSize: "0.65rem" }}>{pendientes}</span>
+                    <span className="badge bg-danger ms-1 badge-xs">{pendientes}</span>
                   )}
                 </button>
               );
@@ -361,13 +366,13 @@ export default function BackOffice() {
                   { icon: "bi-box-seam-fill", label: "Capacidad utilizada", value: `${Math.round((capacidadUsada / totalCapacidad) * 100)}%`, color: "#0dcaf0", bg: "rgba(13,202,240,0.1)" },
                 ].map((card, i) => (
                   <div key={i} className="col-sm-6 col-xl-3">
-                    <div className="bo-card" style={{ borderLeft: `4px solid ${card.color}` }}>
+                    <div className="bo-card card-accent-left" style={{ '--accent-color': card.color }}>
                       <div className="d-flex justify-content-between align-items-start">
                         <div>
                           <div className="bo-card-label">{card.label}</div>
                           <div className="bo-card-value">{card.value}</div>
                         </div>
-                        <div className="bo-card-icon" style={{ background: card.bg, color: card.color }}>
+                        <div className="bo-card-icon card-icon-dynamic" style={{ '--icon-bg': card.bg, '--icon-color': card.color }}>
                           <i className={`bi ${card.icon}`}></i>
                         </div>
                       </div>
@@ -387,7 +392,7 @@ export default function BackOffice() {
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                         <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 12 }} angle={-20} textAnchor="end" height={60} />
                         <YAxis tick={{ fill: "var(--text-muted)", fontSize: 12 }} />
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={rechartsTooltip} />
                         <Bar dataKey="cantidad" fill="#DD4444" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -406,7 +411,7 @@ export default function BackOffice() {
                             <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={rechartsTooltip} />
                         <Legend wrapperStyle={{ fontSize: 12, color: "var(--text-muted)" }} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -423,7 +428,7 @@ export default function BackOffice() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis type="number" tick={{ fill: "var(--text-muted)", fontSize: 12 }} />
                     <YAxis type="category" dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 12 }} width={140} />
-                    <Tooltip contentStyle={tooltipStyle} />
+                    <Tooltip contentStyle={rechartsTooltip} />
                     <Bar dataKey="value" fill="#F48080" radius={[0, 6, 6, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -692,12 +697,12 @@ export default function BackOffice() {
                           <td>
                             <div className="d-flex align-items-center gap-2">
                               <div className="bo-progress">
-                                <div className="bo-progress-bar" style={{ width: `${pct}%`, background: capacidadColor(pct) }}></div>
+                                <div className="bo-progress-bar progress-dynamic-bar" style={{ '--bar-w': `${pct}%`, '--bar-color': capacidadColor(pct) }}></div>
                               </div>
                               <small className="c-muted">{pct}%</small>
                             </div>
                           </td>
-                          <td><span className="bo-badge" style={{ background: c.estado === "Activo" ? "rgba(58,183,149,0.12)" : "rgba(221,68,68,0.12)", color: c.estado === "Activo" ? "#3AB795" : "#DD4444" }}>{c.estado}</span></td>
+                          <td><span className="bo-badge badge-dynamic" style={{ '--badge-bg': c.estado === "Activo" ? "rgba(58,183,149,0.12)" : "rgba(221,68,68,0.12)", '--badge-color': c.estado === "Activo" ? "#3AB795" : "#DD4444" }}>{c.estado}</span></td>
                           <td onClick={(e) => e.stopPropagation()}>
                             <div className="d-flex gap-1">
                               <button className="btn btn-sm btn-outline-primary py-0 px-1" title="Editar" onClick={() => openEdit("centro", c)}>
@@ -747,12 +752,12 @@ export default function BackOffice() {
                   <i className="bi bi-person-arms-up me-2 c-primary"></i>Voluntarios
                 </h2>
                 <div className="d-flex gap-2 align-items-center">
-                  <select className="form-select form-select-sm" style={{ width: "auto" }}
+                  <select className="form-select form-select-sm bo-select-auto"
                     value={filtroVoluntarioCentro}
                     onChange={(e) => setFiltroVoluntarioCentro(e.target.value)}>
                     <option value="">Todos los centros</option>
-                    {[...new Set(voluntarios.map((v) => v.centro_preferido).filter(Boolean))].map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                    {centros.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
                   </select>
                 </div>
@@ -773,88 +778,109 @@ export default function BackOffice() {
                       <th>Nombre</th>
                       <th>Email</th>
                       <th>Disponibilidad</th>
-                      <th>Centro preferido</th>
+                      <th>Habilidades</th>
+                      <th>Centros</th>
                       <th>Horas</th>
-                      <th>Estado</th>
                       <th className="bo-actions-th">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(() => {
                       const filtrados = filtroVoluntarioCentro
-                        ? voluntarios.filter((v) => v.centro_preferido === filtroVoluntarioCentro)
+                        ? voluntarios.filter((v) =>
+                            (v.centros || []).some((c) => String(c.centro_id) === String(filtroVoluntarioCentro))
+                          )
                         : voluntarios;
-                      const pendientes = filtrados.filter((v) => v.estado === "pendiente");
-                      const activos = filtrados.filter((v) => v.estado === "activo");
-                      const inactivos = filtrados.filter((v) => v.estado === "inactivo");
-                      const ordenados = [...pendientes, ...activos, ...inactivos];
+                      const ordenados = [...filtrados].sort((a, b) => {
+                        const aPend = (a.centros || []).some((c) => c.estado === "pendiente") ? 0 : 1;
+                        const bPend = (b.centros || []).some((c) => c.estado === "pendiente") ? 0 : 1;
+                        return aPend - bPend;
+                      });
                       return ordenados.length === 0 ? (
                         <tr><td colSpan="8" className="text-center text-muted py-4">No hay voluntarios registrados</td></tr>
                       ) : ordenados.map((v) => (
-                        <tr key={v.id} className={v.estado === "pendiente" ? "table-warning" : ""}>
+                        <tr key={v.id}>
                           <td><span className="bo-id">{v.rut ? `${v.rut.slice(0, -1)}-${v.rut.slice(-1)}` : ""}</span></td>
                           <td className="fw-medium">{v.nombre || "—"}</td>
                           <td>{v.email || "—"}</td>
                           <td className="text-capitalize">{v.disponibilidad?.replace("_", " ")}</td>
-                          <td>{v.centro_preferido || "—"}</td>
-                          <td><span className="badge bg-accent">{v.horas_acumuladas || 0}h</span></td>
                           <td>
-                            <span className="bo-badge" style={{
-                              background: v.estado === "activo" ? "rgba(58,183,149,0.12)" : v.estado === "pendiente" ? "rgba(255,193,7,0.2)" : "rgba(221,68,68,0.12)",
-                              color: v.estado === "activo" ? "#3AB795" : v.estado === "pendiente" ? "#cc9a00" : "#DD4444",
-                            }}>
-                              {v.estado === "activo" ? "Activo" : v.estado === "pendiente" ? "Pendiente" : "Inactivo"}
-                            </span>
+                            {(v.habilidades || []).length === 0 ? (
+                              <span className="text-muted small">—</span>
+                            ) : (
+                              <div className="d-flex flex-wrap gap-1">
+                                {v.habilidades.map((code) => {
+                                  const hab = habilidadesVol.find((h) => h.code === code);
+                                  return (
+                                    <span key={code} className="badge bg-info text-dark small" title={hab?.descripcion || code}>
+                                      {hab?.nombre || code}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </td>
                           <td>
+                            {(v.centros || []).length === 0 ? (
+                              <span className="text-muted small">—</span>
+                            ) : (
+                              <div className="d-flex flex-wrap gap-1">
+                                {v.centros.map((vc) => {
+                                  const cObj = centros.find((c) => String(c.id) === String(vc.centro_id));
+                                  return (
+                                    <span key={vc.id} className={`badge ${
+                                      vc.estado === "activo" ? "bg-success" :
+                                      vc.estado === "pendiente" ? "bg-warning text-dark" : "bg-secondary"
+                                    } small`}>
+                                      {cObj?.nombre || `Centro ${vc.centro_id}`}
+                                      {vc.estado === "pendiente" && (
+                                        <span className="ms-1">
+                                          {(esAdmin || esEncargado) && (
+                                            <>
+                                              <i className="bi bi-check-lg cursor-pointer" style={{fontSize:11}}
+                                                title="Aprobar"
+                                                onClick={async () => {
+                                                  await actualizarCentroVoluntario(vc.id, "activo");
+                                                  setVoluntariosKey((k) => k + 1);
+                                                }} />
+                                              <i className="bi bi-x-lg cursor-pointer ms-1" style={{fontSize:11}}
+                                                title="Rechazar"
+                                                onClick={async () => {
+                                                  if (window.confirm(`¿Rechazar asignación de ${v.nombre || v.rut} al centro?`)) {
+                                                    await actualizarCentroVoluntario(vc.id, "inactivo");
+                                                    setVoluntariosKey((k) => k + 1);
+                                                  }
+                                                }} />
+                                            </>
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                          <td><span className="badge bg-accent">{v.horas_acumuladas || 0}h</span></td>
+                          <td>
                             <div className="d-flex gap-1">
-                              {v.estado === "pendiente" && (esAdmin || esEncargado) && (
-                                <>
-                                  <button className="btn btn-sm btn-outline-success py-0 px-1" title="Aceptar voluntario"
-                                    onClick={async () => {
-                                      await cambiarEstadoVoluntario(v.id, "activo");
-                                      setVoluntariosKey((k) => k + 1);
-                                    }}>
-                                    <i className="bi bi-check-lg"></i>
-                                  </button>
-                                  <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Rechazar voluntario"
-                                    onClick={async () => {
-                                      if (window.confirm(`¿Rechazar a ${v.nombre || v.rut}?`)) {
-                                        await cambiarEstadoVoluntario(v.id, "inactivo");
-                                        setVoluntariosKey((k) => k + 1);
-                                      }
-                                    }}>
-                                    <i className="bi bi-x-lg"></i>
-                                  </button>
-                                </>
-                              )}
-                              {v.estado === "activo" && (esAdmin || esEncargado) && (
-                                <button className="btn btn-sm btn-outline-warning py-0 px-1" title="Desactivar"
-                                  onClick={async () => {
-                                    await cambiarEstadoVoluntario(v.id, "inactivo");
-                                    setVoluntariosKey((k) => k + 1);
-                                  }}>
-                                  <i className="bi bi-pause-fill"></i>
-                                </button>
-                              )}
-                              {v.estado === "inactivo" && esAdmin && (
-                                <button className="btn btn-sm btn-outline-success py-0 px-1" title="Reactivar"
-                                  onClick={async () => {
-                                    await cambiarEstadoVoluntario(v.id, "activo");
-                                    setVoluntariosKey((k) => k + 1);
-                                  }}>
-                                  <i className="bi bi-play-fill"></i>
-                                </button>
-                              )}
                               <button className="btn btn-sm btn-outline-primary py-0 px-1" title="Registrar horas"
                                 onClick={async () => {
                                   setHorasVoluntario(v);
                                   setHorasForm({ horas: "", descripcion: "" });
+                                  setHorasCentroSeleccionado("");
                                   const data = await getHorasVoluntario(v.id);
                                   setHorasData(data);
                                   setShowHorasModal(true);
                                 }}>
                                 <i className="bi bi-clock-history"></i>
+                              </button>
+                              <button className="btn btn-sm btn-outline-warning py-0 px-1" title="Notificar al voluntario"
+                                onClick={() => {
+                                  setNotifModal({ show: true, voluntario: v });
+                                  setNotifForm({ titulo: "", mensaje: "" });
+                                }}>
+                                <i className="bi bi-bell"></i>
                               </button>
                               {esAdmin && (
                                 <button className="btn btn-sm btn-outline-danger py-0 px-1" title="Eliminar"
@@ -892,16 +918,36 @@ export default function BackOffice() {
                           <div className="mb-3">
                             <strong>Total acumulado: </strong>
                             <span className="badge bg-accent fs-6">{horasData.horas_acumuladas || 0}h</span>
+                            {horasData.horas_por_centro && Object.keys(horasData.horas_por_centro).length > 0 && (
+                              <div className="mt-1 d-flex flex-wrap gap-1">
+                                {Object.entries(horasData.horas_por_centro).map(([cid, h]) => {
+                                  const cObj = centros.find((c) => String(c.id) === String(cid));
+                                  return (
+                                    <span key={cid} className="badge bg-secondary small">
+                                      {cObj?.nombre || `Centro ${cid}`}: {h}h
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
                             {horasData.registros?.length > 0 && (
                               <div className="mt-2">
                                 <small className="text-muted">Registros anteriores:</small>
                                 <ul className="list-unstyled mt-1">
-                                  {horasData.registros.map((r) => (
-                                    <li key={r.id} className="small border-bottom py-1">
-                                      <strong>{r.horas}h</strong> — {r.descripcion || "Sin descripción"}
-                                      <span className="text-muted ms-2">({new Date(r.fecha).toLocaleDateString("es-CL")})</span>
-                                    </li>
-                                  ))}
+                                  {horasData.registros.map((r) => {
+                                    const cObj = centros.find((c) => String(c.id) === String(r.centro_id));
+                                    return (
+                                      <li key={r.id} className="small border-bottom py-1">
+                                        <strong>{r.horas}h</strong> — {r.descripcion || "Sin descripción"}
+                                        {r.centro_id && (
+                                          <span className="badge bg-light text-dark ms-1" style={{fontSize:10}}>
+                                            {cObj?.nombre || `Centro ${r.centro_id}`}
+                                          </span>
+                                        )}
+                                        <span className="text-muted ms-2">({new Date(r.fecha).toLocaleDateString("es-CL")})</span>
+                                      </li>
+                                    );
+                                  })}
                                 </ul>
                               </div>
                             )}
@@ -909,6 +955,24 @@ export default function BackOffice() {
                         )}
                         <hr />
                         <h6>Registrar horas</h6>
+                        <div className="mb-2">
+                          <label className="form-label">Centro</label>
+                          <select className="form-select form-select-sm"
+                            value={horasCentroSeleccionado}
+                            onChange={(e) => setHorasCentroSeleccionado(e.target.value)}>
+                            <option value="">Seleccionar centro...</option>
+                            {(horasVoluntario.centros || [])
+                              .filter((c) => c.estado === "activo")
+                              .map((vc) => {
+                                const cObj = centros.find((c) => String(c.id) === String(vc.centro_id));
+                                return (
+                                  <option key={vc.id} value={vc.centro_id}>
+                                    {cObj?.nombre || `Centro ${vc.centro_id}`}
+                                  </option>
+                                );
+                              })}
+                          </select>
+                        </div>
                         <div className="mb-2">
                           <label className="form-label">Horas</label>
                           <input type="number" className="form-control" min="1" max="24"
@@ -925,15 +989,69 @@ export default function BackOffice() {
                       <div className="modal-footer">
                         <button className="btn btn-secondary" onClick={() => setShowHorasModal(false)}>Cerrar</button>
                         <button className="btn btn-accent"
+                          disabled={!horasCentroSeleccionado || !horasForm.horas || parseInt(horasForm.horas) <= 0}
                           onClick={async () => {
-                            if (!horasForm.horas || parseInt(horasForm.horas) <= 0) return;
-                            await registrarHorasVoluntario(horasVoluntario.id, parseInt(horasForm.horas), horasForm.descripcion);
+                            await registrarHorasVoluntario(horasVoluntario.id, parseInt(horasForm.horas), horasForm.descripcion, horasCentroSeleccionado);
                             const data = await getHorasVoluntario(horasVoluntario.id);
                             setHorasData(data);
                             setHorasForm({ horas: "", descripcion: "" });
                             setVoluntariosKey((k) => k + 1);
                           }}>
                           <i className="bi bi-save me-1"></i>Guardar horas
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {notifModal.show && notifModal.voluntario && (
+                <div className="modal d-block modal-overlay" tabIndex="-1">
+                  <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content">
+                      <div className="modal-header">
+                        <h5 className="modal-title">
+                          <i className="bi bi-bell me-2 c-primary"></i>
+                          Notificar — {notifModal.voluntario.nombre || notifModal.voluntario.rut}
+                        </h5>
+                        <button type="button" className="btn-close" onClick={() => setNotifModal({ show: false, voluntario: null })} />
+                      </div>
+                      <div className="modal-body">
+                        <div className="mb-2">
+                          <label className="form-label fw-semibold">Título</label>
+                          <input type="text" className="form-control"
+                            placeholder="Ej: Se requiere tu ayuda en el centro"
+                            value={notifForm.titulo}
+                            onChange={(e) => setNotifForm({ ...notifForm, titulo: e.target.value })} />
+                        </div>
+                        <div className="mb-2">
+                          <label className="form-label fw-semibold">Mensaje</label>
+                          <textarea className="form-control" rows="3"
+                            placeholder="Describe por qué se necesita al voluntario..."
+                            value={notifForm.mensaje}
+                            onChange={(e) => setNotifForm({ ...notifForm, mensaje: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setNotifModal({ show: false, voluntario: null })}>Cancelar</button>
+                        <button className="btn btn-warning"
+                          disabled={!notifForm.titulo.trim() || !notifForm.mensaje.trim() || notifEnviando}
+                          onClick={async () => {
+                            setNotifEnviando(true);
+                            try {
+                              await enviarNotificacion({
+                                voluntario_id: notifModal.voluntario.id,
+                                titulo: notifForm.titulo.trim(),
+                                mensaje: notifForm.mensaje.trim(),
+                              });
+                              setNotifModal({ show: false, voluntario: null });
+                            } catch (err) {
+                              alert(err?.response?.data?.error || "Error al enviar notificación");
+                            } finally {
+                              setNotifEnviando(false);
+                            }
+                          }}>
+                          {notifEnviando ? <><span className="spinner-border spinner-border-sm me-1" /> Enviando...</> : <><i className="bi bi-send me-1"></i>Enviar</>}
                         </button>
                       </div>
                     </div>

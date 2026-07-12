@@ -190,7 +190,7 @@ export default function Perfil() {
               {agradecimientos.length === 0 ? (
                 <p className="c-muted small mb-0">A&uacute;n no tienes agradecimientos.</p>
               ) : (
-                <div className="d-flex flex-column gap-2" style={{ maxHeight: 300, overflowY: "auto" }}>
+                <div className="d-flex flex-column gap-2 scroll-panel">
                   {agradecimientos.map((a) => (
                     <div key={a.id} className="p-3 rounded-3 bg-page">
                       <div className="small fw-semibold c-heading">{a.centro_nombre || `Centro #${a.centro_id}`}</div>

@@ -82,7 +82,7 @@ export default function LogrosModal({ todosLogros, logrosIds, stats, onClose }) 
                               <span>{descRequisito(l.codigo, stats)}</span>
                               <span>{Math.round(progreso)}%</span>
                             </div>
-                            <div className="progress" style={{ height: 6 }}>
+                            <div className="progress progress-thin">
                               <div className={`progress-bar ${obtenido ? "bg-success" : progreso > 0 ? "bg-warning" : ""}`}
                                 role="progressbar" style={{ width: `${Math.min(100, progreso)}%` }}
                                 aria-valuenow={Math.round(progreso)} aria-valuemin="0" aria-valuemax="100">

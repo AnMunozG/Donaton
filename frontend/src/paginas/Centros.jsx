@@ -168,8 +168,7 @@ export default function Centros() {
                     <div>
                       <div className="d-flex align-items-center gap-2 mb-1">
                         <span className="center-id">{c.id}</span>
-                        <span className="center-percent"
-                          style={{ background: barColor + "18", color: barColor }}>{pct}%</span>
+                        <span className="center-percent color-dynamic" style={{ '--dynamic-color': barColor, background: barColor + "18" }}>{pct}%</span>
                       </div>
                       <div className="center-name">{c.nombre}</div>
                       <div className="small c-muted">
@@ -192,7 +191,7 @@ export default function Centros() {
                   </div>
 
                   <div className="progress progress-height-6">
-                    <div className="progress-bar progress-bar-rounded" style={{ width: `${pct}%`, background: barColor }}></div>
+                    <div className="progress-bar progress-bar-rounded progress-dynamic-bar" style={{ '--bar-w': `${pct}%`, '--bar-color': barColor }}></div>
                   </div>
                 </div>
               );
