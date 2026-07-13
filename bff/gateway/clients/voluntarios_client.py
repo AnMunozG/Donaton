@@ -87,6 +87,13 @@ class VoluntariosClient(ServiceClient):
     async def eliminar_voluntario_centro(self, code: str) -> dict:
         return await self.delete(f"/api/voluntario-centros/{code}/")
 
+    async def listar_asignaciones(self, params: dict = None) -> list:
+        resp = await self.get("/api/asignaciones/", params=params)
+        return resp if isinstance(resp, list) else resp.get("results", [])
+
+    async def crear_asignacion(self, data: dict) -> dict:
+        return await self.post("/api/asignaciones/", data)
+
     async def crear_notificacion(self, data: dict) -> dict:
         return await self.post("/api/notificaciones/", data)
 

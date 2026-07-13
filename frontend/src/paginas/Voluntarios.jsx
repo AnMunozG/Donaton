@@ -6,6 +6,7 @@ import {
   getHabilidadesVoluntario, getVoluntarioCentros, solicitarCentroVoluntario,
   getNotificacionesVoluntario, marcarNotificacionLeida,
   getNecesidades, getCentros,
+  contarVoluntariosAsignados, inscribirVoluntarioEnOportunidad,
 } from "../api.js";
 import { validarRequerido, validarForm } from "../componentes/Validaciones.js";
 
@@ -40,6 +41,9 @@ export default function Voluntarios() {
   const [misCentros, setMisCentros] = useState([]);
   const [notificaciones, setNotificaciones] = useState([]);
   const [showNotifModal, setShowNotifModal] = useState(false);
+  const [oportunidadCounts, setOportunidadCounts] = useState({});
+  const [inscribiendo, setInscribiendo] = useState(null);
+  const [inscripciones, setInscripciones] = useState([]);
 
   const [form, setForm] = useState({
     disponibilidad: "emergencia",
@@ -58,12 +62,35 @@ export default function Voluntarios() {
   useEffect(() => {
     getHabilidadesVoluntario().then(setHabilidades);
     getCentros().then(setCentros);
-    getNecesidades().then((todas) => {
+  }, []);
+
+  const skillsMatchCount = (op) => {
+    if (!perfil?.habilidades?.length || !habilidades.length) return 0;
+    const actividad = op.detalles?.actividad || "";
+    const nombresActividad = actividad.split(",").map((s) => s.trim().toLowerCase());
+    const perfilCodes = perfil.habilidades;
+    const perfilNombres = perfilCodes.map((code) => {
+      const h = habilidades.find((sk) => sk.code === code);
+      return h ? h.nombre.toLowerCase() : "";
+    });
+    return perfilNombres.filter((n) => n && nombresActividad.some((a) => a.includes(n) || n.includes(a))).length;
+  };
+
+  useEffect(() => {
+    if (!habilidades.length) return;
+    getNecesidades().then(async (todas) => {
       const voluntariado = (Array.isArray(todas) ? todas : [])
         .filter((n) => n.categoria === "VOLUNTARIADO" && n.estado === "Activa");
-      setOportunidades(voluntariado);
+      const counts = {};
+      for (const op of voluntariado) {
+        const count = await contarVoluntariosAsignados(op.id);
+        counts[op.id] = count;
+      }
+      setOportunidadCounts(counts);
+      const ordenadas = [...voluntariado].sort((a, b) => skillsMatchCount(b) - skillsMatchCount(a));
+      setOportunidades(ordenadas);
     });
-  }, []);
+  }, [habilidades, perfil]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -170,6 +197,29 @@ export default function Voluntarios() {
 
   const centrosAsignados = misCentros.map((c) => c.centro_id);
   const centrosDisponibles = centros.filter((c) => !centrosAsignados.includes(String(c.id)) && !centrosAsignados.includes(c.id));
+
+  const handleInscribir = async (opId) => {
+    setInscribiendo(opId);
+    setExito("");
+    setFormError("");
+    try {
+      await inscribirVoluntarioEnOportunidad(opId);
+      setExito("Te has inscrito exitosamente en esta oportunidad de voluntariado.");
+      setInscripciones([...inscripciones, opId]);
+      setOportunidadCounts((prev) => ({ ...prev, [opId]: (prev[opId] || 0) + 1 }));
+    } catch (err) {
+      const msg = err?.response?.data?.error || "Error al inscribirse en la oportunidad.";
+      setFormError(msg);
+    } finally {
+      setInscribiendo(null);
+    }
+  };
+
+  const cupoLleno = (op) => {
+    const requeridos = op.detalles?.numVoluntarios || op.cantidad || 0;
+    const asignados = oportunidadCounts[op.id] || 0;
+    return requeridos > 0 && asignados >= requeridos;
+  };
 
   if (cargando) {
     return <div className="container mt-5 text-center"><div className="spinner-border" /></div>;
@@ -413,18 +463,57 @@ export default function Voluntarios() {
                   <p className="c-muted small mb-0">No hay oportunidades de voluntariado disponibles en este momento.</p>
                 ) : (
                   <div className="d-flex flex-column gap-2">
-                    {oportunidades.map((op) => (
-                      <div key={op.id} className="p-3 rounded-3 bg-page">
-                        <div className="d-flex w-100 justify-content-between align-items-start mb-1">
-                          <h6 className="mb-0 fw-semibold">{op.recurso}</h6>
-                          <span className={`badge ${URGENCIA_BADGE[op.urgencia] || "bg-secondary"} badge-xs`}>
-                            {op.urgencia}
-                          </span>
+                    {oportunidades.map((op) => {
+                      const requeridos = op.detalles?.numVoluntarios || op.cantidad || 0;
+                      const asignados = oportunidadCounts[op.id] || 0;
+                      const lleno = cupoLleno(op);
+                      const yaInscrito = inscripciones.includes(op.id);
+                      const matchCount = skillsMatchCount(op);
+                      return (
+                        <div key={op.id} className={`p-3 rounded-3 ${matchCount > 0 ? "border-start border-accent border-4 bg-surface" : "bg-page"}`}>
+                          <div className="d-flex w-100 justify-content-between align-items-start mb-1">
+                            <h6 className="mb-0 fw-semibold">{op.recurso}</h6>
+                            <div className="d-flex gap-1">
+                              {matchCount > 0 && (
+                                <span className="badge bg-accent" style={{fontSize:9}}>
+                                  <i className="bi bi-star-fill me-1"></i>{matchCount} habilidad{matchCount > 1 ? "es" : ""} en común
+                                </span>
+                              )}
+                              <span className={`badge ${URGENCIA_BADGE[op.urgencia] || "bg-secondary"} badge-xs`}>
+                                {op.urgencia}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="mb-1 c-muted small">{op.descripcion}</p>
+                          <div className="d-flex align-items-center justify-content-between">
+                            <small className="c-muted"><i className="bi bi-geo-alt me-1"></i>{op.centro}</small>
+                            {requeridos > 0 && (
+                              <small className={`fw-semibold ${asignados >= requeridos ? "text-success" : "text-info"}`}>
+                                <i className="bi bi-people-fill me-1"></i>
+                                {asignados}/{requeridos} voluntarios
+                              </small>
+                            )}
+                          </div>
+                          {perfil && (
+                            <button
+                              className={`btn btn-sm w-100 mt-2 ${lleno ? "btn-secondary" : yaInscrito ? "btn-outline-success" : "btn-accent"}`}
+                              disabled={lleno || inscribiendo === op.id || yaInscrito}
+                              onClick={() => handleInscribir(op.id)}
+                            >
+                              {inscribiendo === op.id ? (
+                                <><span className="spinner-border spinner-border-sm me-1" /> Inscribiendo...</>
+                              ) : lleno ? (
+                                <><i className="bi bi-check-circle me-1"></i> Cupo lleno</>
+                              ) : yaInscrito ? (
+                                <><i className="bi bi-check-lg me-1"></i> Inscrito</>
+                              ) : (
+                                <><i className="bi bi-pencil-square me-1"></i> Registrarme como voluntario</>
+                              )}
+                            </button>
+                          )}
                         </div>
-                        <p className="mb-1 c-muted small">{op.descripcion}</p>
-                        <small className="c-muted"><i className="bi bi-geo-alt me-1"></i>{op.centro}</small>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

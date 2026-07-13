@@ -17,4 +17,4 @@ User.objects.get_or_create(id=1, defaults={'username': 'bff-system', 'is_active'
 " 2>/dev/null || true
 
 echo "==> Starting server..."
-exec python manage.py runserver 0.0.0.0:8002
+exec gunicorn config.wsgi:application --bind 0.0.0.0:8002 --workers 1 --threads 2 --timeout 120

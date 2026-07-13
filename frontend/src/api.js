@@ -190,7 +190,7 @@ export async function crearCuenta(rut, data) {
 }
 
 export async function actualizarCuenta(data) {
-  return api.put("/auth/profile", data);
+  return api.patch("/auth/profile", data);
 }
 
 // ── Usuarios (admin) ─────────────────────────────────────────
@@ -350,4 +350,14 @@ export async function getNotificacionesVoluntario(voluntarioId) {
 
 export async function marcarNotificacionLeida(notifId) {
   return api.patch(`/voluntarios/notificaciones/${notifId}`, { leida: true });
+}
+
+export async function contarVoluntariosAsignados(necesidadId) {
+  try {
+    return await api.get(`/voluntarios/asignaciones/contar/${necesidadId}`);
+  } catch { return 0; }
+}
+
+export async function inscribirVoluntarioEnOportunidad(necesidadId) {
+  return api.post("/voluntarios/asignaciones", { necesidad_id: Number(necesidadId) });
 }

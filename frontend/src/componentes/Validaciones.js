@@ -86,3 +86,11 @@ export function capacidadColor(pct) {
   if (pct >= 60) return "#FFC107";
   return "#3AB795";
 }
+
+export function formatearNumero(n) {
+  if (n == null || isNaN(Number(n))) return n;
+  const num = typeof n === "string" ? parseFloat(n) : n;
+  const [intPart, decPart] = num.toString().split(".");
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return decPart ? `${formatted},${decPart}` : formatted;
+}

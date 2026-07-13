@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { getCentros, getNecesidades, getRuta, seguirCentro, dejarSeguirCentro, esCentroSeguido, urgenciaColorMap, estadoNecColorMap } from "../api.js";
-import { capacidadColor } from "../componentes/Validaciones.js";
+import { capacidadColor, formatearNumero } from "../componentes/Validaciones.js";
 import { useAuth } from "../componentes/AuthContext";
 import Mapa from "../componentes/Mapa";
 import banner2Img from "../assets/Banner2.png";
@@ -187,7 +187,7 @@ export default function Centros() {
 
                   <div className="small d-flex justify-content-between mb-1">
                     <span className="c-muted">Capacidad usada</span>
-                    <span className="center-capacity-text">{(c.capacidadUsada || 0).toLocaleString()} / {(c.capacidadTotal || 0).toLocaleString()}</span>
+                    <span className="center-capacity-text">{formatearNumero(c.capacidadUsada || 0)} / {formatearNumero(c.capacidadTotal || 0)}</span>
                   </div>
 
                   <div className="progress progress-height-6">
@@ -330,7 +330,7 @@ export default function Centros() {
                   {necesidadesDelCentro.map((n) => (
                     <div key={n.id} className="p-3 rounded-3 d-flex justify-content-between align-items-start flex-wrap gap-2 bg-page b-card">
                       <div>
-                        <div className="fw-semibold small c-heading">{n.recurso} — {n.cantidad} {n.unidad}</div>
+                        <div className="fw-semibold small c-heading">{n.recurso} — {formatearNumero(n.cantidad)} {n.unidad}</div>
                         <div className="small c-muted"><i className="bi bi-building me-1"></i>{n.centro || seleccionado?.nombre || "Sin centro"}</div>
                         <div className="small c-muted"><i className="bi bi-person me-1"></i>{n.reportadoPor}</div>
                       </div>

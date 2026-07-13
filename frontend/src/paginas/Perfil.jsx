@@ -4,7 +4,7 @@ import { useAuth } from "../componentes/AuthContext";
 import { getDonaciones, actualizarCuenta, getLogros, getMisLogros, getMisAgradecimientos, getCentrosSeguidos, verificarLogros } from "../api.js";
 import api from "../servicios/api.js";
 import { descargarPDF } from "../utils/pdfGenerator.js";
-import { validarRequerido, validarEmail, validarForm, formatearRut } from "../componentes/Validaciones.js";
+import { validarRequerido, validarEmail, validarForm, formatearRut, formatearNumero } from "../componentes/Validaciones.js";
 import LogrosModal from "../componentes/LogrosModal.jsx";
 
 export default function Perfil() {
@@ -301,13 +301,13 @@ export default function Perfil() {
                 </div>
                 <div className="col-6">
                   <div className="p-3 rounded-3 bg-page text-center">
-                    <div className="fw-bold fs-4 c-primary">{kgTotal.toFixed(0)}</div>
+                    <div className="fw-bold fs-4 c-primary">{formatearNumero(kgTotal.toFixed(0))}</div>
                     <div className="small c-muted">Kg donados</div>
                   </div>
                 </div>
                 <div className="col-6">
                   <div className="p-3 rounded-3 bg-page text-center">
-                    <div className="fw-bold fs-4 c-soft-red">${monetarioTotal.toLocaleString()}</div>
+                    <div className="fw-bold fs-4 c-soft-red">${formatearNumero(monetarioTotal.toFixed(0))}</div>
                     <div className="small c-muted">Donado en dinero</div>
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export default function Perfil() {
                         <tr key={d.id}>
                           <td className="small c-muted">{d.fecha}</td>
                           <td className="small">{d.tipo}</td>
-                          <td className="small">{d.cantidad} {d.unidad}</td>
+                          <td className="small">{d.tipo === "Multi-item" && d.items?.length ? d.items.map((it) => `${formatearNumero(it.cantidad)} ${it.unidad}`).join(", ") : `${formatearNumero(d.cantidad)} ${d.unidad}`}</td>
                           <td className="small">{d.centro || d.centroId}</td>
                           <td>{estadoBadge(d.estado)}</td>
                         </tr>

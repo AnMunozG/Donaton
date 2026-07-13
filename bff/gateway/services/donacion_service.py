@@ -182,10 +182,10 @@ async def create_multi(body: DonacionMultiCreate, rut: str) -> DonacionOut:
         if len(set(tipos)) == 1:
             update_padre["tipo"] = tipos[0]
             update_padre["unidad"] = items_data[0].get("unidad", "")
+            if total_cantidad:
+                update_padre["cantidad"] = int(total_cantidad)
         else:
             update_padre["tipo"] = "Multi-item"
-        if total_cantidad:
-            update_padre["cantidad"] = int(total_cantidad)
         if update_padre:
             try:
                 await donaciones_client.actualizar_estado_donacion(

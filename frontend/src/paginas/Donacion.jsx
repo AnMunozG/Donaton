@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { useBlocker, useSearchParams } from "react-router-dom";
+import { useBlocker, useSearchParams, Link } from "react-router-dom";
 import { getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo, getCentros, crearDonacionMultiItem } from "../api.js";
 import RichTextEditor from "../componentes/RichTextEditor";
 import { validarRut, validarRequerido, validarEnteroPositivo, validarEmail, validarTelefono, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
+import { useAuth } from "../componentes/AuthContext";
 import donacionImg from "../assets/Donacion(6).jpg";
 
 const EMPTY_ITEM = { tipo: "", cantidad: "", unidad: "", detalles: {}, pagado: false };
 
 export default function Donacion() {
+  const { isAuth } = useAuth();
   const [searchParams] = useSearchParams();
   const [tiposRecurso, setTiposRecurso] = useState([]);
   const [unidadesPorTipo, setUnidadesPorTipo] = useState({});
@@ -209,6 +211,15 @@ export default function Donacion() {
                 <div className="alert alert-success d-flex align-items-center gap-2 small py-2">
                   <i className="bi bi-check-circle-fill"></i>
                   ¡Donación registrada exitosamente!
+                </div>
+              )}
+
+              {!isAuth && (
+                <div className="alert alert-info d-flex align-items-center gap-2 small py-2 flex-wrap">
+                  <i className="bi bi-info-circle-fill"></i>
+                  <span className="flex-grow-1">Para donar, inicia sesión o crea una cuenta. Si prefieres donar de forma anónima, solo ingresa tu RUT.</span>
+                  <Link to="/login" className="btn btn-primary btn-sm ms-auto">Iniciar sesión</Link>
+                  <Link to="/registro" className="btn btn-outline-primary btn-sm">Crear cuenta</Link>
                 </div>
               )}
 

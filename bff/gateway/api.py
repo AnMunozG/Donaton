@@ -21,6 +21,7 @@ from .schemas.voluntarios import (VoluntarioCreate, VoluntarioUpdate, Voluntario
                                   VoluntarioListOut, RegistrarHorasIn, HorasVoluntarioOut,
                                   RegistroHorasOut, CambiarEstadoVoluntarioIn,
                                   VoluntarioCentroCreate, VoluntarioCentroUpdate, VoluntarioCentroOut,
+                                  AsignacionVoluntarioCreate, AsignacionVoluntarioOut,
                                   NotificacionCreate, NotificacionOut)
 from .services import auth_service, centro_service, donacion_service, necesidad_service, static_service, routing_service
 from .services import agradecimiento_service, seguimiento_service, logro_service, impacto_service, certificado_service
@@ -441,7 +442,23 @@ async def marcar_notificacion_voluntario(request, notif_id: str):
     )
 
 
-# ── Voluntarios (by code - AFTER static routes to avoid conflicts) ──
+# ── Asignaciones / Inscripción a oportunidades (BEFORE {code} to avoid route conflicts) ──
+
+@api.get("/voluntarios/asignaciones/contar/{necesidad_id}", auth=None, response={200: int})
+async def contar_asignados(request, necesidad_id: int):
+    return await voluntario_service.contar_asignados(necesidad_id)
+
+
+@api.post("/voluntarios/asignaciones", auth=AuthBearer(), response={201: AsignacionVoluntarioOut})
+async def inscribir_voluntario(request, body: AsignacionVoluntarioCreate):
+    user = request.user
+    perfil = await voluntario_service.get_by_rut(user["rut"], uat=user.get("uat"))
+    if not perfil:
+        raise HttpError(400, "Debes registrarte como voluntario primero")
+    return await voluntario_service.inscribir_voluntario(int(perfil.id), body.necesidad_id, user=user)
+
+
+# ── Voluntarios (by code - AFTER static and asignaciones routes to avoid conflicts) ──
 
 @api.get("/voluntarios", auth=None, response=list[VoluntarioListOut])
 async def list_voluntarios(request, centro_id: Optional[str] = None, disponibilidad: Optional[str] = None, habilidad: Optional[str] = None):

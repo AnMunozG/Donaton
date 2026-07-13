@@ -68,11 +68,19 @@ class ItemDonacionOut(Schema):
     unidad: str
     detalles: dict = {}
 
-    @field_validator("id", "cantidad", mode="before")
+    @field_validator("id", mode="before")
     @classmethod
-    def coerce_to_str(cls, v):
+    def coerce_id(cls, v):
         if v is not None:
             return str(v)
+        return v
+
+    @field_validator("cantidad", mode="before")
+    @classmethod
+    def coerce_cantidad(cls, v):
+        if v is not None:
+            v = float(v)
+            return str(int(v)) if v == int(v) else str(v)
         return v
 
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { validarRequerido, validarEnteroPositivo, validarRut, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
+import { validarRequerido, validarEnteroPositivo, validarRut, validarForm, formatearRut, limpiarRut, capacidadColor, formatearNumero } from "../componentes/Validaciones.js";
 import RichTextEditor from "../componentes/RichTextEditor";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -7,8 +7,9 @@ import {
 } from "recharts";
 import {
   getDonaciones, getNecesidades, getCentros,
-  crearDonacion, actualizarDonacion, eliminarDonacion,
-  crearNecesidad, actualizarNecesidad, eliminarNecesidad,
+  getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo,
+  crearDonacionMultiItem, actualizarDonacion, eliminarDonacion,
+  agregarNecesidadUsuario, actualizarNecesidad, eliminarNecesidad,
   crearCentro, actualizarCentro, eliminarCentro,
   getNecesidadesUsuario, eliminarNecesidadUsuario, actualizarNecesidadUsuario,
   activarNecesidad,
@@ -39,9 +40,22 @@ const modalEntityLabels = { donacion: "donación", necesidad: "necesidad", centr
 const estadosDonacion = ["Donación Registrada", "En Recolección", "En transporte", "Recibida"];
 const urgencias = ["Alta", "Media", "Baja"];
 
+const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
 function emptyForm(entity) {
-  if (entity === "donacion") return { tipo: "", cantidad: "", unidad: "", origen: "", centroId: "", estado: "Donación Registrada", tipoPersonalizado: "" };
-  if (entity === "necesidad") return { recurso: "", cantidad: "", unidad: "", urgencia: "Media", estado: "Pendiente", centroId: "", reportadoPor: "", descripcion: "", categoria: "OTROS" };
+  if (entity === "donacion") return {
+    items: [{ tipo: "", cantidad: "", unidad: "", tipoPersonalizado: "", pagado: false }],
+    origen: "", centroId: "", estado: "Donación Registrada",
+    modoRetiro: "retiro", direccion: "", direccionDetalle: "", fechaRetiro: "",
+    contactoEmail: "", contactoTel: "", enNombreDe: "", notas: "",
+  };
+  if (entity === "necesidad") return {
+    tipoNecesidad: "", recurso: "", cantidad: "", unidad: "", recursoPersonalizado: "",
+    urgencia: "Media", estado: "Pendiente", centroId: "", reportadoPor: "",
+    descripcion: "", categoria: "OTROS", fechaLimite: "",
+    contactoEmail: "", contactoTel: "",
+    actividades: [], actividadPersonalizada: "", horaDesde: "", horaHasta: "", dias: [], numVoluntarios: "",
+  };
   return { nombre: "", region: "", direccion: "", telefono: "", encargado: "", latitud: "", longitud: "", capacidadTotal: "", capacidadUsada: "", estado: "Activo" };
 }
 
@@ -85,6 +99,12 @@ export default function BackOffice() {
   const [notifForm, setNotifForm] = useState({ titulo: "", mensaje: "" });
   const [notifEnviando, setNotifEnviando] = useState(false);
 
+  const [tiposRecurso, setTiposRecurso] = useState([]);
+  const [unidadesPorTipo, setUnidadesPorTipo] = useState({});
+  const [camposPorTipo, setCamposPorTipo] = useState({});
+  const [habilidadesRecurso, setHabilidadesRecurso] = useState([]);
+  const [donacionItemIdx, setDonacionItemIdx] = useState(0);
+
   const voluntariosPendientes = voluntarios.reduce((count, v) => {
     return count + (v.centros || []).filter((c) => c.estado === "pendiente").length;
   }, 0);
@@ -97,6 +117,17 @@ export default function BackOffice() {
     getDonaciones().then(setDonaciones);
     getNecesidades().then(setNecesidades);
     getCentros().then(setCentros);
+    Promise.all([
+      getTiposRecurso(),
+      getUnidadesPorTipo(),
+      getCamposPorTipo(),
+      getHabilidadesVoluntario(),
+    ]).then(([tipos, uMap, campos, hab]) => {
+      setTiposRecurso(tipos);
+      setUnidadesPorTipo(uMap);
+      setCamposPorTipo(campos);
+      setHabilidadesRecurso(hab);
+    });
     getHabilidadesVoluntario().then(setHabilidadesVol);
   }, []);
 
@@ -154,6 +185,7 @@ export default function BackOffice() {
     setEditItem(null);
     setForm(emptyForm(entity));
     setFormErrors({});
+    setDonacionItemIdx(0);
     setShowModal(true);
   };
 
@@ -171,6 +203,7 @@ export default function BackOffice() {
     setEditItem(null);
     setForm({});
     setFormErrors({});
+    setDonacionItemIdx(0);
   };
 
   const handleFormChange = (e) => {
@@ -181,29 +214,33 @@ export default function BackOffice() {
   const handleSave = async (e) => {
     e.preventDefault();
     const entity = modalEntity;
-    const reglas = entity === "donacion" ? [
-      { campo: "tipo", nombre: "Tipo", validaciones: [validarRequerido] },
-      { campo: "cantidad", nombre: "Cantidad", validaciones: [validarRequerido, validarEnteroPositivo] },
-      { campo: "unidad", nombre: "Unidad", validaciones: [validarRequerido] },
-      { campo: "origen", nombre: "Origen (RUT)", validaciones: [validarRequerido, validarRut] },
-      { campo: "centroId", nombre: "Centro", validaciones: [validarRequerido] },
-    ] : entity === "necesidad" ? [
-      { campo: "recurso", nombre: "Recurso", validaciones: [validarRequerido] },
-      { campo: "cantidad", nombre: "Cantidad", validaciones: [validarRequerido, validarEnteroPositivo] },
-      { campo: "unidad", nombre: "Unidad", validaciones: [validarRequerido] },
-      { campo: "centroId", nombre: "Centro destino", validaciones: [validarRequerido] },
-      { campo: "reportadoPor", nombre: "Reportado por", validaciones: [validarRequerido, validarRut] },
-    ] : entity === "centro" ? [
-      { campo: "nombre", nombre: "Nombre", validaciones: [validarRequerido] },
-      { campo: "region", nombre: "Región", validaciones: [validarRequerido] },
-      { campo: "encargado", nombre: "Encargado", validaciones: [validarRequerido] },
-      { campo: "capacidadTotal", nombre: "Capacidad total", validaciones: [validarRequerido, validarEnteroPositivo] },
-    ] : [];
-    const errores = validarForm(form, reglas);
-    if (entity === "centro" && form.capacidadUsada !== "" && form.capacidadTotal !== "") {
-      const usada = parseInt(form.capacidadUsada, 10) || 0;
-      const total = parseInt(form.capacidadTotal, 10) || 0;
-      if (usada > total) errores.capacidadUsada = "No puede superar la capacidad total";
+    let errores = {};
+    if (entity === "donacion") {
+      const items = form.items || [];
+      if (!items.length || !items[0].tipo) errores.items = "Agrega al menos un item";
+      if (!form.origen) errores.origen = "Requerido";
+      if (!form.centroId) errores.centroId = "Requerido";
+    } else if (entity === "necesidad") {
+      if (!form.tipoNecesidad) errores.tipoNecesidad = "Selecciona tipo";
+      if (!form.centroId) errores.centroId = "Requerido";
+      if (!form.reportadoPor) errores.reportadoPor = "Requerido";
+      if (form.tipoNecesidad === "recurso") {
+        if (!form.recurso) errores.recurso = "Requerido";
+        if (!form.cantidad || isNaN(Number(form.cantidad)) || Number(form.cantidad) <= 0) errores.cantidad = "Debe ser un número positivo";
+        if (!form.unidad) errores.unidad = "Requerido";
+        if (form.recurso === "Otros" && !form.recursoPersonalizado?.trim()) errores.recursoPersonalizado = "Requerido";
+      } else if (form.tipoNecesidad === "voluntarios") {
+        if (!form.horaDesde) errores.horaDesde = "Requerido";
+        if (!form.horaHasta) errores.horaHasta = "Requerido";
+        if (!form.numVoluntarios || isNaN(Number(form.numVoluntarios)) || Number(form.numVoluntarios) <= 0) errores.numVoluntarios = "Debe ser un número positivo";
+        if (!form.actividades?.length && !form.actividadPersonalizada?.trim()) errores.actividades = "Selecciona o escribe al menos una actividad";
+        if (!form.dias?.length) errores.dias = "Selecciona al menos un día";
+      }
+    } else if (entity === "centro") {
+      if (!form.nombre) errores.nombre = "Requerido";
+      if (!form.region) errores.region = "Requerido";
+      if (!form.encargado) errores.encargado = "Requerido";
+      if (!form.capacidadTotal || isNaN(Number(form.capacidadTotal)) || Number(form.capacidadTotal) <= 0) errores.capacidadTotal = "Debe ser un número positivo";
     }
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
@@ -211,16 +248,36 @@ export default function BackOffice() {
       if (editItem) {
         await actualizarDonacion(editItem.id, { estado: form.estado });
       } else {
-        const tipoFinal = form.tipo === "Otros" && form.tipoPersonalizado
-          ? `Otros - ${form.tipoPersonalizado}`
-          : form.tipo;
-        await crearDonacion({
-          tipo: tipoFinal,
-          cantidad: Number(form.cantidad),
-          unidad: form.unidad,
+        const items = (form.items || []).map((item) => {
+          const tipoFinal = item.tipo === "Otros" && item.tipoPersonalizado
+            ? `Otros - ${item.tipoPersonalizado}`
+            : item.tipo;
+          return {
+            tipo: tipoFinal,
+            cantidad: Number(item.cantidad),
+            unidad: item.unidad,
+            detalles: {},
+          };
+        });
+        const detalles = {};
+        if (form.modoRetiro) detalles.modoRetiro = form.modoRetiro;
+        if (form.contactoEmail) detalles.contactoEmail = form.contactoEmail;
+        if (form.contactoTel) detalles.contactoTel = form.contactoTel;
+        if (form.enNombreDe) detalles.enNombreDe = form.enNombreDe;
+        const anyNoMonetario = items.some((i) => i.tipo !== "Donación Monetaria");
+        await crearDonacionMultiItem({
+          items,
           origen: form.origen,
           centroId: form.centroId,
           fecha: new Date().toISOString().split("T")[0],
+          notas: form.notas || "",
+          detalles,
+          direccion_retiro: anyNoMonetario && form.modoRetiro === "retiro"
+            ? form.direccionDetalle
+              ? `${form.direccion}, ${form.direccionDetalle}`
+              : form.direccion
+            : "",
+          fecha_retiro: anyNoMonetario && form.modoRetiro === "retiro" ? form.fechaRetiro : "",
         });
       }
       getDonaciones().then(setDonaciones);
@@ -235,16 +292,54 @@ export default function BackOffice() {
           categoria: form.categoria || "OTROS",
         });
       } else {
-        await crearNecesidad({
-          centroId: Number(form.centroId),
-          recurso: form.recurso,
-          cantidad: Number(form.cantidad),
-          unidad: form.unidad,
-          descripcion: form.descripcion || "",
-          urgencia: form.urgencia || "Media",
-          reportadoPor: form.reportadoPor || "",
-          categoria: form.categoria || "OTROS",
-        });
+        const detalles = {};
+        if (form.contactoEmail) detalles.contactoEmail = form.contactoEmail;
+        if (form.contactoTel) detalles.contactoTel = form.contactoTel;
+        if (form.fechaLimite) detalles.fechaLimite = form.fechaLimite;
+        if (form.tipoNecesidad === "recurso") {
+          const recursoFinal = form.recurso === "Otros" && form.recursoPersonalizado
+            ? `Otros - ${form.recursoPersonalizado}`
+            : form.recurso;
+          (camposPorTipo[form.recurso] || []).forEach((campo) => {
+            if (form[campo.name]) detalles[campo.name] = form[campo.name];
+          });
+          detalles.tipoNecesidad = "recurso";
+          await agregarNecesidadUsuario({
+            recurso: recursoFinal,
+            cantidad: Number(form.cantidad),
+            unidad: form.unidad,
+            descripcion: form.descripcion || "",
+            reportadoPor: form.reportadoPor,
+            centroId: Number(form.centroId),
+            urgencia: "Pendiente",
+            fecha_limite: form.fechaLimite || null,
+            detalles,
+          });
+        } else {
+          detalles.tipoNecesidad = "voluntarios";
+          const actividadesSeleccionadas = habilidadesRecurso
+            .filter((h) => (form.actividades || []).includes(h.code))
+            .map((h) => h.nombre);
+          if (form.actividadPersonalizada?.trim()) {
+            actividadesSeleccionadas.push(form.actividadPersonalizada.trim());
+          }
+          detalles.actividad = actividadesSeleccionadas.join(", ");
+          detalles.horaDesde = form.horaDesde;
+          detalles.horaHasta = form.horaHasta;
+          detalles.dias = form.dias;
+          detalles.numVoluntarios = parseInt(form.numVoluntarios);
+          await agregarNecesidadUsuario({
+            recurso: "Voluntariado",
+            cantidad: Number(form.numVoluntarios),
+            unidad: "voluntarios",
+            descripcion: form.descripcion || "",
+            reportadoPor: form.reportadoPor,
+            centroId: Number(form.centroId),
+            urgencia: "Pendiente",
+            fecha_limite: form.fechaLimite || null,
+            detalles,
+          });
+        }
       }
       getNecesidades().then(setNecesidades);
     } else if (entity === "centro") {
@@ -482,7 +577,7 @@ export default function BackOffice() {
                       <tr key={d.id}>
                         <td><span className="bo-id">{d.id}</span></td>
                         <td className="fw-medium">{d.tipo}</td>
-                        <td>{d.cantidad} {d.unidad}</td>
+                        <td>{d.tipo === "Multi-item" && d.items?.length ? d.items.map((it) => `${formatearNumero(it.cantidad)} ${it.unidad}`).join(", ") : `${formatearNumero(d.cantidad)} ${d.unidad}`}</td>
                         <td>{d.origen}</td>
                         <td>{centros.find((c) => String(c.id) === String(d.centroId))?.nombre || d.centro || d.centroId || "—"}</td>
                         <td>{d.fecha}</td>
@@ -552,13 +647,16 @@ export default function BackOffice() {
                             <tr key={n.id}>
                               <td><span className="bo-id">{n.id}</span></td>
                               <td className="fw-medium">{n.recurso}</td>
-                              <td>{n.cantidad} {n.unidad}</td>
+                              <td>{formatearNumero(n.cantidad)} {n.unidad}</td>
                               <td>{centroNec ? centroNec.nombre : n.centro || "—"}</td>
                               <td>
+
                                 <select className="form-select form-select-sm bo-select-sm"
                                   value={n.urgencia || ""}
-                                  onChange={(e) => {
-                                    actualizarNecesidadUsuario(n.id, { urgencia: e.target.value });
+                                  onChange={async (e) => {
+                                    const value = e.target.value;
+                                    n.urgencia = value;
+                                    await actualizarNecesidadUsuario(n.id, { urgencia: value });
                                     setUserNecKey((k) => k + 1);
                                   }}>
                                   <option value="">Asignar</option>
@@ -616,7 +714,7 @@ export default function BackOffice() {
                           <tr key={n.id}>
                             <td><span className="bo-id">{n.id}</span></td>
                             <td className="fw-medium">{n.recurso}</td>
-                            <td>{n.cantidad} {n.unidad}</td>
+                            <td>{formatearNumero(n.cantidad)} {n.unidad}</td>
                             <td>{centroNec ? centroNec.nombre : n.centro || "—"}</td>
                             <td>
                               <select className="form-select form-select-sm bo-select-sm"
@@ -740,7 +838,7 @@ export default function BackOffice() {
                       <div key={i} className="col-sm-6 col-md-4 col-lg-3">
                         <div className="bo-card">
                           <div className="bo-card-label">{item.tipo}</div>
-                          <div className="bo-card-value">{item.cantidad}</div>
+                          <div className="bo-card-value">{formatearNumero(item.cantidad)}</div>
                         </div>
                       </div>
                     ))}
@@ -1162,33 +1260,100 @@ export default function BackOffice() {
                   <div className="row g-3">
                     {modalEntity === "donacion" && (
                       <>
+                        <div className="col-12">
+                          <div className="d-flex align-items-center justify-content-between mb-2">
+                            <label className="form-label small fw-semibold mb-0">Items</label>
+                            <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => {
+                              setForm((prev) => ({ ...prev, items: [...(prev.items || []), { tipo: "", cantidad: "", unidad: "", tipoPersonalizado: "", pagado: false }] }));
+                              setDonacionItemIdx((form.items || []).length);
+                            }}>
+                              <i className="bi bi-plus-lg"></i> Agregar item
+                            </button>
+                          </div>
+                          {(form.items || []).map((item, idx) => (
+                            <div key={idx} className={`p-3 rounded-3 mb-2 ${idx === donacionItemIdx ? "b-card" : "bg-page"}`} style={{ cursor: "pointer" }} onClick={() => setDonacionItemIdx(idx)}>
+                              <div className="d-flex align-items-center justify-content-between mb-2">
+                                <span className="fw-semibold small">Item #{idx + 1}</span>
+                                {(form.items || []).length > 1 && (
+                                  <button type="button" className="btn btn-sm btn-outline-danger" onClick={(e) => {
+                                    e.stopPropagation();
+                                    const next = (form.items || []).filter((_, i) => i !== idx);
+                                    setForm((prev) => ({ ...prev, items: next.length ? next : [{ tipo: "", cantidad: "", unidad: "", tipoPersonalizado: "", pagado: false }] }));
+                                    if (donacionItemIdx >= next.length) setDonacionItemIdx(Math.max(0, next.length - 1));
+                                  }}>
+                                    <i className="bi bi-trash"></i>
+                                  </button>
+                                )}
+                              </div>
+                              {idx === donacionItemIdx && (
+                                <div className="row g-2">
+                                  <div className="col-md-5">
+                                    <select className={`form-select form-select-sm${formErrors.items ? " is-invalid" : ""}`} value={item.tipo || ""} onChange={(e) => {
+                                      const val = e.target.value;
+                                      const unidades = unidadesPorTipo[val] || [];
+                                      const next = [...(form.items || [])];
+                                      next[idx] = { ...next[idx], tipo: val, unidad: unidades[0] || "", tipoPersonalizado: "" };
+                                      setForm((prev) => ({ ...prev, items: next }));
+                                    }}>
+                                      <option value="">Selecciona tipo...</option>
+                                      {tiposRecurso.map((t) => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                  </div>
+                                  <div className="col-md-3">
+                                    <input type="number" className="form-control form-control-sm" placeholder="Cantidad" value={item.cantidad || ""} onChange={(e) => {
+                                      const next = [...(form.items || [])];
+                                      next[idx] = { ...next[idx], cantidad: e.target.value };
+                                      setForm((prev) => ({ ...prev, items: next }));
+                                    }} />
+                                  </div>
+                                  <div className="col-md-4">
+                                    <select className="form-select form-select-sm" value={item.unidad || ""} onChange={(e) => {
+                                      const next = [...(form.items || [])];
+                                      next[idx] = { ...next[idx], unidad: e.target.value };
+                                      setForm((prev) => ({ ...prev, items: next }));
+                                    }}>
+                                      <option value="">Unidad</option>
+                                      {(unidadesPorTipo[item.tipo] || []).map((u) => <option key={u} value={u}>{u}</option>)}
+                                    </select>
+                                  </div>
+                                  {item.tipo === "Otros" && (
+                                    <div className="col-12">
+                                      <input className="form-control form-control-sm" placeholder="Describe el tipo..." maxLength={200} value={item.tipoPersonalizado || ""} onChange={(e) => {
+                                        const next = [...(form.items || [])];
+                                        next[idx] = { ...next[idx], tipoPersonalizado: e.target.value };
+                                        setForm((prev) => ({ ...prev, items: next }));
+                                      }} />
+                                    </div>
+                                  )}
+                                  {(camposPorTipo[item.tipo] || []).map((campo) => (
+                                    <div className="col-md-6" key={campo.name}>
+                                      <label className="small">{campo.label || campo.name}</label>
+                                      {campo.type === "select" ? (
+                                        <select className="form-select form-select-sm" value={item[campo.name] || ""} onChange={(e) => {
+                                          const next = [...(form.items || [])];
+                                          next[idx] = { ...next[idx], [campo.name]: e.target.value };
+                                          setForm((prev) => ({ ...prev, items: next }));
+                                        }}>
+                                          <option value="">Selecciona...</option>
+                                          {(campo.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                                        </select>
+                                      ) : (
+                                        <input type={campo.type === "number" ? "number" : "text"} className="form-control form-control-sm" value={item[campo.name] || ""} onChange={(e) => {
+                                          const next = [...(form.items || [])];
+                                          next[idx] = { ...next[idx], [campo.name]: e.target.value };
+                                          setForm((prev) => ({ ...prev, items: next }));
+                                        }} />
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {formErrors.items && <div className="invalid-feedback d-block">{formErrors.items}</div>}
+                        </div>
                         <div className="col-md-6">
-                          <label className="form-label small fw-semibold">Tipo</label>
-                          {editItem ? (
-                            <input name="tipo" className={`form-control${formErrors.tipo ? " is-invalid" : ""}`} value={form.tipo || ""} onChange={handleFormChange} />
-                          ) : (
-                            <select name="tipo" className={`form-select${formErrors.tipo ? " is-invalid" : ""}`} value={form.tipo || ""} onChange={handleFormChange}>
-                              <option value="">Selecciona...</option>
-                              {["Alimentos no perecibles", "Ropa y abrigo", "Insumos médicos", "Artículos de higiene", "Donación Monetaria", "Utensilios del hogar", "Otros"].map((t) => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                          )}
-                          {form.tipo === "Otros" && !editItem && (
-                            <input name="tipoPersonalizado" className="form-control mt-2" placeholder="Describe el tipo..." maxLength={200} value={form.tipoPersonalizado || ""} onChange={handleFormChange} />
-                          )}
-                          {formErrors.tipo && <div className="invalid-feedback d-block">{formErrors.tipo}</div>}
-                        </div>
-                        <div className="col-md-3">
-                          <label className="form-label small fw-semibold">Cantidad</label>
-                          <input name="cantidad" type="number" className={`form-control${formErrors.cantidad ? " is-invalid" : ""}`} value={form.cantidad || ""} onChange={handleFormChange} />
-                          {formErrors.cantidad && <div className="invalid-feedback d-block">{formErrors.cantidad}</div>}
-                        </div>
-                        <div className="col-md-3">
-                          <label className="form-label small fw-semibold">Unidad</label>
-                          <input name="unidad" className={`form-control${formErrors.unidad ? " is-invalid" : ""}`} value={form.unidad || ""} onChange={handleFormChange} />
-                          {formErrors.unidad && <div className="invalid-feedback d-block">{formErrors.unidad}</div>}
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label small fw-semibold">Origen</label>
+                          <label className="form-label small fw-semibold">Origen (RUT)</label>
                           <input name="origen" className={`form-control${formErrors.origen ? " is-invalid" : ""}`} value={formatearRut(form.origen || "")} onChange={(e) => { const raw = limpiarRut(e.target.value); setForm({ ...form, origen: raw }); if (formErrors.origen) setFormErrors({ ...formErrors, origen: "" }); }} />
                           {formErrors.origen && <div className="invalid-feedback d-block">{formErrors.origen}</div>}
                         </div>
@@ -1206,25 +1371,159 @@ export default function BackOffice() {
                             {estadosDonacion.map((est) => <option key={est} value={est}>{est}</option>)}
                           </select>
                         </div>
+                        <div className="col-12">
+                          <label className="form-label small fw-semibold">Notas</label>
+                          <textarea name="notas" className="form-control" rows="2" value={form.notas || ""} onChange={handleFormChange} />
+                        </div>
+                        {(form.items || []).some((i) => i.tipo && i.tipo !== "Donación Monetaria") && (
+                          <>
+                            <div className="col-12"><hr /><h6 className="fw-semibold c-heading">Datos de retiro / entrega</h6></div>
+                            <div className="col-md-6">
+                              <label className="form-label small fw-semibold">Modo de retiro</label>
+                              <select name="modoRetiro" className="form-select" value={form.modoRetiro || "retiro"} onChange={handleFormChange}>
+                                <option value="retiro">Requiere retiro</option>
+                                <option value="entrega">Entrega directa</option>
+                              </select>
+                            </div>
+                            {form.modoRetiro === "retiro" && (
+                              <>
+                                <div className="col-12">
+                                  <label className="form-label small fw-semibold">Dirección de retiro</label>
+                                  <input name="direccion" className="form-control" value={form.direccion || ""} onChange={handleFormChange} placeholder="Dirección completa" />
+                                  <input name="direccionDetalle" className="form-control mt-1" value={form.direccionDetalle || ""} onChange={handleFormChange} placeholder="Detalle (depto, oficina, etc.)" />
+                                </div>
+                                <div className="col-md-6">
+                                  <label className="form-label small fw-semibold">Fecha de retiro</label>
+                                  <input name="fechaRetiro" type="date" className="form-control" value={form.fechaRetiro || ""} onChange={handleFormChange} />
+                                </div>
+                              </>
+                            )}
+                            <div className="col-md-6">
+                              <label className="form-label small fw-semibold">Email contacto</label>
+                              <input name="contactoEmail" type="email" className="form-control" value={form.contactoEmail || ""} onChange={handleFormChange} />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label small fw-semibold">Teléfono contacto</label>
+                              <input name="contactoTel" className="form-control" value={form.contactoTel || ""} onChange={handleFormChange} />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label small fw-semibold">En nombre de</label>
+                              <input name="enNombreDe" className="form-control" value={form.enNombreDe || ""} onChange={handleFormChange} placeholder="Empresa / institución" />
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                     {modalEntity === "necesidad" && (
                       <>
-                        <div className="col-md-6">
-                          <label className="form-label small fw-semibold">Recurso</label>
-                          <input name="recurso" className={`form-control${formErrors.recurso ? " is-invalid" : ""}`} value={form.recurso || ""} onChange={handleFormChange} maxLength={200} />
-                          {formErrors.recurso && <div className="invalid-feedback d-block">{formErrors.recurso}</div>}
+                        <div className="col-12">
+                          <label className="form-label small fw-semibold">Tipo de necesidad</label>
+                          <div className="d-flex gap-2">
+                            <button type="button" className={`btn btn-sm ${form.tipoNecesidad === "recurso" ? "btn-primary" : "btn-outline-primary"}`} onClick={() => setForm((prev) => ({ ...prev, tipoNecesidad: "recurso", recurso: "", cantidad: "", unidad: "", recursoPersonalizado: "" }))}>
+                              <i className="bi bi-box-seam me-1"></i>Recurso
+                            </button>
+                            <button type="button" className={`btn btn-sm ${form.tipoNecesidad === "voluntarios" ? "btn-primary" : "btn-outline-primary"}`} onClick={() => setForm((prev) => ({ ...prev, tipoNecesidad: "voluntarios", recurso: "Voluntariado", cantidad: "", unidad: "voluntarios" }))}>
+                              <i className="bi bi-people-fill me-1"></i>Voluntariado
+                            </button>
+                          </div>
+                          {formErrors.tipoNecesidad && <div className="invalid-feedback d-block">{formErrors.tipoNecesidad}</div>}
                         </div>
-                        <div className="col-md-3">
-                          <label className="form-label small fw-semibold">Cantidad</label>
-                          <input name="cantidad" type="number" className={`form-control${formErrors.cantidad ? " is-invalid" : ""}`} value={form.cantidad || ""} onChange={handleFormChange} />
-                          {formErrors.cantidad && <div className="invalid-feedback d-block">{formErrors.cantidad}</div>}
-                        </div>
-                        <div className="col-md-3">
-                          <label className="form-label small fw-semibold">Unidad</label>
-                          <input name="unidad" className={`form-control${formErrors.unidad ? " is-invalid" : ""}`} value={form.unidad || ""} onChange={handleFormChange} />
-                          {formErrors.unidad && <div className="invalid-feedback d-block">{formErrors.unidad}</div>}
-                        </div>
+
+                        {form.tipoNecesidad === "recurso" && (
+                          <>
+                            <div className="col-md-6">
+                              <label className="form-label small fw-semibold">Recurso</label>
+                              <select name="recurso" className={`form-select${formErrors.recurso ? " is-invalid" : ""}`} value={form.recurso || ""} onChange={(e) => {
+                                const val = e.target.value;
+                                const unidades = unidadesPorTipo[val] || [];
+                                setForm((prev) => ({ ...prev, recurso: val, unidad: unidades[0] || "", recursoPersonalizado: "" }));
+                              }}>
+                                <option value="">Selecciona...</option>
+                                {tiposRecurso.map((t) => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                              {formErrors.recurso && <div className="invalid-feedback d-block">{formErrors.recurso}</div>}
+                              {form.recurso === "Otros" && (
+                                <input className="form-control mt-1" placeholder="Describe el recurso..." maxLength={200} value={form.recursoPersonalizado || ""} onChange={(e) => setForm((prev) => ({ ...prev, recursoPersonalizado: e.target.value }))} />
+                              )}
+                            </div>
+                            <div className="col-md-3">
+                              <label className="form-label small fw-semibold">Cantidad</label>
+                              <input name="cantidad" type="number" className={`form-control${formErrors.cantidad ? " is-invalid" : ""}`} value={form.cantidad || ""} onChange={handleFormChange} />
+                              {formErrors.cantidad && <div className="invalid-feedback d-block">{formErrors.cantidad}</div>}
+                            </div>
+                            <div className="col-md-3">
+                              <label className="form-label small fw-semibold">Unidad</label>
+                              <select name="unidad" className={`form-select${formErrors.unidad ? " is-invalid" : ""}`} value={form.unidad || ""} onChange={handleFormChange}>
+                                <option value="">Selecciona...</option>
+                                {(unidadesPorTipo[form.recurso] || []).map((u) => <option key={u} value={u}>{u}</option>)}
+                              </select>
+                              {formErrors.unidad && <div className="invalid-feedback d-block">{formErrors.unidad}</div>}
+                            </div>
+                            {(camposPorTipo[form.recurso] || []).map((campo) => (
+                              <div className="col-md-6" key={campo.name}>
+                                <label className="form-label small">{campo.label || campo.name}</label>
+                                {campo.type === "select" ? (
+                                  <select className="form-select" value={form[campo.name] || ""} onChange={(e) => setForm((prev) => ({ ...prev, [campo.name]: e.target.value }))}>
+                                    <option value="">Selecciona...</option>
+                                    {(campo.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                                  </select>
+                                ) : (
+                                  <input type={campo.type === "number" ? "number" : "text"} className="form-control" value={form[campo.name] || ""} onChange={(e) => setForm((prev) => ({ ...prev, [campo.name]: e.target.value }))} />
+                                )}
+                              </div>
+                            ))}
+                          </>
+                        )}
+
+                        {form.tipoNecesidad === "voluntarios" && (
+                          <>
+                            <div className="col-md-4">
+                              <label className="form-label small fw-semibold">Horario desde</label>
+                              <input name="horaDesde" type="time" className={`form-control${formErrors.horaDesde ? " is-invalid" : ""}`} value={form.horaDesde || ""} onChange={handleFormChange} />
+                              {formErrors.horaDesde && <div className="invalid-feedback d-block">{formErrors.horaDesde}</div>}
+                            </div>
+                            <div className="col-md-4">
+                              <label className="form-label small fw-semibold">Horario hasta</label>
+                              <input name="horaHasta" type="time" className={`form-control${formErrors.horaHasta ? " is-invalid" : ""}`} value={form.horaHasta || ""} onChange={handleFormChange} />
+                              {formErrors.horaHasta && <div className="invalid-feedback d-block">{formErrors.horaHasta}</div>}
+                            </div>
+                            <div className="col-md-4">
+                              <label className="form-label small fw-semibold">Voluntarios requeridos</label>
+                              <input name="numVoluntarios" type="number" className={`form-control${formErrors.numVoluntarios ? " is-invalid" : ""}`} value={form.numVoluntarios || ""} onChange={handleFormChange} />
+                              {formErrors.numVoluntarios && <div className="invalid-feedback d-block">{formErrors.numVoluntarios}</div>}
+                            </div>
+                            <div className="col-12">
+                              <label className="form-label small fw-semibold">Actividades</label>
+                              <div className="d-flex flex-wrap gap-1 mb-1">
+                                {habilidadesRecurso.map((h) => (
+                                  <button key={h.code} type="button" className={`btn btn-sm ${(form.actividades || []).includes(h.code) ? "btn-primary" : "btn-outline-secondary"}`} onClick={() => {
+                                    const prev = form.actividades || [];
+                                    setForm((prevForm) => ({ ...prevForm, actividades: prev.includes(h.code) ? prev.filter((c) => c !== h.code) : [...prev, h.code] }));
+                                  }}>
+                                    {h.nombre}
+                                  </button>
+                                ))}
+                              </div>
+                              <input className="form-control form-control-sm" placeholder="O escribe una actividad personalizada..." maxLength={200} value={form.actividadPersonalizada || ""} onChange={(e) => setForm((prev) => ({ ...prev, actividadPersonalizada: e.target.value }))} />
+                              {formErrors.actividades && <div className="invalid-feedback d-block">{formErrors.actividades}</div>}
+                            </div>
+                            <div className="col-12">
+                              <label className="form-label small fw-semibold">Días</label>
+                              <div className="d-flex flex-wrap gap-1">
+                                {DIAS_SEMANA.map((d) => (
+                                  <button key={d} type="button" className={`btn btn-sm ${(form.dias || []).includes(d) ? "btn-primary" : "btn-outline-secondary"}`} onClick={() => {
+                                    const prev = form.dias || [];
+                                    setForm((prevForm) => ({ ...prevForm, dias: prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d] }));
+                                  }}>
+                                    {d}
+                                  </button>
+                                ))}
+                              </div>
+                              {formErrors.dias && <div className="invalid-feedback d-block">{formErrors.dias}</div>}
+                            </div>
+                          </>
+                        )}
+
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Centro destino</label>
                           <select name="centroId" className={`form-select${formErrors.centroId ? " is-invalid" : ""}`} value={form.centroId || ""} onChange={handleFormChange}>
@@ -1240,18 +1539,6 @@ export default function BackOffice() {
                           </select>
                         </div>
                         <div className="col-md-3">
-                          <label className="form-label small fw-semibold">Categoría</label>
-                          <select name="categoria" className="form-select" value={form.categoria || "OTROS"} onChange={handleFormChange}>
-                            <option value="ALIMENTOS">Alimentos</option>
-                            <option value="ROPA">Ropa</option>
-                            <option value="DINERO">Dinero</option>
-                            <option value="SALUD">Salud</option>
-                            <option value="UTILES">Útiles</option>
-                            <option value="VOLUNTARIADO">Voluntariado</option>
-                            <option value="OTROS">Otros</option>
-                          </select>
-                        </div>
-                        <div className="col-md-3">
                           <label className="form-label small fw-semibold">Estado</label>
                           <select name="estado" className="form-select" value={form.estado || "Pendiente"} onChange={handleFormChange}>
                             <option value="Pendiente">Pendiente</option>
@@ -1263,6 +1550,18 @@ export default function BackOffice() {
                           <label className="form-label small fw-semibold">Reportado por</label>
                           <input name="reportadoPor" className={`form-control${formErrors.reportadoPor ? " is-invalid" : ""}`} value={form.reportadoPor || ""} onChange={handleFormChange} maxLength={12} placeholder="12.345.678-K" />
                           {formErrors.reportadoPor && <div className="invalid-feedback d-block">{formErrors.reportadoPor}</div>}
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label small fw-semibold">Email contacto</label>
+                          <input name="contactoEmail" type="email" className="form-control" value={form.contactoEmail || ""} onChange={handleFormChange} />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label small fw-semibold">Teléfono contacto</label>
+                          <input name="contactoTel" className="form-control" value={form.contactoTel || ""} onChange={handleFormChange} />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label small fw-semibold">Fecha límite</label>
+                          <input name="fechaLimite" type="date" className="form-control" value={form.fechaLimite || ""} onChange={handleFormChange} />
                         </div>
                         <div className="col-12">
                           <label className="form-label small fw-semibold">Descripción</label>
@@ -1343,7 +1642,7 @@ export default function BackOffice() {
               <div className="modal-body">
                 <p className="small c-muted mb-2">
                   Donaci&oacute;n #{agradecerDonacion.id} de <strong>{agradecerDonacion.origen}</strong>
-                  {" — "}{agradecerDonacion.tipo} x{agradecerDonacion.cantidad} {agradecerDonacion.unidad}
+                  {" — "}{agradecerDonacion.tipo} x{formatearNumero(agradecerDonacion.cantidad)} {agradecerDonacion.unidad}
                 </p>
                 <label className="form-label small fw-semibold">Mensaje de agradecimiento</label>
                 <textarea

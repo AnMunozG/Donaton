@@ -338,3 +338,41 @@ async def marcar_notificacion_leida(notif_id: str) -> dict:
     if not result or "error" in result:
         raise ValidationError("Error al marcar notificación")
     return result
+
+
+async def contar_asignados(necesidad_id: int) -> int:
+    try:
+        asignaciones = await voluntarios_client.listar_asignaciones(params={"necesidad_id": necesidad_id})
+        return len(asignaciones)
+    except Exception:
+        return 0
+
+
+async def inscribir_voluntario(voluntario_id: int, necesidad_id: int, user: dict) -> dict:
+    from ..schemas.voluntarios import AsignacionVoluntarioOut
+
+    rut = user.get("rut", "")
+    if not rut:
+        raise AuthError("Usuario no autenticado")
+
+    existing = await voluntarios_client.listar_asignaciones(
+        params={"necesidad_id": necesidad_id, "rut": rut}
+    )
+    if existing and len(existing) > 0:
+        raise ValidationError("Ya estás inscrito en esta oportunidad de voluntariado")
+
+    data = {
+        "voluntario": voluntario_id,
+        "necesidad_id": necesidad_id,
+    }
+    result = await voluntarios_client.crear_asignacion(data)
+    if not result or "error" in result:
+        raise ValidationError("Error al inscribirse en la oportunidad")
+    return AsignacionVoluntarioOut(
+        id=str(result.get("id", "")),
+        voluntario=result.get("voluntario", voluntario_id),
+        necesidad_id=result.get("necesidad_id", necesidad_id),
+        estado=result.get("estado", "propuesto"),
+        fecha_asignacion=str(result.get("fecha_asignacion", "")),
+        fecha_actualizacion=str(result.get("fecha_actualizacion", "")),
+    )
