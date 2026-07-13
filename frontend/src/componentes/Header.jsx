@@ -43,7 +43,7 @@ export default function Header() {
           type="button"
           aria-controls="navbarContent"
           aria-expanded={menuOpen}
-          aria-label="Toggle navigation"
+          aria-label="Alternar navegación"
           onClick={() => setMenuOpen((prev) => !prev)}
         >
           <span className="navbar-toggler-icon"></span>
@@ -69,6 +69,11 @@ export default function Header() {
             <li className="nav-item">
               <Link to="/necesidades" className={`nav-link${pathname === "/necesidades" ? " active" : ""}`}>
                 Necesidades
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/voluntarios" className={`nav-link${pathname === "/voluntarios" ? " active" : ""}`}>
+                Voluntarios
               </Link>
             </li>
             <li className="nav-item">
@@ -102,7 +107,7 @@ export default function Header() {
                 </button>
                 {dropdownOpen && (
                   <ul className="dropdown-menu dropdown-menu-end show user-dropdown-menu">
-                    {user.rol === "admin" && (
+                    {(user.rol === "admin" || user.rol === "encargado") && (
                       <li>
                         <Link to="/dashboard" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                           <i className="bi bi-speedometer2 me-2"></i>Dashboard
@@ -116,7 +121,7 @@ export default function Header() {
                     </li>
                     <li><hr className="dropdown-divider" /></li>
                     <li>
-                      <button className="dropdown-item" onClick={handleLogout}>
+                      <button type="button" className="dropdown-item" onClick={handleLogout}>
                         <i className="bi bi-box-arrow-right me-2"></i>Cerrar sesión
                       </button>
                     </li>

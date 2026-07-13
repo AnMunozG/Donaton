@@ -41,6 +41,12 @@ class Usuario(AbstractUser):
         validators=[validar_rut_chileno],
         help_text="Formato: 12345678-K o 12345678K"
     )
+    centro_acopio_id = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="ID del centro de acopio asignado (solo para rol encargado)"
+    )
 
     # Definimos el RUT como el campo de inicio de sesión (ID principal)
     USERNAME_FIELD = 'rut' 
@@ -50,3 +56,35 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return f"{self.rut} - {self.first_name} {self.last_name}"
+
+
+class Logro(models.Model):
+    codigo = models.SlugField(max_length=50, unique=True)
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True)
+    icono = models.CharField(max_length=50, default="bi-award-fill")
+    categoria = models.CharField(max_length=50, blank=True)
+    orden = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Logro"
+        verbose_name_plural = "Logros"
+        ordering = ["orden"]
+
+    def __str__(self):
+        return self.nombre
+
+
+class LogroUsuario(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="logros")
+    logro = models.ForeignKey(Logro, on_delete=models.CASCADE)
+    fecha_obtenido = models.DateTimeField(auto_now_add=True)
+    progreso = models.FloatField(default=0.0)
+
+    class Meta:
+        unique_together = ("usuario", "logro")
+        verbose_name = "Logro de usuario"
+        verbose_name_plural = "Logros de usuarios"
+
+    def __str__(self):
+        return f"{self.usuario.rut} - {self.logro.nombre}"

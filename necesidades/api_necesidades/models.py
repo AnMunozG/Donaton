@@ -1,5 +1,18 @@
 from django.db import models
 
+
+class EstadoNecesidad(models.Model):
+    nombre = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        verbose_name = "Estado de necesidad"
+        verbose_name_plural = "Estados de necesidad"
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class Necesidad(models.Model):
     CATEGORIAS = [
         ('ALIMENTOS', 'Alimentos y Víveres'),
@@ -17,17 +30,6 @@ class Necesidad(models.Model):
         ('MEDIA', 'Media'),
         ('BAJA', 'Baja'),
     ]
-    
-    ESTADOS = [
-        ('PENDIENTE', 'Pendiente de Validación'),
-        ('APROBADA', 'Activa / Buscando Donaciones'),
-        ('EN_PROCESO', 'En Camino / Asignada'),
-        ('CUBIERTA', 'Meta Alcanzada / Finalizada'),
-        ('RECHAZADA', 'Rechazada / Cancelada'),
-        ('Activa', 'Activa'),
-        ('Pendiente', 'Pendiente'),
-        ('Cubierto', 'Cubierto'),
-    ]
 
     # --- Relación Inter-Microservicios (Logística) ---
     centro_acopio_id = models.PositiveIntegerField(
@@ -39,7 +41,7 @@ class Necesidad(models.Model):
     titulo = models.CharField(max_length=150, verbose_name="Título corto (ej: Pañales para niños)")
     descripcion = models.TextField(blank=True, default="", verbose_name="Detalle de la urgencia o requerimiento")
     categoria = models.CharField(max_length=20, choices=CATEGORIAS, default='OTROS')
-    estado = models.CharField(max_length=20, choices=ESTADOS, default='Pendiente')
+    estado = models.ForeignKey(EstadoNecesidad, on_delete=models.PROTECT)
     urgencia = models.CharField(max_length=10, choices=URGENCIAS, default='', blank=True)
     
     # --- Control de Cantidades y Trazabilidad ---
@@ -54,6 +56,9 @@ class Necesidad(models.Model):
     # --- Campos Extensibles (compatibilidad con BFF) ---
     detalles = models.JSONField(default=dict, blank=True, verbose_name="Metadatos adicionales (urgencia original, etc.)")
     
+    # --- Control de Fecha Límite ---
+    fecha_limite = models.DateField(null=True, blank=True, verbose_name="Fecha límite de la necesidad")
+
     # --- Auditoría ---
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
@@ -68,7 +73,6 @@ class Necesidad(models.Model):
 
     @property
     def porcentaje_cubierto(self):
-        """Calcula automáticamente el avance de la recaudación para el Frontend"""
         if self.cantidad_requerida == 0:
             return 100
         porcentaje = (self.cantidad_recibida / self.cantidad_requerida) * 100

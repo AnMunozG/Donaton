@@ -66,7 +66,7 @@ Donaciones/
     pip install -r requirements.txt
     ```
 
-4. Revisar la configuración de base de datos en `confing/settings.py`.
+4. Revisar la configuración de base de datos en `config/settings.py`.
     - Por defecto apunta a MySQL con la base `backend_donaciones`.
     - Ajusta usuario, contraseña, host y puerto según tu entorno.
 
@@ -135,7 +135,7 @@ python manage.py migrate
 
 ## Configuración importante
 
-La configuración principal está en `confing/settings.py`.
+La configuración principal está en `config/settings.py`.
 
 - `DEBUG` controla el modo de depuración.
 - `DATABASES` define la conexión a MySQL.

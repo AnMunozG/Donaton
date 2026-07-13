@@ -35,6 +35,12 @@ export function validarEmail(email) {
   return "";
 }
 
+export function validarTelefono(tel) {
+  if (!tel) return "";
+  if (!/^\+?[\d\s\-()]{7,15}$/.test(tel)) return "Teléfono inválido";
+  return "";
+}
+
 export function validarPassword(password) {
   if (!password) return "Contraseña requerida";
   if (password.length < 8) return "La contraseña debe tener al menos 8 caracteres";
@@ -79,4 +85,12 @@ export function capacidadColor(pct) {
   if (pct >= 85) return "#DD4444";
   if (pct >= 60) return "#FFC107";
   return "#3AB795";
+}
+
+export function formatearNumero(n) {
+  if (n == null || isNaN(Number(n))) return n;
+  const num = typeof n === "string" ? parseFloat(n) : n;
+  const [intPart, decPart] = num.toString().split(".");
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return decPart ? `${formatted},${decPart}` : formatted;
 }

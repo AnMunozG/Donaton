@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { validarRut, validarRequerido, validarEmail, validarPassword, validarConfirmacion, validarForm, formatearRut, limpiarRut } from "../componentes/Validaciones.js";
 import { crearCuenta } from "../api.js";
+import registroImg from "../assets/Login.png";
 
 export default function Registro() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export default function Registro() {
   const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState("");
   const [formErrors, setFormErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -30,6 +32,7 @@ export default function Registro() {
     if (!form.terms) errores.terms = "Debes aceptar los términos y condiciones";
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
+    setLoading(true);
     try {
       await crearCuenta(form.rut, { nombre: form.nombre, email: form.email, password: form.password });
       setEnviado(true);
@@ -37,6 +40,8 @@ export default function Registro() {
       setTimeout(() => navigate("/login"), 2000);
     } catch {
       setError("Ese RUT ya está registrado");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,7 +62,7 @@ export default function Registro() {
         {/* IMAGEN + CARD — same height row */}
         <div className="row g-0">
           <div className="col-md-5 d-none d-md-flex">
-            <div className="img-placeholder rounded-4 login-img" style={{ backgroundImage: "url(https://www.chile.gob.cl/yakarta/site/artic/20241007/imag/foto_0000000220241007120604/Fiestas_Patrias.jpeg)" }}></div>
+            <div className="img-placeholder rounded-4 login-img" style={{ backgroundImage: `url(${registroImg})` }}></div>
           </div>
 
           <div className="col-md-7">
@@ -131,8 +136,8 @@ export default function Registro() {
                   </div>
                 </div>
 
-                <button type="submit" className="btn btn-primary w-100 mt-3">
-                  <i className="bi bi-person-plus-fill me-2"></i>Registrarse
+                <button type="submit" className="btn btn-primary w-100 mt-3" disabled={loading}>
+                  <i className="bi bi-person-plus-fill me-2"></i>{loading ? "Registrando..." : "Registrarse"}
                 </button>
               </form>
             </div>

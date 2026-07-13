@@ -1,7 +1,124 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { DonatonLogo } from "../componentes/Logos.jsx";
-import { getCategoriasDonacion, getPasosFuncionamiento, getNecesidades, getCentros } from "../api.js";
+import { getCategoriasDonacion, getPasosFuncionamiento, getNecesidades, getCentros, contarVoluntariosAsignados } from "../api.js";
+import { formatearNumero } from "../componentes/Validaciones.js";
 import bannerInicioImg from "../assets/BannerInicio.png";
+import inicioImg1 from "../assets/Inicio (1).jpg";
+import inicioImg2 from "../assets/Inicio (2).jpg";
+
+
+function ProyectoCard({ n, centroNombre, voluntarioCounts }) {
+  const total = Number(n.cantidad);
+  const donado = Number(n.donado) || 0;
+  const pct = total > 0 ? Math.round((donado / total) * 100) : 0;
+  const falta = total - donado;
+  const fecha = n.fecha ? new Date(n.fecha).toLocaleDateString("es-CL", { year: "numeric", month: "long", day: "numeric" }) : "";
+  const d = n.detalles || {};
+  const esVoluntariado = n.categoria === "VOLUNTARIADO";
+  const voluntariosInscritos = voluntarioCounts[n.id] || 0;
+  const voluntariosReq = d.numVoluntarios || (esVoluntariado ? total : 0);
+
+  return (
+    <div className="col-12 col-md-6 col-lg-4">
+      <div className="project-card">
+        <div className="d-flex align-items-start justify-content-between mb-2">
+          <span className={`badge bg-${n.urgencia === "Alta" ? "danger" : n.urgencia === "Media" ? "warning" : "success"}`}>
+            <i className="bi bi-exclamation-triangle-fill me-1"></i>{n.urgencia}
+          </span>
+          <span className="project-id">#{n.id}</span>
+        </div>
+
+        <h3 className="project-resource">{n.recurso}</h3>
+
+        <div className="d-flex gap-3 small c-muted mb-2">
+          <span>
+            <i className="bi bi-building me-1 c-accent"></i>{centroNombre(n.centroId) || n.centro || "Sin centro"}
+          </span>
+          {fecha && (
+            <span>
+              <i className="bi bi-calendar3 me-1 c-accent"></i>{fecha}
+            </span>
+          )}
+        </div>
+
+        {n.descripcion && (
+          <div className="project-desc small mb-2" dangerouslySetInnerHTML={{ __html: n.descripcion }} />
+        )}
+
+        {esVoluntariado ? (
+          <div className="small mb-2 d-flex flex-column gap-1">
+            {d.actividad && (
+              <span className="c-muted"><i className="bi bi-tools me-1 c-primary"></i><strong>Actividad:</strong> {d.actividad}</span>
+            )}
+            {(d.horaDesde || d.horaHasta) && (
+              <span className="c-muted"><i className="bi bi-clock me-1 c-primary"></i><strong>Horario:</strong> {d.horaDesde || "?"} - {d.horaHasta || "?"}</span>
+            )}
+            {d.dias && (
+              <span className="c-muted"><i className="bi bi-calendar-week me-1 c-primary"></i><strong>Días:</strong> {Array.isArray(d.dias) ? d.dias.join(", ") : d.dias}</span>
+            )}
+            {d.numVoluntarios && (
+              <span className="c-muted"><i className="bi bi-people-fill me-1 c-primary"></i><strong>Voluntarios necesarios:</strong> {d.numVoluntarios}</span>
+            )}
+            {(d.contactoEmail || d.contactoTel) && (
+              <span className="c-muted"><i className="bi bi-envelope me-1 c-primary"></i><strong>Contacto:</strong> {d.contactoEmail || ""}{d.contactoEmail && d.contactoTel ? " | " : ""}{d.contactoTel || ""}</span>
+            )}
+          </div>
+        ) : (
+          d.contactoEmail || d.contactoTel || d.fechaLimite ? (
+            <div className="small mb-2 d-flex flex-column gap-1">
+              {d.contactoEmail && (
+                <span className="c-muted"><i className="bi bi-envelope me-1 c-primary"></i><strong>Contacto:</strong> {d.contactoEmail}</span>
+              )}
+              {d.contactoTel && !d.contactoEmail && (
+                <span className="c-muted"><i className="bi bi-telephone me-1 c-primary"></i><strong>Contacto:</strong> {d.contactoTel}</span>
+              )}
+              {d.fechaLimite && (
+                <span className="c-muted"><i className="bi bi-calendar-exclamation me-1 c-primary"></i><strong>Fecha límite:</strong> {new Date(d.fechaLimite).toLocaleDateString("es-CL")}</span>
+              )}
+            </div>
+          ) : null
+        )}
+
+        {esVoluntariado ? (
+          <div className="mb-2">
+            <div className="d-flex justify-content-between small mb-1">
+              <span className="c-muted"><strong className="c-heading">Voluntarios:</strong> {voluntariosInscritos} / {voluntariosReq} inscritos</span>
+              <span className="fw-semibold" style={{ color: voluntariosInscritos >= voluntariosReq ? "#3AB795" : "#DD4444" }}>
+                {voluntariosReq > 0 ? Math.round((voluntariosInscritos / voluntariosReq) * 100) : 0}%
+              </span>
+            </div>
+            <div className="progress progress-height-6">
+              <div className="progress-bar progress-bar-rounded" style={{ width: `${voluntariosReq > 0 ? Math.round((voluntariosInscritos / voluntariosReq) * 100) : 0}%`, backgroundColor: voluntariosInscritos >= voluntariosReq ? "#3AB795" : "#DD4444" }}></div>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-2">
+            <div className="d-flex justify-content-between small mb-1">
+              <span className="c-muted"><strong className="c-heading">Recaudado:</strong> {formatearNumero(donado)} / {formatearNumero(total)} {n.unidad}</span>
+              <span className="fw-semibold color-dynamic" style={{ '--dynamic-color': pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}>{pct}%</span>
+            </div>
+            <div className="progress progress-height-6">
+              <div className="progress-bar progress-bar-rounded progress-dynamic-bar" style={{ '--bar-w': `${pct}%`, '--bar-color': pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}></div>
+            </div>
+          </div>
+        )}
+
+        <div className="project-btn">
+          {esVoluntariado ? (
+            <Link to="/voluntarios" className="btn btn-accent w-100">
+              <i className="bi bi-people-fill me-1"></i>Registrarme como voluntario
+            </Link>
+          ) : (
+            <Link to={`/donacion?recurso=${encodeURIComponent(n.recurso)}&cantidad=${encodeURIComponent(n.cantidad)}&unidad=${encodeURIComponent(n.unidad)}&centroId=${encodeURIComponent(n.centroId || "")}`} className="btn btn-primary w-100">
+              <i className="bi bi-gift-fill me-1"></i>Donar{falta > 0 ? ` (falta ${formatearNumero(falta)} ${n.unidad})` : ""}
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 export default function Inicio() {
@@ -9,12 +126,26 @@ export default function Inicio() {
   const [pasos, setPasos] = useState([]);
   const [necesidades, setNecesidades] = useState([]);
   const [centros, setCentros] = useState([]);
+  const [voluntarioCounts, setVoluntarioCounts] = useState({});
 
   useEffect(() => {
     getCategoriasDonacion().then(setCategorias);
     getPasosFuncionamiento().then(setPasos);
-    getNecesidades().then(setNecesidades);
     getCentros().then(setCentros);
+  }, []);
+
+  useEffect(() => {
+    getNecesidades().then(async (todas) => {
+      setNecesidades(todas);
+      const volunteerNeeds = (Array.isArray(todas) ? todas : []).filter(
+        (n) => n.categoria === "VOLUNTARIADO" && n.estado !== "Cubierta" && n.estado !== "Pendiente"
+      );
+      const counts = {};
+      for (const op of volunteerNeeds) {
+        try { counts[op.id] = await contarVoluntariosAsignados(op.id); } catch { counts[op.id] = 0; }
+      }
+      setVoluntarioCounts(counts);
+    });
   }, []);
 
   const centroNombre = (centroId) => centros.find((c) => c.id === centroId)?.nombre || "";
@@ -22,12 +153,14 @@ export default function Inicio() {
   const items = [...categorias, ...categorias];
   const urgenciaPeso = { Alta: 0, Media: 1, Baja: 2 };
   const activas = necesidades
-    .filter((n) => n.estado !== "Cubierto" && n.estado !== "Pendiente")
+    .filter((n) => n.estado !== "Cubierta" && n.estado !== "Pendiente")
     .sort((a, b) => {
       const ua = urgenciaPeso[a.urgencia] ?? 99;
       const ub = urgenciaPeso[b.urgencia] ?? 99;
       if (ua !== ub) return ua - ub;
-      return (Number(b.donado) / Number(b.cantidad)) - (Number(a.donado) / Number(a.cantidad));
+      const pctA = Number(a.cantidad) > 0 ? Number(a.donado) / Number(a.cantidad) : 0;
+      const pctB = Number(b.cantidad) > 0 ? Number(b.donado) / Number(b.cantidad) : 0;
+      return pctB - pctA;
     })
     .slice(0, 6);
 
@@ -43,12 +176,12 @@ export default function Inicio() {
             para llevar ayuda humanitaria de forma transparente y eficiente a quienes más lo necesitan.
           </p>
           <div className="d-flex gap-3 justify-content-center mt-4 flex-wrap">
-            <a href="/donacion" className="btn btn-primary btn-lg px-4">
+            <Link to="/donacion" className="btn btn-primary btn-lg px-4">
               <i className="bi bi-heart-fill me-2"></i>Hacer una donación
-            </a>
-            <a href="/necesidades" className="btn btn-accent btn-lg px-4">
+            </Link>
+            <Link to="/necesidades" className="btn btn-accent btn-lg px-4">
               <i className="bi bi-flag-fill me-2"></i>Reportar una necesidad
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -68,9 +201,9 @@ export default function Inicio() {
             </p>
           </div>
           <div className="col-md-4 text-center text-md-end mt-3 mt-md-0">
-            <a href="/transparencia" className="btn btn-accent btn-lg px-4">
+            <Link to="/transparencia" className="btn btn-accent btn-lg px-4">
               <i className="bi bi-info-circle-fill me-2"></i>Saber más
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -78,7 +211,7 @@ export default function Inicio() {
       <div className="row g-4 mb-5 align-items-center">
         <div className="col-md-5">
           <div className="img-placeholder rounded-4"
-            style={{ backgroundImage: `url("https://www.worldvision.cl/hs-fs/hubfs/Ecuador/EC-Blog/P%C3%8DA%201.jpg?width=600&name=P%C3%8DA%201.jpg")` }}></div>
+            style={{ backgroundImage: `url("${inicioImg1}")` }}></div>
         </div>
         <div className="col-md-7">
           <div className="row row-cols-2 g-3">
@@ -117,13 +250,13 @@ export default function Inicio() {
               ))}
             </div>
           </div>
-          <a href="/donacion" className="btn btn-success btn-lg px-4 mt-3 d-block mx-auto btn-fit">
+          <Link to="/donacion" className="btn btn-success btn-lg px-4 mt-3 d-block mx-auto btn-fit">
             <i className="bi bi-heart-fill me-1"></i>Ir a donar
-          </a>
+          </Link>
         </div>
         <div className="col-md-5">
           <div className="img-placeholder rounded-4"
-            style={{ backgroundImage: "url(https://chile.iom.int/sites/g/files/tmzbdl906/files/styles/card_format/public/banner/37_0.jpg?itok=EVAQURnR)" }}></div>
+            style={{ backgroundImage: `url("${inicioImg2}")` }}></div>
         </div>
       </div>
 
@@ -132,45 +265,9 @@ export default function Inicio() {
         <p className="mb-4 c-muted">Necesidades reportadas en terreno que requieren tu ayuda.</p>
         {activas.length > 0 ? (
           <div className="row g-3">
-            {activas.map((n) => {
-              const total = Number(n.cantidad);
-              const donado = Number(n.donado) || 0;
-              const pct = total > 0 ? Math.round((donado / total) * 100) : 0;
-              const falta = total - donado;
-              return (
-                <div key={n.id} className="col-12 col-md-6 col-lg-4">
-                  <div className="project-card">
-                    <div className="d-flex align-items-start justify-content-between mb-2">
-                      <span className={`badge bg-${n.urgencia === "Alta" ? "danger" : n.urgencia === "Media" ? "warning" : "secondary"}`}>
-                        {n.urgencia}
-                      </span>
-                      <span className="project-id">{n.id}</span>
-                    </div>
-                    <h3 className="project-resource">{n.recurso}</h3>
-                    <p className="project-goal">
-                      <i className="bi bi-building me-1 c-accent"></i>{centroNombre(n.centroId) || n.centro || "Sin centro"}
-                    </p>
-                    {n.descripcion && (
-                      <div className="project-desc small c-muted mb-2" dangerouslySetInnerHTML={{ __html: n.descripcion }} />
-                    )}
-                    <div className="mb-2">
-                      <div className="d-flex justify-content-between small mb-1">
-                        <span className="c-muted">{donado} / {total} {n.unidad}</span>
-                        <span className="fw-semibold" style={{ color: pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}>{pct}%</span>
-                      </div>
-                      <div className="progress progress-height-6">
-                        <div className="progress-bar progress-bar-rounded" style={{ width: `${pct}%`, background: pct >= 80 ? "#3AB795" : pct >= 50 ? "#FFC107" : "#DD4444" }}></div>
-                      </div>
-                    </div>
-                    <div className="project-btn">
-                      <a href={`/donacion?recurso=${encodeURIComponent(n.recurso)}&cantidad=${encodeURIComponent(n.cantidad)}&unidad=${encodeURIComponent(n.unidad)}&centroId=${encodeURIComponent(n.centroId || "")}`} className="btn btn-primary w-100">
-                        <i className="bi bi-gift-fill me-1"></i>Donar{falta > 0 ? ` (falta ${falta} ${n.unidad})` : ""}
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {activas.map((n) => (
+              <ProyectoCard key={n.id} n={n} centroNombre={centroNombre} voluntarioCounts={voluntarioCounts} />
+            ))}
           </div>
         ) : (
           <div className="text-center py-5">
@@ -206,9 +303,9 @@ export default function Inicio() {
         <p className="mb-4 c-pale-red">
           Cada donación, por pequeña que sea, puede cambiarle la vida a una familia en situación de emergencia.
         </p>
-        <a href="/donacion" className="btn btn-light btn-lg px-5 btn-light-primary">
+        <Link to="/donacion" className="btn btn-light btn-lg px-5 btn-light-primary">
           <i className="bi bi-heart-fill me-2"></i>Donar ahora
-        </a>
+        </Link>
       </div>
 
     </div>

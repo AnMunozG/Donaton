@@ -37,3 +37,16 @@ class UsuariosClient(ServiceClient):
 
     async def actualizar_usuario(self, user_id: int, data: dict, token: str = None) -> dict:
         return await self.patch(f"/api/usuarios/{user_id}/", data=data, token=token)
+
+    # ── Logros ──
+
+    async def listar_logros(self, token: str = None) -> list:
+        resp = await self.get("/api/logros/", token=token)
+        return resp if isinstance(resp, list) else resp.get("results", [])
+
+    async def mis_logros(self, token: str = None) -> list:
+        resp = await self.get("/api/mis-logros/", token=token)
+        return resp if isinstance(resp, list) else resp.get("results", [])
+
+    async def verificar_logros(self, stats: dict, token: str = None) -> dict:
+        return await self.post("/api/mis-logros/verificar/", data=stats, token=token)

@@ -49,7 +49,7 @@ export function descargarPDF(titulo) {
 
   const streamData =
     `BT /F1 28 Tf 100 720 Td (${tituloPDF}) Tj ET\n` +
-    `BT /F1 11 Tf 100 680 Td (Donaton - Plataforma de Transparencia) Tj ET\n` +
+    `BT /F1 11 Tf 100 680 Td (Donaton) Tj ET\n` +
     `BT /F1 10 Tf 100 660 Td (Fecha de generacion: ${datePDF}) Tj ET\n` +
     `BT /F1 10 Tf 100 620 Td (Este documento ha sido generado automaticamente con fines de demostracion.) Tj ET\n` +
     `BT /F1 10 Tf 100 600 Td (Si este fuera un reporte real, aqui encontraria informacion detallada) Tj ET\n` +

@@ -7,17 +7,23 @@ from ..exceptions import AuthError, ValidationError
 
 
 def _rol_from_user(user: dict) -> str:
-    return "admin" if user.get("is_staff", False) else "donante"
+    if user.get("is_staff", False):
+        return "admin"
+    if user.get("centro_acopio_id"):
+        return "encargado"
+    return "donante"
 
 
-def _crear_bff_token(user: dict, uat: str = "") -> str:
+def _crear_bff_token(user: dict, uat: str = "", uat_refresh: str = "") -> str:
     nombre = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
     payload = {
         "rut": user.get("rut", ""),
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
         "rol": _rol_from_user(user),
+        "centro_acopio_id": user.get("centro_acopio_id"),
         "uat": uat,
+        "uat_refresh": uat_refresh,
         "exp": datetime.now(timezone.utc) + timedelta(hours=24),
     }
     secret = getattr(settings, "JWT_SECRET", settings.SECRET_KEY)
@@ -34,7 +40,8 @@ async def login(data: LoginIn) -> dict:
     if "error" in token_resp or "access" not in token_resp:
         raise AuthError("RUT o contraseña incorrectos")
 
-    uat = token_resp["access"]  # usuarios access token
+    uat = token_resp["access"]
+    uat_refresh = token_resp.get("refresh", "")
 
     # 2. Extraer user_id del JWT de Usuarios SIN validar firma
     #    (está firmado con el secret de Usuarios, no el del BFF)
@@ -56,8 +63,8 @@ async def login(data: LoginIn) -> dict:
     if not user or "error" in user or "detail" in user:
         raise AuthError("Error al obtener perfil de usuario")
 
-    # 4. Crear JWT del BFF (incluye uat para futuras llamadas a Usuarios)
-    bff_token = _crear_bff_token(user, uat=uat)
+    # 4. Crear JWT del BFF (incluye uat y uat_refresh para futuras llamadas a Usuarios)
+    bff_token = _crear_bff_token(user, uat=uat, uat_refresh=uat_refresh)
 
     nombre = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
     return {
@@ -65,16 +72,21 @@ async def login(data: LoginIn) -> dict:
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
         "rol": _rol_from_user(user),
+        "centro_acopio_id": user.get("centro_acopio_id"),
         "token": bff_token,
     }
 
 
 async def register(data: RegisterIn) -> dict:
+    nombre_parts = (data.nombre or "").split(" ", 1)
+    first_name = nombre_parts[0]
+    last_name = nombre_parts[1] if len(nombre_parts) > 1 else ""
+
     resp = await usuarios_client.registrar(
         rut=data.rut,
         email=data.email,
-        first_name=data.nombre,
-        last_name="",
+        first_name=first_name,
+        last_name=last_name,
         password=data.password,
     )
     if "error" in resp:
@@ -125,7 +137,50 @@ async def update_profile(rut: str, data: UserUpdateIn, uat: str = None) -> dict:
         payload["first_name"] = data.nombre
     if data.email is not None:
         payload["email"] = data.email
+    if data.telefono is not None:
+        payload["telefono"] = data.telefono
+    if data.direccion is not None:
+        payload["direccion"] = data.direccion
 
+    if payload:
+        updated = await usuarios_client.actualizar_usuario(user["id"], payload, token=uat)
+        return _user_from_usuarios(updated)
+    return _user_from_usuarios(user)
+
+
+async def list_usuarios(uat: str = None) -> list:
+    if not uat:
+        raise AuthError("Sesión expirada")
+    users = await usuarios_client.listar_usuarios(token=uat)
+    return [_user_from_usuarios(u) for u in (users or [])]
+
+
+async def admin_update_user(rut: str, data: dict, uat: str = None) -> dict:
+    if not uat:
+        raise AuthError("Sesión expirada")
+    users = await usuarios_client.listar_usuarios(token=uat)
+    user = None
+    for u in (users or []):
+        if u.get("rut") == rut:
+            user = u
+            break
+    if not user:
+        raise AuthError("Usuario no encontrado")
+    payload = {}
+    if "nombre" in data:
+        parts = (data["nombre"] or "").split(" ", 1)
+        payload["first_name"] = parts[0]
+        payload["last_name"] = parts[1] if len(parts) > 1 else ""
+    if "email" in data:
+        payload["email"] = data["email"]
+    if "centro_acopio_id" in data:
+        payload["centro_acopio_id"] = data["centro_acopio_id"] or None
+    if "is_staff" in data:
+        payload["is_staff"] = data["is_staff"]
+    if "telefono" in data:
+        payload["telefono"] = data["telefono"]
+    if "direccion" in data:
+        payload["direccion"] = data["direccion"]
     if payload:
         updated = await usuarios_client.actualizar_usuario(user["id"], payload, token=uat)
         return _user_from_usuarios(updated)
@@ -140,8 +195,9 @@ def _user_from_usuarios(user: dict) -> dict:
         "nombre": nombre or user.get("username", ""),
         "email": user.get("email", ""),
         "rol": _rol_from_user(user),
-        "telefono": "",
-        "direccion": "",
+        "centro_acopio_id": user.get("centro_acopio_id"),
+        "telefono": user.get("telefono", ""),
+        "direccion": user.get("direccion", ""),
         "activo": user.get("is_active", True),
         "created_at": date_joined,
         "updated_at": date_joined,

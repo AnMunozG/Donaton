@@ -14,20 +14,26 @@ Plataforma web de donaciones transparentes que conecta donantes, municipalidades
                  │  - Centros CRUD + inventario          │     │  (Django)    │
                  │  - Donaciones CRUD + stats            │     │  :8001       │
                  │  - Necesidades CRUD + Stats           │     ├──────────────┤
-                 │  - Catálogos / contenido estático     │────▶│  Donaciones  │
-                 └─────────────────────────────────────┘        │  (Django)    │
-                                                     |          │  :8003       │
-                                                     |        ├──────────────┤
-                                                     |────▶ │  Necesidades  │
-                                                             │  (Django)    │
-                                                             │  :8004       │
+                 │  - Voluntarios CRUD + horas           │────▶│  Donaciones  │
+                 │  - Catálogos / contenido estático     │     │  (Django)    │
+                 └─────────────────────────────────────┘     │  :8003       │
+                                                            ├──────────────┤
+                                                     ─────▶│  Necesidades  │
+                                                            │  (Django)    │
+                                                            │  :8004       │
+                                                            ├──────────────┤
+                                                     ─────▶│ Voluntarios  │
+                                                            │  (Django)    │
+                                                            │  :8005       │
                                                             └──────────────┘
+```
 - **Frontend**: React 19 + Vite + Bootstrap 5 + Recharts
 - **BFF** (Backend-for-Frontend): Django 5 + Django Ninja (API Gateway)
 - **Usuarios**: Django 5 + DRF + SimpleJWT (gestión de usuarios)
 - **Logística**: Django 5 + DRF + SimpleJWT (centros, inventario JSON)
-- **Donaciones**: Django 5 + DRF + drf-spectacular (donaciones CRUD + estadísticas)
-- **Necesidades**: Django 5 + DRF + drf-spectacular (Necesidades CRUD + estadísticas)
+- **Donaciones**: Django 5 + DRF + SimpleJWT (donaciones CRUD + estadísticas)
+- **Necesidades**: Django 5 + DRF + SimpleJWT (Necesidades CRUD + estadísticas)
+- **Voluntarios**: Django 5 + DRF + SimpleJWT (voluntarios CRUD, horas, asignaciones)
 
 
 ## Requisitos
@@ -61,6 +67,7 @@ Servicios disponibles:
 | Donaciones Docs | http://localhost:8003/api/docs/ |
 | Necesidades API | http://localhost:8004/api/ |
 | Necesidades Docs | http://localhost:8004/api/docs/ |
+| Voluntarios API | http://localhost:8005/api/ |
 
 ## Comandos útiles (Makefile)
 
@@ -149,6 +156,18 @@ python manage.py seed
 python manage.py runserver 8003
 ```
 
+### Voluntarios
+
+```bash
+cd voluntarios
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+# Requiere MySQL con base 'voluntarios_db'
+python manage.py migrate
+python manage.py runserver 8005
+```
+
 ## Variables de entorno
 
 Copia el archivo `.env` incluido y ajusta según sea necesario:
@@ -213,21 +232,31 @@ Donaton/
 │   └── requirements.txt
 │
 └── logistica/               # Microservicio de Logística
-|   ├── config/
-|   │   └── settings.py      # Django + DRF + SimpleJWT
-|   ├── logistica/
-|   │   ├── models.py        # CentroAcopio con inventario JSON
-|   │   ├── views.py         # ViewSets con permisos
-|   │   └── serializers.py
-|   └── requirements.txt
-└── Necesidades/               # Microservicio de Necesidades
     ├── config/
     │   └── settings.py      # Django + DRF + SimpleJWT
-    ├── api_necesidades/
-    │   ├── models.py        # Necesidad con centro_acopio, urgencia, estado
-    │   ├── views.py         # ViewSets con filtros + stats
+    ├── logistica/
+    │   ├── models.py        # CentroAcopio con inventario JSON
+    │   ├── views.py         # ViewSets con permisos
     │   └── serializers.py
-    ├── management/          # Comandos seed
+    └── requirements.txt
+│
+├── necesidades/             # Microservicio de Necesidades
+│   ├── config/
+│   │   └── settings.py      # Django + DRF + SimpleJWT
+│   ├── api_necesidades/
+│   │   ├── models.py        # Necesidad con centro_acopio, urgencia, estado
+│   │   ├── views.py         # ViewSets con filtros + registrar donación
+│   │   └── serializers.py
+│   ├── management/          # Comandos seed
+│   └── requirements.txt
+│
+└── voluntarios/             # Microservicio de Voluntarios
+    ├── config/
+    │   └── settings.py      # Django + DRF + SimpleJWT
+    ├── api_voluntarios/
+    │   ├── models.py        # Voluntario, RegistroHoras, AsignacionVoluntario
+    │   ├── views.py         # ViewSets con filtros + registrar horas
+    │   └── serializers.py
     └── requirements.txt
 ```
 
@@ -262,4 +291,13 @@ Donaton/
 | POST | `/api/necesidades/{code}/activar` | - | Activar necesidad (asigna urgencia) |
 | GET | `/api/necesidades/{code}/propuestas` | - | Listar propuestas de una necesidad |
 | POST | `/api/propuestas` | JWT | Crear propuesta |
+| GET | `/api/voluntarios` | - | Listar voluntarios (filtros: estado, centro, habilidad, disponibilidad) |
+| GET | `/api/voluntarios/mi-perfil` | JWT | Perfil de voluntario del usuario |
+| POST | `/api/voluntarios` | JWT | Registrarse como voluntario |
+| GET | `/api/voluntarios/{id}` | JWT | Detalle de voluntario |
+| PUT | `/api/voluntarios/{id}` | JWT | Actualizar datos de voluntario |
+| PATCH | `/api/voluntarios/{id}/estado` | Admin/Encargado | Cambiar estado de voluntario |
+| DELETE | `/api/voluntarios/{id}` | Admin | Eliminar voluntario |
+| POST | `/api/voluntarios/{id}/horas` | JWT | Registrar horas trabajadas |
+| GET | `/api/voluntarios/{id}/horas` | JWT | Listar horas registradas |
 | GET | `/api/static/*` | - | Catálogos y contenido estático |

@@ -14,6 +14,7 @@ class LoginOut(Schema):
     email: str
     rol: str
     token: str
+    centro_acopio_id: Optional[str] = None
 
 
 class RegisterIn(Schema):
@@ -33,6 +34,7 @@ class UserOut(Schema):
     telefono: str
     direccion: str
     activo: bool
+    centro_acopio_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -42,3 +44,5 @@ class UserUpdateIn(Schema):
     email: Optional[str] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
+    centro_acopio_id: Optional[str] = None
+    is_staff: Optional[bool] = None

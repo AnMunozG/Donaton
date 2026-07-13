@@ -83,10 +83,10 @@ export default function Transparencia() {
                   <div key={i}>
                     <div className="d-flex justify-content-between mb-1">
                       <span className="fw-medium">{item.label}</span>
-                      <span className="fw-bold" style={{ color: item.color }}>{item.porcentaje}%</span>
+                      <span className="fw-bold color-dynamic" style={{ '--dynamic-color': item.color }}>{item.porcentaje}%</span>
                     </div>
                     <div className="tp-progress-bar">
-                      <div className="tp-progress-fill" style={{ width: `${item.porcentaje}%`, background: item.color }}></div>
+                      <div className="tp-progress-fill progress-dynamic-bar" style={{ '--bar-w': `${item.porcentaje}%`, '--bar-color': item.color }}></div>
                     </div>
                   </div>
                 ))}
@@ -96,7 +96,7 @@ export default function Transparencia() {
               <div className="tp-chart-card">
                 <h5 className="mb-3 c-heading">
                   <i className="bi bi-pie-chart-fill me-2 c-primary"></i>
-                  Distribución 2025
+                  Distribución {new Date().getFullYear()}
                 </h5>
                 <div className="d-flex flex-wrap gap-4 justify-content-center">
                   {distribucionFondos.map((item, i) => (
@@ -104,8 +104,8 @@ export default function Transparencia() {
                       <div className="tp-chart-ring-wrapper mx-auto mb-2">
                         <div className="tp-chart-ring"
                           style={{ background: `conic-gradient(${item.color} 0deg, ${item.color} ${item.porcentaje * 3.6}deg, #e8e8e8 ${item.porcentaje * 3.6}deg)` }}>
-                          <div className="tp-chart-ring-inner d-flex align-items-center justify-content-center fw-bold"
-                            style={{ color: item.color }}>
+                          <div className="tp-chart-ring-inner d-flex align-items-center justify-content-center fw-bold color-dynamic"
+                            style={{ '--dynamic-color': item.color }}>
                             {item.porcentaje}%
                           </div>
                         </div>
@@ -137,12 +137,12 @@ export default function Transparencia() {
                   onClick={() => descargarPDF(r.titulo)}
                   onKeyDown={(e) => e.key === "Enter" && descargarPDF(r.titulo)}>
                   <div className="d-flex align-items-center gap-3">
-                    <i className={`bi ${r.icono} fs-2`} style={{ color: r.color }}></i>
+                    <i className={`bi ${r.icono} fs-2 color-dynamic`} style={{ '--dynamic-color': r.color }}></i>
                     <div className="flex-grow-1 min-width-0">
                       <div className="fw-semibold text-truncate c-heading">{r.titulo}</div>
                       <div className="small c-muted">{r.fecha} &middot; {r.size}</div>
                     </div>
-                    <span className={`tp-type-badge tp-type-${r.tipo.toLowerCase()}`}>{r.tipo}</span>
+                    <span className={`tp-type-badge tp-type-${(r.tipo || "documento").toLowerCase()}`}>{r.tipo}</span>
                   </div>
                 </div>
               </div>
@@ -163,8 +163,8 @@ export default function Transparencia() {
             {GOBERNANZA.map((p, i) => (
               <div key={i} className="col-sm-6 col-lg-3">
                 <div className="tp-team-card text-center">
-                  <div className="rounded-circle mx-auto mb-3 tp-gov-avatar"
-                    style={{ backgroundColor: p.color }}>
+                  <div className="rounded-circle mx-auto mb-3 tp-gov-avatar bg-dynamic"
+                    style={{ '--dynamic-bg': p.color }}>
                     <span className="fw-bold c-white fs-2">
                       {p.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                     </span>
@@ -193,7 +193,7 @@ export default function Transparencia() {
               <Link to="/donacion" className="btn btn-light px-4 btn-light-primary">
                 <i className="bi bi-heart-fill me-2"></i>Hacer una donación
               </Link>
-              <a href="#" className="btn tp-btn-outline-light px-4">
+              <a href="mailto:transparencia@donaton.cl" className="btn tp-btn-outline-light px-4">
                 <i className="bi bi-envelope me-2"></i>Contactar transparencia
               </a>
             </div>

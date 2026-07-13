@@ -1,6 +1,6 @@
 import re
 from rest_framework import serializers
-from .models import Usuario
+from .models import Usuario, Logro, LogroUsuario
 from itertools import cycle
 
 class RegistroSerializer(serializers.ModelSerializer):
@@ -11,8 +11,7 @@ class RegistroSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ['id', 'rut', 'email', 'first_name', 'last_name', 'password', 'is_staff']
-        extra_kwargs = {'is_staff': {'read_only': True}}
+        fields = ['id', 'rut', 'email', 'first_name', 'last_name', 'password', 'is_staff', 'centro_acopio_id']
 
     def validate_rut(self, value):
         # Tu lógica de validación está perfecta, la mantenemos
@@ -34,7 +33,6 @@ class RegistroSerializer(serializers.ModelSerializer):
         if dv_ingresado != dv_esperado:
             raise serializers.ValidationError("Dígito verificador incorrecto.")
 
-        from .models import Usuario
         qs = Usuario.objects.filter(username=rut_limpio)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)
@@ -44,19 +42,12 @@ class RegistroSerializer(serializers.ModelSerializer):
         return rut_limpio
 
     def create(self, validated_data):
-        # TRUCO PROFESIONAL: 
-        # Como Django exige un 'username' internamente, le asignamos el RUT.
-        # Así el usuario no tiene que inventar un nombre de usuario.
         validated_data['username'] = validated_data['rut']
-        
-        # Usamos create_user para que la password se encripte correctamente
         return Usuario.objects.create_user(**validated_data)
 
     def update(self, instance, validated_data):
-        # Si actualizan el RUT, actualizamos el username también
         if 'rut' in validated_data:
             validated_data['username'] = validated_data['rut']
-            
         password = validated_data.pop('password', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -64,3 +55,18 @@ class RegistroSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
+
+
+class LogroSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Logro
+        fields = ["id", "codigo", "nombre", "descripcion", "icono", "categoria", "orden"]
+
+
+class LogroUsuarioSerializer(serializers.ModelSerializer):
+    logro = LogroSerializer(read_only=True)
+    codigo = serializers.SlugField(source="logro.codigo", read_only=True)
+
+    class Meta:
+        model = LogroUsuario
+        fields = ["id", "logro", "codigo", "fecha_obtenido", "progreso"]

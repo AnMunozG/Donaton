@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { getCentros, getNecesidades, getRuta, urgenciaColorMap, estadoNecColorMap } from "../api.js";
-import { capacidadColor } from "../componentes/Validaciones.js";
+import { getCentros, getNecesidades, getRuta, seguirCentro, dejarSeguirCentro, esCentroSeguido, urgenciaColorMap, estadoNecColorMap } from "../api.js";
+import { capacidadColor, formatearNumero } from "../componentes/Validaciones.js";
+import { useAuth } from "../componentes/AuthContext";
 import Mapa from "../componentes/Mapa";
 import banner2Img from "../assets/Banner2.png";
 
@@ -11,9 +12,11 @@ const TRAVEL_MODES = [
 ];
 
 export default function Centros() {
+  const { isAuth } = useAuth();
   const [centros, setCentros] = useState([]);
   const [necesidades, setNecesidades] = useState([]);
   const [seleccionado, setSeleccionado] = useState(null);
+  const [seguido, setSeguido] = useState(false);
   const [filtroRegion, setFiltroRegion] = useState("Todas");
   const [routeLine, setRouteLine] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
@@ -31,7 +34,12 @@ export default function Centros() {
     setRouteLine(null);
     setRouteInfo(null);
     setRouteError(null);
-  }, [seleccionado]);
+    if (seleccionado && isAuth) {
+      esCentroSeguido(seleccionado.id).then(setSeguido);
+    } else {
+      setSeguido(false);
+    }
+  }, [seleccionado, isAuth]);
 
   const regiones = ["Todas", ...new Set(centros.map((c) => c.region))];
 
@@ -39,7 +47,7 @@ export default function Centros() {
     ? centros
     : centros.filter((c) => c.region === filtroRegion);
 
-  const needsActivas = necesidades.filter((n) => n.estado !== "Pendiente");
+  const needsActivas = necesidades.filter((n) => n.estado === "Activa");
   const necesidadesDelCentro = seleccionado
     ? needsActivas.filter((n) => n.centroId === seleccionado.id)
     : [];
@@ -121,7 +129,7 @@ export default function Centros() {
       <div className="banner-centros" style={{ backgroundImage: `url(${banner2Img})` }}>
         <div className="banner-content-wrapper">
           <span className="banner-pill banner-pill-small mb-2">
-            {centros.length} CENTROS ACTIVOS
+            {centros.filter((c) => c.estado === "Activo" || c.estado === "Normal").length} CENTROS ACTIVOS
           </span>
           <h1 className="h1-banner">Centros de Acopio</h1>
           <p className="banner-text">
@@ -147,7 +155,7 @@ export default function Centros() {
         <div className="col-12 col-lg-4 d-flex flex-column">
           <div className="card-surface rounded-4 p-3 d-flex flex-column gap-3 lista-centros">
             {centrosFiltrados.map((c) => {
-              const pct = Math.round((c.capacidadUsada / c.capacidadTotal) * 100);
+              const pct = c.capacidadTotal > 0 ? Math.round((c.capacidadUsada / c.capacidadTotal) * 100) : 0;
               const barColor = capacidadColor(pct);
               const necesidadesCount = needsActivas.filter((n) => n.centroId === c.id).length;
 
@@ -160,8 +168,7 @@ export default function Centros() {
                     <div>
                       <div className="d-flex align-items-center gap-2 mb-1">
                         <span className="center-id">{c.id}</span>
-                        <span className="center-percent"
-                          style={{ background: barColor + "18", color: barColor }}>{pct}%</span>
+                        <span className="center-percent color-dynamic" style={{ '--dynamic-color': barColor, background: barColor + "18" }}>{pct}%</span>
                       </div>
                       <div className="center-name">{c.nombre}</div>
                       <div className="small c-muted">
@@ -180,11 +187,11 @@ export default function Centros() {
 
                   <div className="small d-flex justify-content-between mb-1">
                     <span className="c-muted">Capacidad usada</span>
-                    <span className="center-capacity-text">{c.capacidadUsada.toLocaleString()} / {c.capacidadTotal.toLocaleString()} kg</span>
+                    <span className="center-capacity-text">{formatearNumero(c.capacidadUsada || 0)} / {formatearNumero(c.capacidadTotal || 0)}</span>
                   </div>
 
                   <div className="progress progress-height-6">
-                    <div className="progress-bar progress-bar-rounded" style={{ width: `${pct}%`, background: barColor }}></div>
+                    <div className="progress-bar progress-bar-rounded progress-dynamic-bar" style={{ '--bar-w': `${pct}%`, '--bar-color': barColor }}></div>
                   </div>
                 </div>
               );
@@ -210,7 +217,23 @@ export default function Centros() {
                   <span className="center-id">{seleccionado.id}</span>
                   <h2 className="fw-bold fs-5 mb-0 c-heading">{seleccionado.nombre}</h2>
                 </div>
-                <span className={`badge ${seleccionado.estado === "Activo" ? "bg-success" : "bg-danger"}`}>{seleccionado.estado}</span>
+                <div className="d-flex align-items-center gap-2">
+                  <span className={`badge ${seleccionado.estado === "Activo" || seleccionado.estado === "Normal" ? "bg-success" : seleccionado.estado === "Capacidad moderada" ? "bg-warning text-dark" : "bg-danger"}`}>{seleccionado.estado}</span>
+                  {isAuth && (
+                    <button className={`btn btn-sm ${seguido ? "btn-danger" : "btn-outline-danger"}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (seguido) {
+                          dejarSeguirCentro(seleccionado.id).then(() => setSeguido(false));
+                        } else {
+                          seguirCentro(seleccionado.id).then(() => setSeguido(true));
+                        }
+                      }}
+                      title={seguido ? "Dejar de seguir" : "Seguir este centro"}>
+                      <i className={`bi ${seguido ? "bi-heart-fill" : "bi-heart"}`}></i>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="row g-3 mb-4">
@@ -307,12 +330,12 @@ export default function Centros() {
                   {necesidadesDelCentro.map((n) => (
                     <div key={n.id} className="p-3 rounded-3 d-flex justify-content-between align-items-start flex-wrap gap-2 bg-page b-card">
                       <div>
-                        <div className="fw-semibold small c-heading">{n.recurso} — {n.cantidad} {n.unidad}</div>
+                        <div className="fw-semibold small c-heading">{n.recurso} — {formatearNumero(n.cantidad)} {n.unidad}</div>
                         <div className="small c-muted"><i className="bi bi-building me-1"></i>{n.centro || seleccionado?.nombre || "Sin centro"}</div>
                         <div className="small c-muted"><i className="bi bi-person me-1"></i>{n.reportadoPor}</div>
                       </div>
                       <div className="d-flex gap-1 flex-wrap">
-                        <span className={`badge bg-${urgenciaColorMap[n.urgencia]}`}>{n.urgencia}</span>
+                        <span className={`badge bg-${urgenciaColorMap[n.urgencia] || "secondary"}`}>{n.urgencia}</span>
                         <span className={`badge bg-${estadoNecColorMap[n.estado]}`}>{n.estado}</span>
                       </div>
                     </div>

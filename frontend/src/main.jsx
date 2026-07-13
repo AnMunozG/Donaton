@@ -17,9 +17,10 @@ import Necesidades from './paginas/Necesidades.jsx'
 import Registro from './paginas/Registro.jsx'
 import BackOffice from './paginas/BackOffice.jsx'
 import Transparencia from './paginas/Transparencia.jsx'
-import Importante from './assets/Importante.jsx'
 import Login from './paginas/Login.jsx'
 import Perfil from './paginas/Perfil.jsx'
+import Impacto from './paginas/Impacto.jsx'
+import Voluntarios from './paginas/Voluntarios.jsx'
 
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 import { AuthProvider } from './componentes/AuthContext.jsx'
@@ -41,11 +42,12 @@ const router = createBrowserRouter([
       { path: "donacion", element: <Donacion /> },
       { path: "necesidades", element: <Necesidades /> },
       { path: "registro", element: <Registro /> },
-      { path: "dashboard", element: <ProtectedRoute requiredRole="admin"><BackOffice /></ProtectedRoute> },
+      { path: "dashboard", element: <ProtectedRoute requiredRole={["admin", "encargado"]}><BackOffice /></ProtectedRoute> },
       { path: "login", element: <Login /> },
       { path: "perfil", element: <ProtectedRoute><Perfil /></ProtectedRoute> },
+      { path: "impacto", element: <ProtectedRoute><Impacto /></ProtectedRoute> },
+      { path: "voluntarios", element: <Voluntarios /> },
       { path: "transparencia", element: <Transparencia /> },
-      { path: "222", element: <Importante /> },
       { path: "*", element: <h1 className="text-center mt-5">404 - Página no encontrada</h1> },
     ]
   }

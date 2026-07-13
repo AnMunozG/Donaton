@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { login as apiLogin } from "../api.js";
 import { useAuth } from "../componentes/AuthContext";
 import { validarRut, validarRequerido, validarPassword, validarForm, formatearRut, limpiarRut } from "../componentes/Validaciones.js";
@@ -26,8 +26,8 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await apiLogin(rut, password);
-      login(user.rut, user.nombre, user.rol, user.email, user.token);
-      navigate(user.rol === "admin" ? "/dashboard" : "/perfil");
+      login(user.rut, user.nombre, user.rol, user.email, user.token, user.centro_acopio_id);
+      navigate(user.rol === "admin" || user.rol === "encargado" ? "/dashboard" : "/perfil");
     } catch (err) {
       setError("RUT o contraseña incorrectos");
     } finally {
@@ -89,12 +89,7 @@ export default function Login() {
 
               <div className="text-center mt-3">
                 <small className="c-muted">
-                  ¿No tienes cuenta? <a href="/registro" className="auth-link">Regístrate aquí</a>
-                </small>
-              </div>
-              <div className="auth-divider text-center">
-                <small className="c-muted">
-                  <strong className="c-heading">Prueba:</strong> Admin: 11111111-1 / admin1234
+                  ¿No tienes cuenta? <Link to="/registro" className="auth-link">Regístrate aquí</Link>
                 </small>
               </div>
             </div>

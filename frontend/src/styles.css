@@ -243,6 +243,7 @@ code, .counter { font-family: var(--mono); }
 .nosotros,
 .registro,
 .login,
+.voluntarios,
 .backoffice {
   min-height: calc(100vh - 220px);
   padding: var(--page-py) var(--page-px);
@@ -780,7 +781,7 @@ footer .border-top-section {
 @media (min-width: 576px) and (max-width: 991px) {
   .hero-banner { height: clamp(260px, 38vw, 360px); }
   .inicio, .donacion, .necesidades, .centros,
-  .nosotros, .registro, .login{ padding: 1.5rem 1.25rem; }
+  .nosotros, .registro, .login, .voluntarios{ padding: 1.5rem 1.25rem; }
   .transparencia-page { padding: 0 0.5rem; }
 }
 
@@ -795,6 +796,7 @@ footer .border-top-section {
   .nosotros,
   .registro,
   .login,
+  .voluntarios,
   .backoffice {
     padding: 2.5rem 3rem;
   }
@@ -862,6 +864,7 @@ footer .border-top-section {
 .c-amber { color: #CC9900 !important; }
 .c-dark-green { color: #194B4F !important; }
 .c-pale-red { color: #FFDCDC !important; }
+.c-success  { color: #3AB795 !important; }
 
 /* Fondos */
 .bg-surface { background: var(--surface) !important; }
@@ -897,6 +900,7 @@ footer .border-top-section {
 }
 .auth-container-wide{
   width: 100%;
+  max-width: 1000px;
 }
 
 .img-ratio-16x9 {
@@ -1322,6 +1326,7 @@ footer .border-top-section {
   color: #fff;
   font-weight: 700;
   font-size: 1.1rem;
+  background: var(--dynamic-bg, linear-gradient(135deg, var(--primary), var(--secondary)));
 }
 .team-divider{
   width: 40px;
@@ -1350,6 +1355,11 @@ footer .border-top-section {
   background: rgba(221,68,68,0.12);
   color: var(--primary);
 }
+.page-header-pill.accent-pill{
+  background: rgba(43,128,101,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(43,128,101,0.2);
+}
 .small-form-select-width{
   width: auto;
   flex: 0 0 auto;
@@ -1368,9 +1378,6 @@ footer .border-top-section {
 .auth-container{
   width: 100%;
   max-width: 900px;
-}
-.auth-container-wide{
-  max-width: 1000px;
 }
 .auth-row{
   max-width: 900px;
@@ -2337,7 +2344,7 @@ footer .border-top-section {
   }
 
   .inicio, .donacion, .necesidades, .centros,
-  .nosotros, .registro, .login {
+  .nosotros, .registro, .login, .voluntarios {
     padding: 1.75rem 1.25rem;
   }
 
@@ -2443,7 +2450,7 @@ footer .border-top-section {
   }
 
   .inicio, .donacion, .necesidades, .centros,
-  .nosotros, .registro, .login {
+  .nosotros, .registro, .login, .voluntarios {
     padding: 2rem 1.5rem;
   }
 
@@ -2556,6 +2563,31 @@ footer .border-top-section {
 .bg-accent {
   background: var(--accent) !important;
 }
+.border-accent {
+  border-color: var(--accent) !important;
+}
+.bg-accent-light {
+  background: rgba(43, 128, 101, 0.08) !important;
+}
+
+/* ── VOLUNTARIOS SKILL CARDS ──────────────────────────────── */
+.volunteer-skill-card {
+  min-height: 3.5rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.volunteer-skill-card:hover {
+  border-color: var(--accent) !important;
+}
+.skill-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  margin-top: 0.15rem;
+}
 
 /* ── HEADER USER DROPDOWN ─────────────────────────────────── */
 .user-dropdown-btn {
@@ -2613,7 +2645,7 @@ footer .border-top-section {
 @media print {
   header, footer, .header-actions { display: none !important; }
   .inicio, .donacion, .necesidades, .centros, .nosotros,
-  .backoffice, .login, .registro {
+  .voluntarios, .backoffice, .login, .registro {
     box-shadow: none;
     border-radius: 0;
     margin: 0;
@@ -2640,6 +2672,7 @@ footer .border-top-section {
   .nosotros,
   .registro,
   .login,
+  .voluntarios,
   .backoffice {
     padding: clamp(1.5rem, 3vw, 2.25rem);
   }
@@ -2785,4 +2818,101 @@ h1, h2, h3, p, span {
 
 section {
   margin-bottom: clamp(2rem, 5vw, 4rem);
+}
+
+/* ── LEAFLET MAP ───────────────────────────────────────── */
+.mapa-libre {
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.marker-selected {
+  filter: hue-rotate(0deg) saturate(2);
+}
+
+.mapa-libre .leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.address-picker .list-group-item:hover {
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+/* ── UTILIDADES PARA REEMPLAZAR INLINE STYLES ─────────────── */
+
+/* Dropdown / listas desplegables con scroll */
+.dropdown-scrollable {
+  z-index: 1050;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* Mapa pequeño (AddressPicker) */
+.map-sm {
+  width: 100%;
+  height: 250px;
+}
+
+/* Progress bar delgada (LogrosModal, etc.) */
+.progress-thin {
+  height: 6px;
+}
+
+/* Badges extra pequeños */
+.badge-xs {
+  font-size: 0.65rem;
+}
+
+/* Tarjeta con borde izquierdo dinámico (BackOffice, Impacto) */
+.card-accent-left {
+  border-left: 4px solid var(--accent-color, var(--primary));
+}
+
+/* Icono de tarjeta con color dinámico (BackOffice, Impacto) */
+.card-icon-dynamic {
+  background: var(--icon-bg);
+  color: var(--icon-color);
+}
+
+/* Label con color dinámico (Transparencia) */
+.color-dynamic {
+  color: var(--dynamic-color);
+}
+
+/* Background con color dinámico (Nosotros team-divider) */
+.bg-dynamic {
+  background: var(--dynamic-bg);
+}
+
+/* Barra de progreso con color y ancho dinámicos */
+.progress-dynamic-bar {
+  background: var(--bar-color, var(--accent));
+  width: var(--bar-w, 0%);
+}
+
+/* Badge con color dinámico por estado (BackOffice) */
+.badge-dynamic {
+  background: var(--badge-bg);
+  color: var(--badge-color);
+  border: 1px solid var(--badge-border, transparent);
+}
+
+/* Icono grande para estados vacíos (Voluntarios) */
+.icon-lg {
+  font-size: 4rem;
+}
+
+/* Flex para carrusel de items (Donacion) */
+.flex-fill-auto {
+  flex: 1 1 auto;
+  min-width: 0;
+  scrollbar-width: thin;
+}
+
+/* Panel scrolleable con altura fija (Perfil, Impacto) */
+.scroll-panel {
+  max-height: 300px;
+  overflow-y: auto;
 }

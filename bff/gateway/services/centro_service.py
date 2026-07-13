@@ -4,6 +4,19 @@ from ..exceptions import NotFoundError, ValidationError
 from ..events import publish_centro_actualizado
 
 
+def _map_inventario(inventario_raw) -> list[InventarioItem]:
+    if not isinstance(inventario_raw, list):
+        return []
+    return [
+        InventarioItem(
+            tipo=str(item.get("item") or item.get("tipo") or ""),
+            cantidad=str(item.get("cantidad", "0"))
+        )
+        for item in inventario_raw
+        if isinstance(item, dict)
+    ]
+
+
 def _to_out(data: dict) -> CentroOut:
     centro_id = data.get("idCentro") or data.get("id") or ""
 
@@ -17,19 +30,6 @@ def _to_out(data: dict) -> CentroOut:
         except (ValueError, TypeError):
             coordenadas_obj = None
 
-    inventario_raw = data.get("inventario", []) or []
-    inventario_mapeado = []
-    
-    if isinstance(inventario_raw, list):
-        for item in inventario_raw:
-            if isinstance(item, dict):
-                inventario_mapeado.append(
-                    InventarioItem(
-                        tipo=str(item.get("item") or item.get("tipo") or ""),
-                        cantidad=str(item.get("cantidad", "0"))
-                    )
-                )
-
     return CentroOut(
         id=str(centro_id),
         nombre=str(data.get("nombre", "")),
@@ -40,14 +40,18 @@ def _to_out(data: dict) -> CentroOut:
         telefono=str(data.get("telefono", "")),
         capacidadTotal=int(data.get("capacidadTotal", 0)),
         capacidadUsada=float(data.get("capacidadUsada", 0.0)),
-        inventario=inventario_mapeado,
+        inventario=_map_inventario(data.get("inventario", []) or []),
         estado=str(data.get("estado", "Activo")),
     )
 
 
-async def list_all() -> list[CentroOut]:
+async def list_all(user=None) -> list[CentroOut]:
     data = await logistica_client.listar_centros()
-    return [_to_out(c) for c in data]
+    centros = [_to_out(c) for c in data]
+    if isinstance(user, dict) and user.get("rol") == "encargado":
+        centro_id = user.get("centro_acopio_id")
+        centros = [c for c in centros if str(c.id) == str(centro_id)]
+    return centros
 
 
 async def get_by_code(code: str) -> CentroOut:
@@ -138,10 +142,6 @@ async def update(code: str, body) -> CentroOut:
 
 
 async def get_inventario(code: str) -> list[InventarioItem]:
-    """
-    CORREGIDO: Ya no consulta la tabla intermedia obsoleta.
-    Obtiene el centro y lee directamente el JSONField interno de inventario.
-    """
     try:
         id_ = int(code)
     except ValueError:
@@ -151,14 +151,7 @@ async def get_inventario(code: str) -> list[InventarioItem]:
     if not data or "error" in data or "detail" in data:
         raise NotFoundError("Centro no encontrado")
 
-    inventario_raw = data.get("inventario", []) or []
-    
-    return [
-        InventarioItem(
-            tipo=item.get("item", ""),
-            cantidad=str(item.get("cantidad", "0"))
-        ) for item in inventario_raw
-    ]
+    return _map_inventario(data.get("inventario", []) or [])
 
 
 async def delete(code: str) -> None:
@@ -174,7 +167,32 @@ async def get_stats(code: str) -> CentroStatsOut:
         centro = await get_by_code(code)
     except NotFoundError:
         raise
+    total_donaciones = 0
+    total_necesidades = 0
+    try:
+        from ..clients import donaciones_client, necesidades_client
+        donaciones = await donaciones_client.listar_donaciones(params={"centro_code": code})
+        total_donaciones = len(donaciones) if isinstance(donaciones, list) else 0
+    except Exception:
+        pass
+    try:
+        from ..clients import necesidades_client
+        necesidades = await necesidades_client.listar_necesidades(params={"centro_code": code})
+        total_necesidades = len(necesidades) if isinstance(necesidades, list) else 0
+    except Exception:
+        pass
     return CentroStatsOut(
         id=centro.id, nombre=centro.nombre,
-        total_donaciones=0, total_necesidades=0, capacidad_usada=centro.capacidadUsada,
+        total_donaciones=total_donaciones, total_necesidades=total_necesidades, capacidad_usada=centro.capacidadUsada,
     )
+
+
+async def delete(code: str) -> dict:
+    try:
+        id_ = int(code)
+    except ValueError:
+        raise NotFoundError("Centro no encontrado")
+    data = await logistica_client.eliminar_centro(id_)
+    if data and "error" in data:
+        raise ValidationError(data.get("error", "Error al eliminar centro"))
+    return {"deleted": True}

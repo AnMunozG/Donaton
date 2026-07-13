@@ -1,57 +1,141 @@
-Microservicio de Gestion de Usuarios
-Este proyecto consiste en un microservicio de backend desarrollado con Django 5 y Django Rest Framework, diseñado para la administracion y autenticacion de usuarios mediante JSON Web Tokens (JWT). El sistema esta configurado para integrarse con motores de base de datos MySQL/MariaDB.
+# Backend Usuarios - Donatón
 
-Stack Tecnologico
-Lenguaje: Python 3.11+
+API REST para la gestión de usuarios desarrollada con Django y Django REST Framework. Administra registro, autenticación y perfiles de usuarios del ecosistema Donatón, con autenticación JWT y validación de RUT chileno.
 
-Framework Base: Django 5.0
+## Descripción
 
-API Framework: Django Rest Framework (DRF)
+Este microservicio centraliza la administración de usuarios. Permite registrar nuevos usuarios con validación de RUT chileno (módulo 11), autenticarse mediante JWT, gestionar perfiles y administrar logros de gamificación.
 
-Autenticacion: SimpleJWT (OAuth2 compatible)
+## Tecnologías
 
-Base de Datos: MariaDB (vía XAMPP o nativo)
+- Python 3
+- Django
+- Django REST Framework
+- Django REST Framework SimpleJWT
+- django-cors-headers
+- MySQL
 
-Documentacion: drf-spectacular (OpenAPI 3.0 / Swagger)
+## Estructura
 
-Requisitos Previos
-Python 3.11 o superior.
+```text
+usuarios/
+├── manage.py
+├── requirements.txt
+├── Dockerfile
+├── entrypoint.sh
+├── config/
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+└── api_servicio/
+    ├── models.py
+    ├── serializers.py
+    ├── views.py
+    ├── urls.py
+    ├── admin.py
+    ├── tests.py
+    └── migrations/
+```
 
-XAMPP con servicio MySQL activo.
+## Modelos principales
 
-Gestor de dependencias pip.
+- `Usuario` (AbstractUser): rut (PK, validación módulo 11), USERNAME_FIELD = 'rut'. Hereda username, email, first_name, last_name, is_staff, is_active, date_joined. Campo adicional: centro_acopio_id (para rol encargado).
+- `Logro`: codigo (slug único), nombre, descripcion, icono, categoria, orden.
+- `LogroUsuario`: usuario (FK), logro (FK), fecha_obtenido, progreso. unique_together en (usuario, logro).
 
-Instalacion y Configuracion
-1. Clonar el repositorio e instalar dependencias
-git clone 
-cd Usuario-Microservicio
-python -m venv venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
+## Requisitos
 
-2. Configuracion de Base de Datos
-Es necesario crear una base de datos en su gestor local (phpMyAdmin u otro) con el nombre definido en el archivo settings.py. Por defecto: usuarios_db.
+- Python 3.10 o superior
+- MySQL en ejecución
+- pip y un entorno virtual
 
-Notas de Compatibilidad (MariaDB)
-Debido a las restricciones de version en entornos locales como XAMPP, el archivo config/init.py incluye parches de compatibilidad para versiones de MariaDB anteriores a la 10.5:
+## Instalación
 
-Sustituye el driver por defecto por PyMySQL.
+1. Clonar el repositorio.
+    ```bash
+    git clone <URL_DEL_REPOSITORIO>
+    cd Donaton/usuarios
+    ```
 
-Deshabilita la validacion estricta de la version del motor.
+2. Crear y activar un entorno virtual.
+    ```bash
+    python -m venv venv
+    venv\Scripts\activate   # Windows
+    source venv/bin/activate  # Linux / macOS
+    ```
 
-Desactiva la clausula RETURNING en las sentencias SQL para asegurar compatibilidad con versiones Legacy.
+3. Instalar dependencias.
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-Despliegue en Desarrollo
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
+4. Revisar la configuración de base de datos en `config/settings.py`.
+    - Por defecto apunta a MySQL con la base `usuarios_db`.
 
-Documentacion de la API
-Una vez iniciado el servidor, las interfaces estan disponibles en:
+5. Ejecutar migraciones.
+    ```bash
+    python manage.py migrate
+    ```
 
-Swagger UI: http://127.0.0.1:8002/api/docs/
+6. Cargar datos de ejemplo.
+    ```bash
+    python manage.py seed
+    ```
 
-Redoc: http://127.0.0.1:8002/api/redoc/
+## Ejecución
 
-Seguridad
-La API implementa autenticacion por cabeceras Authorization: Bearer . Los endpoints protegidos requieren un token de acceso valido generado a partir del login.
+```bash
+python manage.py runserver 8000
+```
+
+La aplicación quedará disponible en `http://127.0.0.1:8000/`.
+
+## Rutas disponibles
+
+### Autenticación
+
+- `POST /api/login/` — Iniciar sesión (retorna access + refresh tokens).
+- `POST /api/token/refresh/` — Refrescar token de acceso.
+
+### Usuarios
+
+- `GET/POST /api/usuarios/` — Listar usuarios (autenticado) / Registrar usuario (público).
+- `GET/PUT/PATCH/DELETE /api/usuarios/{id}/` — CRUD de usuario.
+
+### Logros
+
+- `GET/POST /api/logros/` — Listar logros (público) / Crear logro (admin).
+- `GET /api/mis-logros/` — Logros del usuario autenticado.
+- `POST /api/mis-logros/verificar/` — Verificar y otorgar logros según estadísticas.
+
+## Autenticación
+
+- La autenticación se realiza mediante JWT (SimpleJWT).
+- El registro es público (`AllowAny`).
+- El listado de usuarios requiere autenticación.
+- Los logros de lectura son públicos; escritura requiere admin.
+
+## Validación de RUT
+
+El campo `rut` del modelo Usuario valida automáticamente:
+- Formato: 7 u 8 dígitos + guión + dígito verificador (0-9 o K).
+- Cálculo del dígito verificador usando Módulo 11.
+
+## Pruebas
+
+Ejecuta la suite de pruebas con:
+
+```bash
+python manage.py test
+```
+
+## Configuración importante
+
+La configuración principal está en `config/settings.py`.
+
+- `DEBUG` controla el modo de depuración.
+- `DATABASES` define la conexión a MySQL.
+- `AUTH_USER_MODEL` apunta a `api_servicio.Usuario`.
+- `SIMPLE_JWT` configura la vida útil de los tokens (24h access, 7d refresh).
+- `REST_FRAMEWORK` activa JWT como autenticación por defecto.

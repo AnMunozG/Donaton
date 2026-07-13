@@ -81,6 +81,7 @@ UNIDADES_POR_TIPO = {
     "Ropa y abrigo": ["prendas", "cajas", "kits"],
     "Donación Monetaria": ["CLP", "USD"],
     "Utensilios del hogar": ["unidades", "juegos", "cajas"],
+    "Otros": ["unidades", "kg", "cajas", "kits"],
 }
 
 CAMPOS_POR_TIPO = {
@@ -119,7 +120,26 @@ CAMPOS_POR_TIPO = {
         {"name": "estadoUtensilio", "label": "Estado", "type": "select", "options": ["Nuevo", "Semi-nuevo", "Usado en buen estado"]},
         {"name": "material", "label": "Material predominante", "type": "text", "placeholder": "Ej: Acero inoxidable, Plástico"},
     ],
+    "Otros": [
+        {"name": "tipoPersonalizado", "label": "Describe el artículo", "type": "text", "placeholder": "Ej: Instrumentos musicales, juguetes, libros..."},
+        {"name": "condicion", "label": "Condición", "type": "select", "options": ["Nuevo", "Semi-nuevo", "Usado en buen estado"]},
+    ],
 }
+
+HABILIDADES_VOLUNTARIO = [
+    {"code": "carga", "nombre": "Carga y descarga", "descripcion": "Apoyo en carga/descarga de donaciones"},
+    {"code": "enfermeria", "nombre": "Enfermería / Primeros auxilios", "descripcion": "Atención básica de salud"},
+    {"code": "conduccion", "nombre": "Conducción / Transporte", "descripcion": "Transporte de insumos o personas"},
+    {"code": "clasificacion", "nombre": "Clasificación de donaciones", "descripcion": "Organizar y clasificar artículos"},
+    {"code": "atencion", "nombre": "Atención al público", "descripcion": "Recepción y orientación de donantes"},
+    {"code": "logistica", "nombre": "Logística y organización", "descripcion": "Coordinación de operaciones"},
+    {"code": "cocina", "nombre": "Preparación de alimentos", "descripcion": "Cocina para comedores comunitarios"},
+    {"code": "construccion", "nombre": "Construcción / Reparaciones", "descripcion": "Reparación de infraestructura"},
+    {"code": "educacion", "nombre": "Apoyo educacional", "descripcion": "Clases o tutorías"},
+    {"code": "limpieza", "nombre": "Limpieza y saneamiento", "descripcion": "Desinfección de espacios"},
+    {"code": "administracion", "nombre": "Administración", "descripcion": "Apoyo en tareas administrativas"},
+    {"code": "otros", "nombre": "Otra", "descripcion": "Otra habilidad no listada"},
+]
 
 UNIDADES = [
     {"code": "kg", "nombre": "Kilogramo", "abreviatura": "kg"},
@@ -141,6 +161,7 @@ TIPOS_RECURSO = [
     {"code": "higiene", "nombre": "Artículos de higiene", "descripcion": "Jabón, pasta dental, pañales, toallitas", "activo": True},
     {"code": "dinero", "nombre": "Donación Monetaria", "descripcion": "Aporte económico vía transferencia o webpay", "activo": True},
     {"code": "utensilios", "nombre": "Utensilios del hogar", "descripcion": "Ollas, vajilla, ropa de cama", "activo": True},
+    {"code": "otros", "nombre": "Otros", "descripcion": "Otros artículos no listados", "activo": True},
 ]
 
 async def get_tipos_recurso():
@@ -197,3 +218,6 @@ async def get_impacto_stats():
 
 async def get_distribucion_fondos():
     return DISTRIBUCION_FONDOS
+
+async def get_habilidades_voluntario():
+    return HABILIDADES_VOLUNTARIO

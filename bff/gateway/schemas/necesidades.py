@@ -1,27 +1,41 @@
 from ninja import Schema
 from typing import Optional, Any
 from datetime import datetime
+from pydantic import field_validator
 
 
 class NecesidadCreate(Schema):
-    centroId: str
+    centroId: int
     recurso: str  # nombre tipo recurso ("Alimentos no perecibles", etc.)
-    cantidad: float  # cantidad_requerida
+    cantidad: int  # cantidad_requerida
     unidad: str  # nombre unidad
     descripcion: str = ""
     urgencia: str = "Media"
     reportadoPor: str = ""
     estado: str = "Activa"
+    categoria: str = ""
     fecha_limite: Optional[str] = None
     detalles: dict = {}
 
+    @field_validator("centroId", mode="before")
+    @classmethod
+    def validate_centro_id(cls, v):
+        if v is not None:
+            try:
+                int(v)
+            except (ValueError, TypeError):
+                raise ValueError(f"centroId debe ser numérico, recibido: '{v}'")
+        return int(v) if v is not None and v != "" else v
+
 
 class NecesidadUpdate(Schema):
-    cantidad: Optional[float] = None
+    cantidad: Optional[int] = None
     urgencia: Optional[str] = None
     estado: Optional[str] = None
     descripcion: Optional[str] = None
     reportadoPor: Optional[str] = None
+    categoria: Optional[str] = None
+    fecha_limite: Optional[str] = None
     detalles: Optional[dict] = None
 
 
@@ -38,11 +52,13 @@ class NecesidadOut(Schema):
     centroId: str
     centro: str  # nombre centro
     reportadoPor: str
+    categoria: str = "OTROS"
+    fecha_limite: Optional[str] = None
     detalles: dict = {}
 
 
 class ActivarNecesidadIn(Schema):
-    urgencia: str = "Media"
+    urgencia: str = None
 
 
 class PropuestaCreate(Schema):

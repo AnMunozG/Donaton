@@ -1,7 +1,14 @@
 services:
 
   mysql-usuarios:
-    image: mysql:8
+    image: mariadb:10.11
+    command: >
+      --innodb-buffer-pool-size=32M
+      --innodb-log-buffer-size=8M
+      --performance-schema=OFF
+      --max-connections=20
+      --tmp-table-size=8M
+      --max-heap-table-size=8M
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: usuarios_db
@@ -10,13 +17,20 @@ services:
     volumes:
       - mysql_usuarios_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   mysql-logistica:
-    image: mysql:8
+    image: mariadb:10.11
+    command: >
+      --innodb-buffer-pool-size=32M
+      --innodb-log-buffer-size=8M
+      --performance-schema=OFF
+      --max-connections=20
+      --tmp-table-size=8M
+      --max-heap-table-size=8M
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: backend_logistica
@@ -25,7 +39,7 @@ services:
     volumes:
       - mysql_logistica_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -58,7 +72,14 @@ services:
         condition: service_healthy
 
   mysql-donaciones:
-    image: mysql:8
+    image: mariadb:10.11
+    command: >
+      --innodb-buffer-pool-size=32M
+      --innodb-log-buffer-size=8M
+      --performance-schema=OFF
+      --max-connections=20
+      --tmp-table-size=8M
+      --max-heap-table-size=8M
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: backend_donaciones
@@ -67,7 +88,7 @@ services:
     volumes:
       - mysql_donaciones_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -80,13 +101,21 @@ services:
       DB_HOST: mysql-donaciones
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       DEBUG: ${DJANGO_DEBUG:-True}
+      DJANGO_SECRET_KEY: ${DONACIONES_JWT_SECRET:-django-insecure-4-dev-secret-change-in-production}
       ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,donaciones
     depends_on:
       mysql-donaciones:
         condition: service_healthy
 
   mysql-necesidades:
-    image: mysql:8
+    image: mariadb:10.11
+    command: >
+      --innodb-buffer-pool-size=32M
+      --innodb-log-buffer-size=8M
+      --performance-schema=OFF
+      --max-connections=20
+      --tmp-table-size=8M
+      --max-heap-table-size=8M
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: necesidades_db
@@ -95,7 +124,7 @@ services:
     volumes:
       - mysql_necesidades_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -108,9 +137,46 @@ services:
       DB_HOST: mysql-necesidades
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       DEBUG: ${DJANGO_DEBUG:-True}
+      DJANGO_SECRET_KEY: ${NECESIDADES_JWT_SECRET:-django-insecure-3-dev-secret-change-in-production}
       ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,necesidades
     depends_on:
       mysql-necesidades:
+        condition: service_healthy
+
+  mysql-voluntarios:
+    image: mariadb:10.11
+    command: >
+      --innodb-buffer-pool-size=32M
+      --innodb-log-buffer-size=8M
+      --performance-schema=OFF
+      --max-connections=20
+      --tmp-table-size=8M
+      --max-heap-table-size=8M
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      MYSQL_DATABASE: voluntarios_db
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql_voluntarios_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  voluntarios:
+    build: ./voluntarios
+    ports:
+      - "8005:8005"
+    environment:
+      DB_HOST: mysql-voluntarios
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      DEBUG: ${DJANGO_DEBUG:-True}
+      DJANGO_SECRET_KEY: ${VOLUNTARIOS_JWT_SECRET:-django-insecure-voluntarios-dev-key-change-in-production}
+      ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,voluntarios
+    depends_on:
+      mysql-voluntarios:
         condition: service_healthy
 
   bff:
@@ -122,7 +188,11 @@ services:
       LOGISTICA_URL: http://logistica:8001
       DONACIONES_URL: http://donaciones:8002
       NECESIDADES_URL: http://necesidades:8003
+      VOLUNTARIOS_URL: http://voluntarios:8005
       LOGISTICA_JWT_SECRET: ${LOGISTICA_JWT_SECRET}
+      DONACIONES_JWT_SECRET: ${DONACIONES_JWT_SECRET:-django-insecure-4-dev-secret-change-in-production}
+      NECESIDADES_JWT_SECRET: ${NECESIDADES_JWT_SECRET:-django-insecure-3-dev-secret-change-in-production}
+      VOLUNTARIOS_JWT_SECRET: ${VOLUNTARIOS_JWT_SECRET:-django-insecure-voluntarios-dev-key-change-in-production}
       BFF_JWT_SECRET: ${BFF_JWT_SECRET:-bff-jwt-secret-change-in-production}
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:8002,http://localhost,http://localhost:80,http://localhost:8080
       DEBUG: ${DJANGO_DEBUG:-True}
@@ -137,6 +207,8 @@ services:
       donaciones:
         condition: service_started
       necesidades:
+        condition: service_started
+      voluntarios:
         condition: service_started
 
   frontend:
@@ -154,4 +226,5 @@ volumes:
   mysql_logistica_data:
   mysql_donaciones_data:
   mysql_necesidades_data:
+  mysql_voluntarios_data:
   bff_data:

@@ -26,6 +26,8 @@ class ServiceClient:
             headers["Authorization"] = f"Bearer {token}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.request(method, url, headers=headers, **kwargs)
+            if resp.status_code == 204:
+                return {}
             try:
                 body = resp.json()
             except Exception:

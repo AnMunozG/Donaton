@@ -2,7 +2,7 @@
 # Crear directorio central de reportes local fuera de Docker
 mkdir -p reportes_globales
 
-SERVICIOS=("bff" "logistica" "donaciones" "usuarios")
+SERVICIOS=("bff" "logistica" "donaciones" "usuarios" "voluntarios" "necesidades")
 
 for SERVICIO in "${SERVICIOS[@]}"
 do

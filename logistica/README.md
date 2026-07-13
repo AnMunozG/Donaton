@@ -1,6 +1,6 @@
-# Backend Logística - Fullstack 3
+# Backend Logística - Donatón
 
-API REST para gestión logística desarrollada con Django y Django REST Framework. El proyecto modela centros de acopio, productos e inventario, con documentación automática de la API y autenticación basada en JWT.
+API REST para gestión logística desarrollada con Django y Django REST Framework. El proyecto modela centros de acopio, con documentación automática de la API y autenticación basada en JWT.
 
 ## Descripción
 
@@ -19,10 +19,12 @@ Este backend centraliza la administración de una solución logística orientada
 ## Estructura
 
 ```text
-BackendLogistica_Fullstack3/
+logistica/
 ├── manage.py
 ├── requirements.txt
-├── db.sqlite3
+├── Dockerfile
+├── entrypoint.sh
+├── pytest.ini
 ├── config/
 │   ├── settings.py
 │   ├── urls.py
@@ -55,7 +57,7 @@ BackendLogistica_Fullstack3/
 1. Clonar el repositorio.
     ```bash
     git clone <URL_DEL_REPOSITORIO>
-    cd BackendLogistica_Fullstack3
+    cd Donaton/logistica
     ```
 
 2. Crear y activar un entorno virtual.
@@ -73,7 +75,7 @@ BackendLogistica_Fullstack3/
     ```
 
 4. Revisar la configuración de base de datos en `config/settings.py`.
-    - Por defecto apunta a MySQL con la base `backend_logistica_db`.
+    - Por defecto apunta a MySQL con la base `backend_logistica`.
     - Ajusta usuario, contraseña, host y puerto según tu entorno.
 
 5. Ejecutar migraciones.

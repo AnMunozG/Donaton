@@ -5,10 +5,12 @@ const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 function MapController({ center, zoom }) {
   const map = useMap();
-  if (map && center) {
-    map.panTo(center);
-    map.setZoom(zoom || 12);
-  }
+  useEffect(() => {
+    if (map && center) {
+      map.panTo(center);
+      map.setZoom(zoom || 12);
+    }
+  }, [map, center, zoom]);
   return null;
 }
 
@@ -55,7 +57,7 @@ export default function Mapa({ centros, seleccionado, onSelect, routeLine, userL
         >
           <MapController center={center} zoom={seleccionado ? 14 : 12} />
           <FitBounds routeLine={routeLine} />
-          {centros.map((centro) => (
+          {(centros || []).map((centro) => (
             centro.coordenadas && (
               <Marker
                 key={centro.id}

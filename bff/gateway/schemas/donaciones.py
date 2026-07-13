@@ -6,31 +6,96 @@ from pydantic import field_validator
 
 class DonacionCreate(Schema):
     tipo: str  # "Alimentos no perecibles", "Ropa y abrigo", "Donación Monetaria", etc.
-    cantidad: float
+    cantidad: int
     unidad: str  # nombre de unidad (kg, unidades, etc.)
     origen: str = ""  # nombre o RUT del donante
     centroId: str  # centro code
     fecha: str = ""
-    estado: str = "Recibido"
+    estado: str = "Donación Registrada"
     comprobante: str = ""
     detalles: dict = {}
+
+    @field_validator("fecha", mode="before")
+    @classmethod
+    def validate_fecha(cls, v):
+        if v and v != "":
+            from datetime import date
+            try:
+                date.fromisoformat(v)
+            except (ValueError, TypeError):
+                raise ValueError(f"Fecha inválida: '{v}'. Use formato YYYY-MM-DD.")
+        return v
+
+
+class ItemDonacionCreate(Schema):
+    tipo: str
+    cantidad: float
+    unidad: str
+    detalles: dict = {}
+
+
+class DonacionMultiCreate(Schema):
+    items: list[ItemDonacionCreate]
+    origen: str = ""
+    centroId: str
+    fecha: str = ""
+    estado: str = "Donación Registrada"
+    notas: str = ""
+    direccion_retiro: str = ""
+    fecha_retiro: str = ""
+    detalles: dict = {}
+
+    @field_validator("fecha", mode="before")
+    @classmethod
+    def validate_fecha(cls, v):
+        if v and v != "":
+            from datetime import date
+            try:
+                date.fromisoformat(v)
+            except (ValueError, TypeError):
+                raise ValueError(f"Fecha inválida: '{v}'. Use formato YYYY-MM-DD.")
+        return v
 
 
 class DonacionUpdate(Schema):
     estado: Optional[str] = None
 
 
+class ItemDonacionOut(Schema):
+    id: str
+    tipo: str
+    cantidad: str
+    unidad: str
+    detalles: dict = {}
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_id(cls, v):
+        if v is not None:
+            return str(v)
+        return v
+
+    @field_validator("cantidad", mode="before")
+    @classmethod
+    def coerce_cantidad(cls, v):
+        if v is not None:
+            v = float(v)
+            return str(int(v)) if v == int(v) else str(v)
+        return v
+
+
 class DonacionOut(Schema):
     id: str  # code
-    tipo: str
-    cantidad: str  # string formateada (ej: "50")
-    unidad: str
+    tipo: Optional[str] = None
+    cantidad: Optional[str] = None  # string formateada (ej: "50")
+    unidad: Optional[str] = None
     origen: str
     centroId: str
     centro: str = ""  # nombre del centro (se resuelve si está disponible)
     fecha: str
     estado: str
     detalles: dict = {}
+    items: list[ItemDonacionOut] = []
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

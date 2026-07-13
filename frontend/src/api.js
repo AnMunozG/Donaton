@@ -6,18 +6,19 @@ import api from "./servicios/api.js";
 // ── Colores y constantes ─────────────────────────────────
 
 export const estadoColor = {
-  "Entregado": "#3AB795",
-  "En tránsito": "#0dcaf0",
-  "En acopio": "#FFC107",
+  "Donación Registrada": "#FFC107",
+  "En Recolección": "#0d6efd",
+  "En transporte": "#0dcaf0",
+  "Recibida": "#3AB795",
   "Pendiente": "#DD4444",
-  "Asignado": "#0d6efd",
-  "Cubierto": "#3AB795",
+  "Activa": "#0d6efd",
+  "Cubierta": "#3AB795",
 };
 
 export const CHART_COLORS = ["#DD4444", "#F48080", "#3AB795", "#194B4F"];
 
 export const urgenciaColorMap = { Alta: "danger", Media: "warning", Baja: "secondary" };
-export const estadoNecColorMap = { Pendiente: "danger", Asignado: "warning", Cubierto: "success" };
+export const estadoNecColorMap = { Pendiente: "danger", Activa: "warning", Cubierta: "success" };
 
 // ── Catálogos / Estáticos (desde BFF) ────────────────────
 
@@ -106,8 +107,9 @@ export async function eliminarCentro(id) {
 
 // ── Donaciones ───────────────────────────────────────────────
 
-export async function getDonaciones() {
-  const data = await donacionesService.getAll();
+export async function getDonaciones(origen) {
+  const params = origen ? { origen } : {};
+  const data = await donacionesService.getAll(params);
   return Array.isArray(data) ? data : [];
 }
 
@@ -115,12 +117,16 @@ export async function crearDonacion(data) {
   return donacionesService.create(data);
 }
 
+export async function crearDonacionMultiItem(data) {
+  return api.post("/donaciones/multi", data);
+}
+
 export async function actualizarEstadoDonacion(id, estado) {
   return donacionesService.update(id, { estado });
 }
 
 export async function actualizarDonacion(id, data) {
-  return actualizarEstadoDonacion(id, data.estado);
+  return donacionesService.update(id, data);
 }
 
 export async function eliminarDonacion(id) {
@@ -183,6 +189,175 @@ export async function crearCuenta(rut, data) {
   return api.post("/auth/register", { rut, ...data });
 }
 
-export async function actualizarCuenta(rut, data) {
-  return api.put("/auth/profile", data);
+export async function actualizarCuenta(data) {
+  return api.patch("/auth/profile", data);
+}
+
+// ── Usuarios (admin) ─────────────────────────────────────────
+
+export async function getUsuarios() {
+  try {
+    const data = await api.get("/auth/usuarios");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function actualizarUsuario(rut, data) {
+  return api.patch(`/auth/usuarios/${rut}`, data);
+}
+
+// ── Agradecimientos ──────────────────────────────────────────
+
+export async function crearAgradecimiento(data) {
+  return api.post("/auth/agradecimientos", data);
+}
+
+export async function getMisAgradecimientos() {
+  try {
+    const data = await api.get("/auth/agradecimientos/recibidos");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function getAgradecimientosCentro(code) {
+  try {
+    const data = await api.get(`/centros/${code}/agradecimientos`);
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+// ── Seguimiento de centros ───────────────────────────────────
+
+export async function seguirCentro(centroId) {
+  return api.post("/auth/centros/seguir", { centro_id: centroId });
+}
+
+export async function dejarSeguirCentro(centroId) {
+  await api.delete(`/auth/centros/${centroId}/seguir`);
+}
+
+export async function getCentrosSeguidos() {
+  try {
+    const data = await api.get("/auth/centros/seguidos");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function esCentroSeguido(centroId) {
+  try {
+    return await api.get(`/centros/${centroId}/seguido`);
+  } catch { return false; }
+}
+
+// ── Logros ───────────────────────────────────────────────────
+
+export async function getLogros() {
+  try {
+    const data = await api.get("/auth/logros");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function getMisLogros() {
+  try {
+    const data = await api.get("/auth/logros/mis-logros");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function verificarLogros(stats) {
+  return api.post("/auth/logros/verificar", stats);
+}
+
+// ── Voluntarios ──────────────────────────────────────────────
+
+export async function getVoluntarios(params) {
+  try {
+    const data = await api.get("/voluntarios", { params });
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function getMiPerfilVoluntario() {
+  try {
+    return await api.get("/voluntarios/mi-perfil");
+  } catch { return null; }
+}
+
+export async function crearVoluntario(data) {
+  return api.post("/voluntarios", data);
+}
+
+export async function actualizarVoluntario(id, data) {
+  return api.patch(`/voluntarios/${id}`, data);
+}
+
+export async function eliminarVoluntario(id) {
+  await api.delete(`/voluntarios/${id}`);
+}
+
+export async function cambiarEstadoVoluntario(id, estado) {
+  return api.patch(`/voluntarios/${id}/estado`, { estado });
+}
+
+export async function registrarHorasVoluntario(id, horas, descripcion, centroId) {
+  return api.post(`/voluntarios/${id}/horas`, { horas, descripcion, centro_id: centroId || "" });
+}
+
+export async function getHorasVoluntario(id, centroId) {
+  try {
+    const params = centroId ? { centro_id: centroId } : {};
+    return await api.get(`/voluntarios/${id}/horas`, { params });
+  } catch { return { horas_acumuladas: 0, horas_por_centro: {}, registros: [] }; }
+}
+
+export async function getHabilidadesVoluntario() {
+  try {
+    const data = await api.get("/static/habilidades-voluntario");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function getVoluntarioCentros(voluntarioId) {
+  try {
+    const data = await api.get(`/voluntarios/${voluntarioId}/centros`);
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function solicitarCentroVoluntario(voluntarioId, centroId) {
+  return api.post(`/voluntarios/${voluntarioId}/centros`, { centro_id: centroId });
+}
+
+export async function actualizarCentroVoluntario(vcId, estado) {
+  return api.patch(`/voluntarios/centros/${vcId}`, { estado });
+}
+
+export async function eliminarCentroVoluntario(vcId) {
+  return api.delete(`/voluntarios/centros/${vcId}`);
+}
+
+export async function enviarNotificacion(data) {
+  return api.post("/voluntarios/notificaciones", data);
+}
+
+export async function getNotificacionesVoluntario(voluntarioId) {
+  try {
+    const data = await api.get(`/voluntarios/${voluntarioId}/notificaciones`);
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export async function marcarNotificacionLeida(notifId) {
+  return api.patch(`/voluntarios/notificaciones/${notifId}`, { leida: true });
+}
+
+export async function contarVoluntariosAsignados(necesidadId) {
+  try {
+    return await api.get(`/voluntarios/asignaciones/contar/${necesidadId}`);
+  } catch { return 0; }
+}
+
+export async function inscribirVoluntarioEnOportunidad(necesidadId) {
+  return api.post("/voluntarios/asignaciones", { necesidad_id: Number(necesidadId) });
 }
