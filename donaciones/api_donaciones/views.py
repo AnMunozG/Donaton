@@ -1,8 +1,9 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db import transaction
 from django.db.models import Count, Sum
-from .models import Donacion, ItemDonacion
+from .models import Donacion
 from .serializers import DonacionSerializer, ItemDonacionSerializer
 
 
@@ -31,14 +32,37 @@ class DonacionViewSet(viewsets.ModelViewSet):
         data = request.data.copy()
         items_data = data.pop("items", [])
 
+        if not isinstance(items_data, list) or len(items_data) == 0:
+            return Response(
+                {"items": "Debes enviar al menos un artículo (items) para la donación."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validamos TODOS los items antes de tocar la base de datos, para no
+        # dejar una Donacion "huérfana" (sin items) si alguno viene mal.
+        item_serializers = []
+        errores_items = {}
+        for idx, item_data in enumerate(items_data):
+            if not isinstance(item_data, dict):
+                errores_items[idx] = "El artículo debe ser un objeto con tipo, cantidad, unidad y detalles."
+                continue
+            item_serializer = ItemDonacionSerializer(data=item_data)
+            if not item_serializer.is_valid():
+                errores_items[idx] = item_serializer.errors
+            else:
+                item_serializers.append(item_serializer)
+
+        if errores_items:
+            return Response({"items": errores_items}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        donacion = serializer.save()
 
-        items_creados = []
-        for item_data in items_data:
-            item = ItemDonacion.objects.create(donacion=donacion, **item_data)
-            items_creados.append(item)
+        with transaction.atomic():
+            donacion = serializer.save()
+            items_creados = [
+                item_serializer.save(donacion=donacion) for item_serializer in item_serializers
+            ]
 
         out = DonacionSerializer(donacion).data
         out["items"] = ItemDonacionSerializer(items_creados, many=True).data
@@ -59,3 +83,4 @@ class DonacionViewSet(viewsets.ModelViewSet):
             "por_estado": dict(qs.values_list("estado__nombre").annotate(c=Count("idDonacion"))),
             "por_tipo": dict(qs.values_list("tipo").annotate(c=Count("idDonacion"))),
         })
+        
