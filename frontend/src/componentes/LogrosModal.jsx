@@ -1,29 +1,31 @@
 import { useState } from "react";
 
 function calcProgreso(logro, stats) {
+  const safe = (val) => (typeof val === "number" && !isNaN(val) ? val : 0);
   switch (logro.codigo) {
-    case "primera_donacion": return Math.min(100, (stats.total_donaciones / 1) * 100);
-    case "corazon_solidario": return Math.min(100, (stats.total_donaciones / 5) * 100);
-    case "angel_guardian": return Math.min(100, (stats.total_donaciones / 10) * 100);
-    case "explorador": return Math.min(100, (stats.centros_distintos / 3) * 100);
-    case "donaton_pro": return Math.min(100, (stats.centros_distintos / 5) * 100);
-    case "peso_pesado": return Math.min(100, stats.total_kg);
-    case "manos_abiertas": return Math.min(100, stats.total_kg / 5);
-    case "multi_item": return Math.min(100, (stats.max_items_una_donacion / 3) * 100);
+    case "primera_donacion": return Math.min(100, (safe(stats.total_donaciones) / 1) * 100);
+    case "corazon_solidario": return Math.min(100, (safe(stats.total_donaciones) / 5) * 100);
+    case "angel_guardian": return Math.min(100, (safe(stats.total_donaciones) / 10) * 100);
+    case "explorador": return Math.min(100, (safe(stats.centros_distintos) / 3) * 100);
+    case "donaton_pro": return Math.min(100, (safe(stats.centros_distintos) / 5) * 100);
+    case "peso_pesado": return Math.min(100, safe(stats.total_kg));
+    case "manos_abiertas": return Math.min(100, safe(stats.total_kg) / 5);
+    case "multi_item": return Math.min(100, (safe(stats.max_items_una_donacion) / 3) * 100);
     default: return 0;
   }
 }
 
 function descRequisito(codigo, stats) {
+  const safe = (val) => (typeof val === "number" && !isNaN(val) ? val : 0);
   switch (codigo) {
-    case "primera_donacion": return `${stats.total_donaciones} / 1 donaci\u00f3n`;
-    case "corazon_solidario": return `${stats.total_donaciones} / 5 donaciones`;
-    case "angel_guardian": return `${stats.total_donaciones} / 10 donaciones`;
-    case "explorador": return `${stats.centros_distintos} / 3 centros`;
-    case "donaton_pro": return `${stats.centros_distintos} / 5 centros`;
-    case "peso_pesado": return `${stats.total_kg.toFixed(0)} / 100 kg`;
-    case "manos_abiertas": return `${stats.total_kg.toFixed(0)} / 500 kg`;
-    case "multi_item": return `${stats.max_items_una_donacion} / 3 items`;
+    case "primera_donacion": return `${safe(stats.total_donaciones)} / 1 donaci\u00f3n`;
+    case "corazon_solidario": return `${safe(stats.total_donaciones)} / 5 donaciones`;
+    case "angel_guardian": return `${safe(stats.total_donaciones)} / 10 donaciones`;
+    case "explorador": return `${safe(stats.centros_distintos)} / 3 centros`;
+    case "donaton_pro": return `${safe(stats.centros_distintos)} / 5 centros`;
+    case "peso_pesado": return `${safe(stats.total_kg).toFixed(0)} / 100 kg`;
+    case "manos_abiertas": return `${safe(stats.total_kg).toFixed(0)} / 500 kg`;
+    case "multi_item": return `${safe(stats.max_items_una_donacion)} / 3 items`;
     default: return "";
   }
 }
@@ -31,8 +33,9 @@ function descRequisito(codigo, stats) {
 export default function LogrosModal({ todosLogros, logrosIds, stats, onClose }) {
   const [filtro, setFiltro] = useState("todos");
 
-  const obtenidos = todosLogros.filter((l) => logrosIds.has(l.id));
-  const pendientes = todosLogros.filter((l) => !logrosIds.has(l.id));
+  const logrosSet = logrosIds instanceof Set ? logrosIds : new Set(Array.isArray(logrosIds) ? logrosIds : []);
+  const obtenidos = todosLogros.filter((l) => logrosSet.has(l.id));
+  const pendientes = todosLogros.filter((l) => !logrosSet.has(l.id));
 
   const lista = filtro === "obtenidos" ? obtenidos
     : filtro === "pendientes" ? pendientes
@@ -65,7 +68,7 @@ export default function LogrosModal({ todosLogros, logrosIds, stats, onClose }) 
 
               <div className="d-flex flex-column gap-2">
                 {lista.map((l) => {
-                  const obtenido = logrosIds.has(l.id);
+                  const obtenido = logrosSet.has(l.id);
                   const progreso = calcProgreso(l, stats);
                   return (
                     <div key={l.id} className={`p-3 rounded-3 ${obtenido ? "bg-success bg-opacity-10 border border-success border-opacity-25" : "bg-page"}`}>
@@ -95,7 +98,7 @@ export default function LogrosModal({ todosLogros, logrosIds, stats, onClose }) 
                   );
                 })}
                 {lista.length === 0 && (
-                  <p className="text-center c-muted small my-4">No hay logros en esta categor&iacute;a.</p>
+                  <p className="text-center c-muted small my-4">No hay logros en esta categoría.</p>
                 )}
               </div>
             </div>

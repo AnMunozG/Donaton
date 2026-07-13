@@ -7,11 +7,17 @@ class NecesidadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Necesidad
-        fields = '__all__'
+        fields = [
+            'id', 'centro_acopio_id', 'titulo', 'descripcion', 'categoria',
+            'estado', 'urgencia', 'cantidad_requerida', 'cantidad_recibida',
+            'unidad_medida', 'solicitante_nombre', 'solicitante_contacto',
+            'detalles', 'fecha_limite', 'fecha_creacion', 'fecha_actualizacion',
+            'porcentaje_progreso',
+        ]
         read_only_fields = ['fecha_creacion', 'fecha_actualizacion', 'cantidad_recibida']
 
     def validate_centro_acopio_id(self, value):
-        if value <= 0:
+        if not isinstance(value, (int, float)) or value <= 0:
             raise serializers.ValidationError("El ID del centro de acopio debe ser un identificador válido.")
         return value
 

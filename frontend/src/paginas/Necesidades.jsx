@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo, getCentros, agregarNecesidadUsuario } from "../api.js";
+import { getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo, getCentros, agregarNecesidadUsuario, getHabilidadesVoluntario } from "../api.js";
 import RichTextEditor from "../componentes/RichTextEditor";
-import { validarRequerido, validarEnteroPositivo, validarRut, validarForm, formatearRut, limpiarRut } from "../componentes/Validaciones.js";
+import { validarRequerido, validarEnteroPositivo, validarRut, validarEmail, validarTelefono, validarForm, formatearRut, limpiarRut } from "../componentes/Validaciones.js";
 import necesidadesImg from "../assets/Necesidades(7).png";
 
 const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -17,7 +17,7 @@ const INIT_FORM = {
   reportadoPor: "", contactoEmail: "", contactoTel: "",
   recurso: "", cantidad: "", unidad: "", recursoPersonalizado: "",
   descripcion: "", centroAcopio: "", fechaLimite: "",
-  actividad: "", horaDesde: "", horaHasta: "", ubicacion: "", dias: [], numVoluntarios: "", habilidades: "", tipoVoluntariado: "",
+  actividades: [], actividadPersonalizada: "", horaDesde: "", horaHasta: "", dias: [], numVoluntarios: "",
 };
 
 export default function Necesidades() {
@@ -26,6 +26,7 @@ export default function Necesidades() {
   const [unidadesPorTipo, setUnidadesPorTipo] = useState({});
   const [camposPorTipo, setCamposPorTipo] = useState({});
   const [centros, setCentros] = useState([]);
+  const [habilidades, setHabilidades] = useState([]);
 
   const [form, setForm] = useState({ ...INIT_FORM });
   const [enviado, setEnviado] = useState(false);
@@ -42,11 +43,13 @@ export default function Necesidades() {
       getUnidadesPorTipo(),
       getCamposPorTipo(),
       getCentros(),
-    ]).then(([tipos, uMap, campos, centrosData]) => {
+      getHabilidadesVoluntario(),
+    ]).then(([tipos, uMap, campos, centrosData, hab]) => {
       setTiposRecurso(tipos);
       setUnidadesPorTipo(uMap);
       setCamposPorTipo(campos);
       setCentros(centrosData);
+      setHabilidades(hab);
     });
   }, []);
 
@@ -86,6 +89,13 @@ export default function Necesidades() {
       { campo: "reportadoPor", nombre: "RUT reportante", validaciones: [validarRequerido, validarRut] },
     ];
 
+    if (form.contactoEmail) {
+      reglas.push({ campo: "contactoEmail", nombre: "Email contacto", validaciones: [validarEmail] });
+    }
+    if (form.contactoTel) {
+      reglas.push({ campo: "contactoTel", nombre: "Teléfono contacto", validaciones: [validarTelefono] });
+    }
+
     if (tipoNecesidad === "recurso") {
       reglas.push(
         { campo: "recurso", nombre: "Recurso", validaciones: [validarRequerido] },
@@ -93,18 +103,32 @@ export default function Necesidades() {
         { campo: "unidad", nombre: "Unidad", validaciones: [validarRequerido] },
         { campo: "centroAcopio", nombre: "Centro de acopio", validaciones: [validarRequerido] },
       );
+      if (form.recurso === "Otros") {
+        reglas.push({ campo: "recursoPersonalizado", nombre: "Detalle del recurso", validaciones: [validarRequerido] });
+      }
     } else if (tipoNecesidad === "voluntarios") {
       reglas.push(
-        { campo: "actividad", nombre: "Actividad", validaciones: [validarRequerido] },
         { campo: "horaDesde", nombre: "Horario desde", validaciones: [validarRequerido] },
         { campo: "horaHasta", nombre: "Horario hasta", validaciones: [validarRequerido] },
-        { campo: "ubicacion", nombre: "Ubicación", validaciones: [validarRequerido] },
         { campo: "numVoluntarios", nombre: "N° de voluntarios", validaciones: [validarRequerido, validarEnteroPositivo] },
         { campo: "centroAcopio", nombre: "Centro de acopio", validaciones: [validarRequerido] },
       );
     }
 
     const errores = validarForm(form, reglas);
+
+    if (tipoNecesidad === "voluntarios") {
+      if (!form.actividades.length && !form.actividadPersonalizada.trim()) {
+        errores.actividades = "Selecciona al menos una actividad";
+      }
+      if (!form.dias.length) {
+        errores.dias = "Selecciona al menos un día";
+      }
+      if (form.horaDesde && form.horaHasta && form.horaHasta <= form.horaDesde) {
+        errores.horaHasta = "La hora hasta debe ser posterior a la hora desde";
+      }
+    }
+
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
 
@@ -125,33 +149,38 @@ export default function Necesidades() {
 
         await agregarNecesidadUsuario({
           recurso: recursoFinal,
-          cantidad: form.cantidad,
+          cantidad: Number(form.cantidad),
           unidad: form.unidad,
           descripcion: form.descripcion,
           reportadoPor: form.reportadoPor,
-          centroId: form.centroAcopio,
+          centroId: Number(form.centroAcopio),
           urgencia: "Pendiente",
+          fecha_limite: form.fechaLimite || null,
           detalles,
         });
       } else {
         detalles.tipoNecesidad = "voluntarios";
-        detalles.actividad = form.actividad;
+        const actividadesSeleccionadas = habilidades
+          .filter((h) => form.actividades.includes(h.code))
+          .map((h) => h.nombre);
+        if (form.actividadPersonalizada) {
+          actividadesSeleccionadas.push(form.actividadPersonalizada);
+        }
+        detalles.actividad = actividadesSeleccionadas.join(", ");
         detalles.horaDesde = form.horaDesde;
         detalles.horaHasta = form.horaHasta;
-        detalles.ubicacion = form.ubicacion;
         detalles.dias = form.dias;
         detalles.numVoluntarios = parseInt(form.numVoluntarios);
-        detalles.habilidades = form.habilidades;
-        detalles.tipoVoluntariado = form.tipoVoluntariado;
 
         await agregarNecesidadUsuario({
           recurso: "Voluntariado",
-          cantidad: form.numVoluntarios,
+          cantidad: Number(form.numVoluntarios),
           unidad: "voluntarios",
           descripcion: form.descripcion,
           reportadoPor: form.reportadoPor,
-          centroId: form.centroAcopio,
+          centroId: Number(form.centroAcopio),
           urgencia: "Pendiente",
+          fecha_limite: form.fechaLimite || null,
           detalles,
         });
       }
@@ -242,13 +271,19 @@ export default function Necesidades() {
                     </div>
                     <div className="col-md-3">
                       <label className="form-label fw-semibold small">Email contacto</label>
-                      <input type="email" name="contactoEmail" className="form-control"
-                        placeholder="correo@ejemplo.cl" value={form.contactoEmail} onChange={handleChange} />
+                      <input type="email" name="contactoEmail"
+                        className={`form-control${formErrors.contactoEmail ? " is-invalid" : ""}`}
+                        placeholder="correo@ejemplo.cl" maxLength={254}
+                        value={form.contactoEmail} onChange={handleChange} />
+                      {formErrors.contactoEmail && <div className="invalid-feedback d-block">{formErrors.contactoEmail}</div>}
                     </div>
                     <div className="col-md-3">
                       <label className="form-label fw-semibold small">Teléfono contacto</label>
-                      <input type="tel" name="contactoTel" className="form-control"
-                        placeholder="+56 9 1234 5678" value={form.contactoTel} onChange={handleChange} />
+                      <input type="tel" name="contactoTel"
+                        className={`form-control${formErrors.contactoTel ? " is-invalid" : ""}`}
+                        placeholder="+56 9 1234 5678" maxLength={15}
+                        value={form.contactoTel} onChange={handleChange} />
+                      {formErrors.contactoTel && <div className="invalid-feedback d-block">{formErrors.contactoTel}</div>}
                     </div>
                   </div>
 
@@ -267,9 +302,12 @@ export default function Necesidades() {
                             {tiposRecurso.map((t) => <option key={t}>{t}</option>)}
                           </select>
                           {form.recurso === "Otros" && (
-                            <input type="text" name="recursoPersonalizado" className="form-control mt-2"
-                              placeholder="Describe el recurso..." value={form.recursoPersonalizado || ""} onChange={handleChange} />
+                            <input type="text" name="recursoPersonalizado"
+                              className={`form-control mt-2${formErrors.recursoPersonalizado ? " is-invalid" : ""}`}
+                              placeholder="Describe el recurso..." maxLength={200}
+                              value={form.recursoPersonalizado || ""} onChange={handleChange} />
                           )}
+                          {formErrors.recursoPersonalizado && <div className="invalid-feedback d-block">{formErrors.recursoPersonalizado}</div>}
                           {formErrors.recurso && <div className="invalid-feedback d-block">{formErrors.recurso}</div>}
                         </div>
 
@@ -288,7 +326,7 @@ export default function Necesidades() {
                         </div>
                       </div>
 
-                      {camposAdicionales.length > 0 && (
+                      {camposAdicionales.length > 0 && form.recurso !== "Donación Monetaria" && (
                         <div className="mt-3 p-3 rounded-3 bg-page b-card">
                           <h4 className="fs-6 fw-bold mb-2 c-heading">
                             <i className="bi bi-info-circle-fill me-2 c-primary"></i>Detalles adicionales
@@ -333,6 +371,7 @@ export default function Necesidades() {
                       <div className="mt-3">
                         <label className="form-label fw-semibold small">Fecha límite</label>
                         <input type="date" name="fechaLimite" className="form-control"
+                          min={new Date().toISOString().split("T")[0]}
                           value={form.fechaLimite} onChange={handleChange} />
                       </div>
                     </div>
@@ -345,12 +384,36 @@ export default function Necesidades() {
                         <i className="bi bi-people-fill me-1 c-accent"></i>Convocatoria de voluntarios
                       </h3>
                       <div className="row g-3">
+
                         <div className="col-12">
-                          <label className="form-label fw-semibold small">Actividad a realizar</label>
-                          <RichTextEditor content={form.actividad}
-                            onChange={(value) => handleDetalleChange("actividad", value)}
-                            placeholder="Describe en qué consiste la actividad..." />
-                          {formErrors.actividad && <div className="invalid-feedback d-block">{formErrors.actividad}</div>}
+                          <label className="form-label fw-semibold small">Actividades a realizar</label>
+                          <div className="row g-2 mb-2">
+                            {habilidades.map((h) => (
+                              <div key={h.code} className="col-md-4 col-sm-6 d-flex">
+                                <div
+                                  className={`volunteer-skill-card p-2 rounded border cursor-pointer w-100 d-flex flex-column ${
+                                    form.actividades.includes(h.code) ? "border-accent bg-accent-light" : ""
+                                  }`}
+                                  onClick={() => {
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      actividades: prev.actividades.includes(h.code)
+                                        ? prev.actividades.filter((c) => c !== h.code)
+                                        : [...prev.actividades, h.code],
+                                    }));
+                                  }}
+                                >
+                                  <span className="fw-semibold small">{h.nombre}</span>
+                                  <small className="c-muted skill-desc">{h.descripcion}</small>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {formErrors.actividades && <div className="text-danger small mt-1">{formErrors.actividades}</div>}
+                          <input type="text" className="form-control form-control-sm"
+                            placeholder="Otra actividad personalizada..." maxLength={200}
+                            value={form.actividadPersonalizada}
+                            onChange={(e) => { setForm((prev) => ({ ...prev, actividadPersonalizada: e.target.value })); if (formErrors.actividades) setFormErrors((prev) => ({ ...prev, actividades: "" })); }} />
                         </div>
 
                         <div className="col-md-4">
@@ -375,13 +438,6 @@ export default function Necesidades() {
                         </div>
 
                         <div className="col-12">
-                          <label className="form-label fw-semibold small">Ubicación donde se trabajará</label>
-                          <input type="text" name="ubicacion" className={`form-control${formErrors.ubicacion ? " is-invalid" : ""}`}
-                            placeholder="Calle, comuna, punto de referencia..." value={form.ubicacion} onChange={handleChange} />
-                          {formErrors.ubicacion && <div className="invalid-feedback d-block">{formErrors.ubicacion}</div>}
-                        </div>
-
-                        <div className="col-12">
                           <label className="form-label fw-semibold small">Días de la semana</label>
                           <div className="d-flex flex-wrap gap-2">
                             {DIAS_SEMANA.map((dia) => (
@@ -392,28 +448,11 @@ export default function Necesidades() {
                               </label>
                             ))}
                           </div>
-                        </div>
-
-                        <div className="col-md-6">
-                          <label className="form-label fw-semibold small">Tipo de voluntariado</label>
-                          <select name="tipoVoluntariado" className="form-select" value={form.tipoVoluntariado} onChange={handleChange}>
-                            <option value="">Selecciona...</option>
-                            <option value="Terreno">Terreno (trabajo en sitio)</option>
-                            <option value="Logística">Logística y bodega</option>
-                            <option value="Administrativo">Administrativo / Gestión</option>
-                            <option value="Profesional">Profesional (médico, legal, etc.)</option>
-                            <option value="Otros">Otros</option>
-                          </select>
-                        </div>
-
-                        <div className="col-md-6">
-                          <label className="form-label fw-semibold small">Habilidades requeridas</label>
-                          <input type="text" name="habilidades" className="form-control"
-                            placeholder="Ej: Manejo de herramientas, primeros auxilios..." value={form.habilidades} onChange={handleChange} />
+                          {formErrors.dias && <div className="text-danger small mt-1">{formErrors.dias}</div>}
                         </div>
 
                         <div className="col-12">
-                          <label className="form-label fw-semibold small">Centro de acopio de referencia</label>
+                          <label className="form-label fw-semibold small">Centro de acopio</label>
                           <select name="centroAcopio" className={`form-select${formErrors.centroAcopio ? " is-invalid" : ""}`}
                             value={form.centroAcopio} onChange={handleChange}>
                             <option value="">Selecciona...</option>
@@ -425,6 +464,7 @@ export default function Necesidades() {
                         <div className="col-12">
                           <label className="form-label fw-semibold small">Fecha límite</label>
                           <input type="date" name="fechaLimite" className="form-control"
+                            min={new Date().toISOString().split("T")[0]}
                             value={form.fechaLimite} onChange={handleChange} />
                         </div>
                       </div>
@@ -435,7 +475,7 @@ export default function Necesidades() {
                     <label className="form-label fw-semibold small">Descripción detallada</label>
                     <RichTextEditor content={form.descripcion}
                       onChange={(value) => handleDetalleChange("descripcion", value)}
-                      placeholder={tipoNecesidad === "voluntarios" ? "Describe el contexto, objetivos y cualquier información relevante para los voluntarios..." : "Describe la necesidad en detalle..."} />
+                      placeholder={tipoNecesidad === "voluntarios" ? "Describe el contexto, objetivos y cualquier información relevante..." : "Describe la necesidad en detalle..."} />
                   </div>
 
                   <div className="mt-3 d-flex align-items-center gap-2 p-2 rounded-3 small bg-page">

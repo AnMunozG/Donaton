@@ -34,7 +34,7 @@ class ItemDonacion(models.Model):
     id = models.AutoField(primary_key=True)
     donacion = models.ForeignKey(Donacion, on_delete=models.CASCADE, related_name='items')
     tipo = models.CharField(max_length=100)
-    cantidad = models.IntegerField()
+    cantidad = models.FloatField()
     unidad = models.CharField(max_length=20, default="kg")
     detalles = models.JSONField(default=dict)
 

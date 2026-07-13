@@ -96,7 +96,7 @@ export default function Transparencia() {
               <div className="tp-chart-card">
                 <h5 className="mb-3 c-heading">
                   <i className="bi bi-pie-chart-fill me-2 c-primary"></i>
-                  Distribución 2025
+                  Distribución {new Date().getFullYear()}
                 </h5>
                 <div className="d-flex flex-wrap gap-4 justify-content-center">
                   {distribucionFondos.map((item, i) => (
@@ -142,7 +142,7 @@ export default function Transparencia() {
                       <div className="fw-semibold text-truncate c-heading">{r.titulo}</div>
                       <div className="small c-muted">{r.fecha} &middot; {r.size}</div>
                     </div>
-                    <span className={`tp-type-badge tp-type-${r.tipo.toLowerCase()}`}>{r.tipo}</span>
+                    <span className={`tp-type-badge tp-type-${(r.tipo || "documento").toLowerCase()}`}>{r.tipo}</span>
                   </div>
                 </div>
               </div>
@@ -193,7 +193,7 @@ export default function Transparencia() {
               <Link to="/donacion" className="btn btn-light px-4 btn-light-primary">
                 <i className="bi bi-heart-fill me-2"></i>Hacer una donación
               </Link>
-              <a href="#" className="btn tp-btn-outline-light px-4">
+              <a href="mailto:transparencia@donaton.cl" className="btn tp-btn-outline-light px-4">
                 <i className="bi bi-envelope me-2"></i>Contactar transparencia
               </a>
             </div>

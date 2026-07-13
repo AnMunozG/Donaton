@@ -36,14 +36,14 @@ class NecesidadViewSet(viewsets.ModelViewSet):
             cantidad = int(cantidad)
             if cantidad <= 0:
                 return Response({'error': 'La cantidad a sumar debe ser mayor a cero'}, status=status.HTTP_400_BAD_REQUEST)
-        except ValueError:
+        except (ValueError, TypeError):
             return Response({'error': 'Cantidad no válida'}, status=status.HTTP_400_BAD_REQUEST)
 
         necesidad.cantidad_recibida += cantidad
         if necesidad.cantidad_recibida >= necesidad.cantidad_requerida:
-            necesidad.estado = EstadoNecesidad.objects.get(nombre='Cubierta')
+            necesidad.estado = EstadoNecesidad.objects.get_or_create(nombre='Cubierta')[0]
         elif necesidad.cantidad_recibida > 0 and necesidad.estado.nombre == 'Pendiente':
-            necesidad.estado = EstadoNecesidad.objects.get(nombre='Activa')
+            necesidad.estado = EstadoNecesidad.objects.get_or_create(nombre='Activa')[0]
 
         necesidad.save()
 

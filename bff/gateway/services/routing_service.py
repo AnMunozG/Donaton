@@ -1,6 +1,5 @@
-from urllib.request import urlopen, Request
+import httpx
 from urllib.parse import urlencode
-import json
 
 from ..schemas.centros import RutaOut, RutaPuntoOut
 from ..exceptions import BffError
@@ -15,9 +14,9 @@ async def calcular_ruta(origen_lat: float, origen_lng: float,
     params = urlencode({"geometries": "geojson", "overview": "full", "steps": "false", "alternatives": "false"})
     url = f"{OSRM_BASE}/{modo}/{coords}?{params}"
 
-    req = Request(url, headers={"User-Agent": "Donaton/1.0"})
-    resp = urlopen(req, timeout=15)
-    body = json.loads(resp.read())
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(url, headers={"User-Agent": "Donaton/1.0"})
+        body = resp.json()
 
     if body.get("code") != "Ok":
         raise BffError(body.get("message", body.get("code", "Error al calcular ruta")))

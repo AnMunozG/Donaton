@@ -6,7 +6,7 @@ from pydantic import field_validator
 
 class DonacionCreate(Schema):
     tipo: str  # "Alimentos no perecibles", "Ropa y abrigo", "Donación Monetaria", etc.
-    cantidad: float
+    cantidad: int
     unidad: str  # nombre de unidad (kg, unidades, etc.)
     origen: str = ""  # nombre o RUT del donante
     centroId: str  # centro code
@@ -14,6 +14,17 @@ class DonacionCreate(Schema):
     estado: str = "Donación Registrada"
     comprobante: str = ""
     detalles: dict = {}
+
+    @field_validator("fecha", mode="before")
+    @classmethod
+    def validate_fecha(cls, v):
+        if v and v != "":
+            from datetime import date
+            try:
+                date.fromisoformat(v)
+            except (ValueError, TypeError):
+                raise ValueError(f"Fecha inválida: '{v}'. Use formato YYYY-MM-DD.")
+        return v
 
 
 class ItemDonacionCreate(Schema):
@@ -33,6 +44,17 @@ class DonacionMultiCreate(Schema):
     direccion_retiro: str = ""
     fecha_retiro: str = ""
     detalles: dict = {}
+
+    @field_validator("fecha", mode="before")
+    @classmethod
+    def validate_fecha(cls, v):
+        if v and v != "":
+            from datetime import date
+            try:
+                date.fromisoformat(v)
+            except (ValueError, TypeError):
+                raise ValueError(f"Fecha inválida: '{v}'. Use formato YYYY-MM-DD.")
+        return v
 
 
 class DonacionUpdate(Schema):

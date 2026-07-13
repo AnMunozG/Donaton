@@ -7,6 +7,7 @@ import {
   getNotificacionesVoluntario, marcarNotificacionLeida,
   getNecesidades, getCentros,
 } from "../api.js";
+import { validarRequerido, validarForm } from "../componentes/Validaciones.js";
 
 const DISPONIBILIDAD_OPTS = [
   { value: "diaria", label: "Diaria" },
@@ -46,6 +47,7 @@ export default function Voluntarios() {
     centro_id: "",
   });
   const [formError, setFormError] = useState("");
+  const [formErrors, setFormErrors] = useState({});
   const [guardando, setGuardando] = useState(false);
   const [exito, setExito] = useState("");
   const [solicitandoCentro, setSolicitandoCentro] = useState(null);
@@ -58,7 +60,7 @@ export default function Voluntarios() {
     getCentros().then(setCentros);
     getNecesidades().then((todas) => {
       const voluntariado = (Array.isArray(todas) ? todas : [])
-        .filter((n) => n.recurso === "Voluntariado / Mano de Obra" && n.estado === "Activa");
+        .filter((n) => n.categoria === "VOLUNTARIADO" && n.estado === "Activa");
       setOportunidades(voluntariado);
     });
   }, []);
@@ -118,6 +120,14 @@ export default function Voluntarios() {
     e.preventDefault();
     setFormError("");
     setExito("");
+
+    const errores = {};
+    if (!form.habilidades.length) {
+      errores.habilidades = "Selecciona al menos una habilidad";
+    }
+    setFormErrors(errores);
+    if (Object.keys(errores).length > 0) return;
+
     setGuardando(true);
     try {
       if (perfil) {
@@ -247,6 +257,7 @@ export default function Voluntarios() {
                         </div>
                       ))}
                     </div>
+                    {formErrors.habilidades && <div className="text-danger small mt-1">{formErrors.habilidades}</div>}
                   </div>
 
                   {!perfil && (

@@ -69,25 +69,14 @@ class VoluntarioViewSet(viewsets.ModelViewSet):
         registrado_por = request.data.get("registrado_por_rut", "")
         centro_id = request.data.get("centro_id", "")
 
-        try:
-            horas = int(horas)
-        except (ValueError, TypeError):
-            return Response(
-                {"error": "Las horas deben ser un número entero válido"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if horas <= 0 or horas > 24:
-            return Response(
-                {"error": "Las horas deben estar entre 1 y 24"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not registrado_por:
-            return Response(
-                {"error": "El campo registrado_por_rut es obligatorio"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = RegistroHorasSerializer(data={
+            "voluntario": voluntario.pk,
+            "horas": horas,
+            "descripcion": descripcion,
+            "registrado_por_rut": registrado_por,
+            "centro_id": centro_id,
+        })
+        serializer.is_valid(raise_exception=True)
 
         if centro_id:
             assignment = VoluntarioCentro.objects.filter(
@@ -99,16 +88,8 @@ class VoluntarioViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        registro = RegistroHoras.objects.create(
-            voluntario=voluntario,
-            centro_id=centro_id,
-            horas=horas,
-            descripcion=descripcion,
-            registrado_por_rut=registrado_por,
-        )
-
-        serializer = RegistroHorasSerializer(registro)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        registro = serializer.save()
+        return Response(RegistroHorasSerializer(registro).data, status=status.HTTP_201_CREATED)
 
 
 class VoluntarioCentroViewSet(viewsets.ModelViewSet):

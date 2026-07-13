@@ -56,6 +56,9 @@ class Necesidad(models.Model):
     # --- Campos Extensibles (compatibilidad con BFF) ---
     detalles = models.JSONField(default=dict, blank=True, verbose_name="Metadatos adicionales (urgencia original, etc.)")
     
+    # --- Control de Fecha Límite ---
+    fecha_limite = models.DateField(null=True, blank=True, verbose_name="Fecha límite de la necesidad")
+
     # --- Auditoría ---
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)

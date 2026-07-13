@@ -130,7 +130,7 @@ async def register(request, body: RegisterIn):
 async def me(request):
     return await auth_service.get_profile(request.user["rut"], uat=request.user.get("uat"))
 
-@api.put("/auth/profile", response=UserOut)
+@api.patch("/auth/profile", response=UserOut)
 async def update_profile(request, body: UserUpdateIn):
     return await auth_service.update_profile(request.user["rut"], body, uat=request.user.get("uat"))
 
@@ -171,7 +171,7 @@ async def get_centro(request, code: str):
 async def create_centro(request, body: CentroCreate):
     return await centro_service.create(body)
 
-@api.put("/centros/{code}", auth=EncargadoOrAdminBearer(), response=CentroOut)
+@api.patch("/centros/{code}", auth=EncargadoOrAdminBearer(), response=CentroOut)
 async def update_centro(request, code: str, body: CentroUpdate):
     user = request.user
     if user.get("rol") == "encargado" and str(user.get("centro_acopio_id")) != str(code):
@@ -212,6 +212,10 @@ async def create_donacion_multi(request, body: DonacionMultiCreate):
         rut = user.get("rut", body.origen)
     return await donacion_service.create_multi(body, rut=rut)
 
+@api.get("/donaciones/stats/resumen", auth=None, response=DonacionStatsOut)
+async def get_donacion_stats(request):
+    return await donacion_service.get_stats()
+
 @api.get("/donaciones/{code}", auth=None, response=DonacionOut)
 async def get_donacion(request, code: str):
     return await donacion_service.get_by_code(code)
@@ -226,16 +230,14 @@ async def create_donacion(request, body: DonacionCreate):
 
 @api.patch("/donaciones/{code}/estado", auth=EncargadoOrAdminBearer(), response=DonacionOut)
 async def update_donacion_estado(request, code: str, body: DonacionUpdate):
+    if body.estado is None:
+        raise HttpError(422, "El campo 'estado' es requerido")
     return await donacion_service.update_estado(code, body.estado, user=request.user)
 
 @api.delete("/donaciones/{code}", auth=AdminBearer(), response={204: None})
 async def delete_donacion(request, code: str):
     await donacion_service.delete(code)
     return 204, None
-
-@api.get("/donaciones/stats/resumen", auth=None, response=DonacionStatsOut)
-async def get_donacion_stats(request):
-    return await donacion_service.get_stats()
 
 
 # ── Necesidades ──
@@ -280,7 +282,7 @@ async def delete_necesidad_ciudadana(request, code: str):
 async def get_necesidad(request, code: str):
     return await necesidad_service.get_by_code(code)
 
-@api.put("/necesidades/{code}", auth=EncargadoOrAdminBearer(), response=NecesidadOut)
+@api.patch("/necesidades/{code}", auth=EncargadoOrAdminBearer(), response=NecesidadOut)
 async def update_necesidad(request, code: str, body: NecesidadUpdate):
     return await necesidad_service.update(code, body, user=request.user)
 
@@ -465,7 +467,7 @@ async def get_voluntario(request, code: str):
     uat = request.user.get("uat")
     return await voluntario_service.get_by_code(code, uat=uat)
 
-@api.put("/voluntarios/{code}", auth=AuthBearer(), response=VoluntarioOut)
+@api.patch("/voluntarios/{code}", auth=AuthBearer(), response=VoluntarioOut)
 async def update_voluntario(request, code: str, body: VoluntarioUpdate):
     uat = request.user.get("uat")
     return await voluntario_service.update(code, body, user=request.user, uat=uat)

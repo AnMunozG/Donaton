@@ -5,6 +5,17 @@ from . import centro_service
 
 necesidades_client = NecesidadesClient()
 
+RECURSO_A_CATEGORIA = {
+    "Alimentos no perecibles": "ALIMENTOS",
+    "Ropa y abrigo": "ROPA",
+    "Donación Monetaria": "DINERO",
+    "Insumos médicos": "SALUD",
+    "Artículos de higiene": "UTILES",
+    "Utensilios del hogar": "OTROS",
+    "Otros": "OTROS",
+    "Voluntariado": "VOLUNTARIADO",
+}
+
 
 async def _centro_nombre(centro_id: str) -> str:
     try:
@@ -28,8 +39,19 @@ def _model_to_out(n: dict) -> dict:
         "centroId": str(n.get("centro_acopio_id", "")),
         "centro": "",
         "reportadoPor": n.get("solicitante_nombre", ""),
+        "categoria": n.get("categoria", "OTROS"),
+        "fecha_limite": n.get("fecha_limite", None),
         "detalles": n.get("detalles", {}),
     }
+
+
+def _infer_categoria(recurso: str) -> str:
+    if recurso in RECURSO_A_CATEGORIA:
+        return RECURSO_A_CATEGORIA[recurso]
+    for clave, cat in RECURSO_A_CATEGORIA.items():
+        if clave.lower() in recurso.lower():
+            return cat
+    return "OTROS"
 
 
 def _out_to_model(body) -> dict:
@@ -37,6 +59,10 @@ def _out_to_model(body) -> dict:
         centro_id_int = int(body.centroId)
     except (ValueError, TypeError):
         centro_id_int = body.centroId
+
+    detalles = body.detalles or {}
+    solicitante_contacto = detalles.get("contactoEmail", "") or detalles.get("contactoTel", "")
+
     data = {
         "titulo": body.recurso,
         "descripcion": body.descripcion,
@@ -44,11 +70,21 @@ def _out_to_model(body) -> dict:
         "unidad_medida": body.unidad,
         "centro_acopio_id": centro_id_int,
         "solicitante_nombre": body.reportadoPor or "anónimo",
-        "solicitante_contacto": "",
+        "solicitante_contacto": solicitante_contacto,
         "urgencia": (body.urgencia or "MEDIA").upper(),
         "estado": body.estado or "Activa",
-        "detalles": body.detalles or {},
+        "detalles": detalles,
     }
+
+    categoria = getattr(body, "categoria", "") or ""
+    if not categoria:
+        categoria = _infer_categoria(body.recurso)
+    data["categoria"] = categoria
+
+    fecha_limite = getattr(body, "fecha_limite", None)
+    if fecha_limite:
+        data["fecha_limite"] = fecha_limite
+
     return data
 
 
@@ -123,13 +159,17 @@ async def update(code: str, body, user=None) -> NecesidadOut:
         update_data["solicitante_nombre"] = body.reportadoPor
     if body.detalles is not None:
         update_data["detalles"] = body.detalles
+    if getattr(body, "categoria", None) is not None:
+        update_data["categoria"] = body.categoria
+    if getattr(body, "fecha_limite", None) is not None:
+        update_data["fecha_limite"] = body.fecha_limite
     n = await necesidades_client.actualizar_necesidad(code, update_data)
     if not n or "error" in n:
         raise Exception(n.get("error", "Error al actualizar necesidad") if isinstance(n, dict) else "Error al actualizar necesidad")
     return await _enrich_one(n)
 
 
-async def activar(code: str, urgencia: str = "MEDIA", user=None) -> NecesidadOut:
+async def activar(code: str, urgencia: str = None, user=None) -> NecesidadOut:
     n = await necesidades_client.obtener_necesidad(code)
     if not n or "error" in n:
         raise NotFoundError("Necesidad no encontrada")
@@ -170,8 +210,8 @@ async def crear_ciudadana(body, rut: str) -> NecesidadOut:
     if data.get("solicitante_nombre") == "anónimo" and rut != "anónimo":
         data["solicitante_nombre"] = rut
     n = await necesidades_client.crear_necesidad(data)
-    if "error" in n:
-        raise Exception(n.get("error", "Error al crear necesidad ciudadana"))
+    if not n or "error" in n:
+        raise Exception(n.get("error", "Error al crear necesidad ciudadana") if n else "Error al crear necesidad ciudadana")
     return await _enrich_one(n)
 
 

@@ -33,6 +33,9 @@ export default function Impacto() {
 
   const porTipoData = Object.entries(data.por_tipo || {}).map(([name, value]) => ({ name: name || "Sin tipo", value }));
 
+  const totalKg = data.total_kg ?? 0;
+  const totalMonetario = data.total_monetario ?? 0;
+
   const rechartsTooltip = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)", fontSize: 12 };
 
   return (
@@ -54,8 +57,8 @@ export default function Impacto() {
         <div className="row g-3 mb-4">
           {[
             { icon: "bi-gift-fill", label: "Donaciones", value: data.total_donaciones, color: "#DD4444" },
-            { icon: "bi-box-seam-fill", label: "Kg donados", value: `${data.total_kg.toFixed(0)} kg`, color: "#3AB795" },
-            { icon: "bi-cash-coin", label: "Donado en dinero", value: `$${data.total_monetario.toLocaleString()}`, color: "#FFC107" },
+            { icon: "bi-box-seam-fill", label: "Kg donados", value: `${totalKg.toFixed(0)} kg`, color: "#3AB795" },
+            { icon: "bi-cash-coin", label: "Donado en dinero", value: `$${totalMonetario.toLocaleString()}`, color: "#FFC107" },
             { icon: "bi-building-fill", label: "Centros ayudados", value: data.centros_distintos, color: "#0dcaf0" },
           ].map((card, i) => (
             <div key={i} className="col-sm-6 col-xl-3">
@@ -105,11 +108,11 @@ export default function Impacto() {
               <h2 className="fw-bold fs-5 mb-3">
                 <i className="bi bi-bar-chart-fill me-2 c-primary"></i>Donaciones por mes
               </h2>
-              {data.por_mes?.length === 0 ? (
+              {(data.por_mes || []).length === 0 ? (
                 <p className="c-muted small mb-0">Sin datos</p>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.por_mes}>
+                  <BarChart data={data.por_mes || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="mes" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
                     <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
@@ -127,11 +130,11 @@ export default function Impacto() {
               <h2 className="fw-bold fs-5 mb-3">
                 <i className="bi bi-building-fill me-2 c-primary"></i>Centros donde has donado
               </h2>
-              {data.centros?.length === 0 ? (
+              {(data.centros || []).length === 0 ? (
                 <p className="c-muted small mb-0">A&uacute;n no has donado a ning&uacute;n centro.</p>
               ) : (
                 <div className="d-flex flex-column gap-2 scroll-panel">
-                  {data.centros.map((c, i) => (
+                  {(data.centros || []).map((c, i) => (
                     <div key={c.id} className="d-flex justify-content-between align-items-center p-2 rounded-3 bg-page">
                       <div className="d-flex align-items-center gap-2">
                         <span className="badge bg-primary rounded-pill">{i + 1}</span>

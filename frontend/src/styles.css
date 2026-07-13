@@ -864,6 +864,7 @@ footer .border-top-section {
 .c-amber { color: #CC9900 !important; }
 .c-dark-green { color: #194B4F !important; }
 .c-pale-red { color: #FFDCDC !important; }
+.c-success  { color: #3AB795 !important; }
 
 /* Fondos */
 .bg-surface { background: var(--surface) !important; }
@@ -899,6 +900,7 @@ footer .border-top-section {
 }
 .auth-container-wide{
   width: 100%;
+  max-width: 1000px;
 }
 
 .img-ratio-16x9 {
@@ -1376,9 +1378,6 @@ footer .border-top-section {
 .auth-container{
   width: 100%;
   max-width: 900px;
-}
-.auth-container-wide{
-  max-width: 1000px;
 }
 .auth-row{
   max-width: 900px;

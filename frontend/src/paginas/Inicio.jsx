@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { DonatonLogo } from "../componentes/Logos.jsx";
 import { getCategoriasDonacion, getPasosFuncionamiento, getNecesidades, getCentros } from "../api.js";
 import bannerInicioImg from "../assets/BannerInicio.png";
@@ -21,6 +22,20 @@ export default function Inicio() {
 
   const centroNombre = (centroId) => centros.find((c) => c.id === centroId)?.nombre || "";
 
+  const detalleLabels = {
+    contactoEmail: "Email de contacto",
+    contactoTel: "Teléfono de contacto",
+    modoRetiro: "Modo de retiro",
+    tipoNecesidad: "Tipo de necesidad",
+    fechaLimite: "Fecha límite",
+    enNombreDe: "En nombre de",
+    actividad: "Actividad",
+    horaDesde: "Horario desde",
+    horaHasta: "Horario hasta",
+    dias: "Días",
+    numVoluntarios: "N° voluntarios",
+  };
+
   const items = [...categorias, ...categorias];
   const urgenciaPeso = { Alta: 0, Media: 1, Baja: 2 };
   const activas = necesidades
@@ -29,7 +44,9 @@ export default function Inicio() {
       const ua = urgenciaPeso[a.urgencia] ?? 99;
       const ub = urgenciaPeso[b.urgencia] ?? 99;
       if (ua !== ub) return ua - ub;
-      return (Number(b.donado) / Number(b.cantidad)) - (Number(a.donado) / Number(a.cantidad));
+      const pctA = Number(a.cantidad) > 0 ? Number(a.donado) / Number(a.cantidad) : 0;
+      const pctB = Number(b.cantidad) > 0 ? Number(b.donado) / Number(b.cantidad) : 0;
+      return pctB - pctA;
     })
     .slice(0, 6);
 
@@ -45,12 +62,12 @@ export default function Inicio() {
             para llevar ayuda humanitaria de forma transparente y eficiente a quienes más lo necesitan.
           </p>
           <div className="d-flex gap-3 justify-content-center mt-4 flex-wrap">
-            <a href="/donacion" className="btn btn-primary btn-lg px-4">
+            <Link to="/donacion" className="btn btn-primary btn-lg px-4">
               <i className="bi bi-heart-fill me-2"></i>Hacer una donación
-            </a>
-            <a href="/necesidades" className="btn btn-accent btn-lg px-4">
+            </Link>
+            <Link to="/necesidades" className="btn btn-accent btn-lg px-4">
               <i className="bi bi-flag-fill me-2"></i>Reportar una necesidad
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -70,9 +87,9 @@ export default function Inicio() {
             </p>
           </div>
           <div className="col-md-4 text-center text-md-end mt-3 mt-md-0">
-            <a href="/transparencia" className="btn btn-accent btn-lg px-4">
+            <Link to="/transparencia" className="btn btn-accent btn-lg px-4">
               <i className="bi bi-info-circle-fill me-2"></i>Saber más
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -119,9 +136,9 @@ export default function Inicio() {
               ))}
             </div>
           </div>
-          <a href="/donacion" className="btn btn-success btn-lg px-4 mt-3 d-block mx-auto btn-fit">
+          <Link to="/donacion" className="btn btn-success btn-lg px-4 mt-3 d-block mx-auto btn-fit">
             <i className="bi bi-heart-fill me-1"></i>Ir a donar
-          </a>
+          </Link>
         </div>
         <div className="col-md-5">
           <div className="img-placeholder rounded-4"
@@ -144,7 +161,7 @@ export default function Inicio() {
                 <div key={n.id} className="col-12 col-md-6 col-lg-4">
                   <div className="project-card">
                     <div className="d-flex align-items-start justify-content-between mb-2">
-                      <span className={`badge bg-${n.urgencia === "Alta" ? "danger" : n.urgencia === "Media" ? "warning" : "secondary"}`}>
+                      <span className={`badge bg-${n.urgencia === "Alta" ? "danger" : n.urgencia === "Media" ? "warning" : "success"}`}>
                         <i className="bi bi-exclamation-triangle-fill me-1"></i>{n.urgencia}
                       </span>
                       <span className="project-id">#{n.id}</span>
@@ -166,7 +183,7 @@ export default function Inicio() {
                     {n.detalles && Object.keys(n.detalles).length > 0 && (
                       <div className="small c-muted mb-2">
                         {Object.entries(n.detalles).map(([k, v]) => (
-                          <span key={k} className="me-2"><i className="bi bi-info-circle me-1"></i>{k}: {v}</span>
+                          <span key={k} className="me-2"><i className="bi bi-info-circle me-1"></i>{detalleLabels[k] || k}: {Array.isArray(v) ? v.join(", ") : v}</span>
                         ))}
                       </div>
                     )}
@@ -180,9 +197,9 @@ export default function Inicio() {
                       </div>
                     </div>
                     <div className="project-btn">
-                      <a href={`/donacion?recurso=${encodeURIComponent(n.recurso)}&cantidad=${encodeURIComponent(n.cantidad)}&unidad=${encodeURIComponent(n.unidad)}&centroId=${encodeURIComponent(n.centroId || "")}`} className="btn btn-primary w-100">
+                      <Link to={`/donacion?recurso=${encodeURIComponent(n.recurso)}&cantidad=${encodeURIComponent(n.cantidad)}&unidad=${encodeURIComponent(n.unidad)}&centroId=${encodeURIComponent(n.centroId || "")}`} className="btn btn-primary w-100">
                         <i className="bi bi-gift-fill me-1"></i>Donar{falta > 0 ? ` (falta ${falta} ${n.unidad})` : ""}
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -223,9 +240,9 @@ export default function Inicio() {
         <p className="mb-4 c-pale-red">
           Cada donación, por pequeña que sea, puede cambiarle la vida a una familia en situación de emergencia.
         </p>
-        <a href="/donacion" className="btn btn-light btn-lg px-5 btn-light-primary">
+        <Link to="/donacion" className="btn btn-light btn-lg px-5 btn-light-primary">
           <i className="bi bi-heart-fill me-2"></i>Donar ahora
-        </a>
+        </Link>
       </div>
 
     </div>

@@ -4,7 +4,7 @@ import { useAuth } from "../componentes/AuthContext";
 import { getDonaciones, actualizarCuenta, getLogros, getMisLogros, getMisAgradecimientos, getCentrosSeguidos, verificarLogros } from "../api.js";
 import api from "../servicios/api.js";
 import { descargarPDF } from "../utils/pdfGenerator.js";
-import { validarRequerido, validarEmail, validarForm } from "../componentes/Validaciones.js";
+import { validarRequerido, validarEmail, validarForm, formatearRut } from "../componentes/Validaciones.js";
 import LogrosModal from "../componentes/LogrosModal.jsx";
 
 export default function Perfil() {
@@ -89,7 +89,7 @@ export default function Perfil() {
     setFormErrors(errores);
     if (Object.keys(errores).length > 0) return;
     try {
-      await actualizarCuenta(user.rut, { nombre: form.nombre, email: form.email });
+      await actualizarCuenta({ nombre: form.nombre, email: form.email });
       updateUser({ nombre: form.nombre, email: form.email });
       setGuardado(true);
       setEditando(false);
@@ -171,7 +171,7 @@ export default function Perfil() {
 
               {!editando ? (
                 <div>
-                  <div className="mb-2"><span className="c-muted small">RUT:</span><br />{user.rut ? `${user.rut.slice(0, -1)}-${user.rut.slice(-1)}` : ""}</div>
+                  <div className="mb-2"><span className="c-muted small">RUT:</span><br />{user.rut ? formatearRut(user.rut) : ""}</div>
                   <div className="mb-2"><span className="c-muted small">Correo:</span><br />{user.email || "—"}</div>
                   {user.rol === "encargado" && user.centro_acopio_id && (
                     <div className="mb-2"><span className="c-muted small">Centro asignado:</span><br /><span className="fw-semibold">{user.centro_acopio_id}</span></div>
@@ -204,7 +204,7 @@ export default function Perfil() {
             <div className="p-4 rounded-4 card-surface">
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <h2 className="fw-bold fs-5 mb-0">
-                  <i className="bi bi-trophy-fill me-2 c-warning"></i>Mis logros
+                  <i className="bi bi-trophy-fill me-2 c-amber"></i>Mis logros
                 </h2>
                 <button className="btn btn-outline-accent btn-sm" onClick={() => setShowLogrosModal(true)}>
                   <i className="bi bi-grid-3x3-gap-fill me-1"></i>Ver todos
@@ -216,7 +216,7 @@ export default function Perfil() {
                 <div className="d-flex flex-wrap gap-2">
                   {logros.map((l) => (
                     <div key={l.id} className="d-flex align-items-center gap-2 p-2 rounded-3 bg-page" title={l.logro.descripcion}>
-                      <i className={`${l.logro.icono} fs-5 c-warning`}></i>
+                      <i className={`${l.logro.icono} fs-5 c-amber`}></i>
                       <div>
                         <div className="small fw-semibold">{l.logro.nombre}</div>
                         <div className="smaller c-muted">{new Date(l.fecha_obtenido).toLocaleDateString("es-CL")}</div>
@@ -239,7 +239,7 @@ export default function Perfil() {
             {/* Agradecimientos */}
             <div className="p-4 rounded-4 card-surface">
               <h2 className="fw-bold fs-5 mb-3">
-                <i className="bi bi-heart-fill me-2 c-danger"></i>Agradecimientos recibidos
+                <i className="bi bi-heart-fill me-2 c-soft-red"></i>Agradecimientos recibidos
               </h2>
               {agradecimientos.length === 0 ? (
                 <p className="c-muted small mb-0">A&uacute;n no tienes agradecimientos.</p>
@@ -301,13 +301,13 @@ export default function Perfil() {
                 </div>
                 <div className="col-6">
                   <div className="p-3 rounded-3 bg-page text-center">
-                    <div className="fw-bold fs-4 c-info">{kgTotal.toFixed(0)}</div>
+                    <div className="fw-bold fs-4 c-primary">{kgTotal.toFixed(0)}</div>
                     <div className="small c-muted">Kg donados</div>
                   </div>
                 </div>
                 <div className="col-6">
                   <div className="p-3 rounded-3 bg-page text-center">
-                    <div className="fw-bold fs-4 c-danger">${monetarioTotal.toLocaleString()}</div>
+                    <div className="fw-bold fs-4 c-soft-red">${monetarioTotal.toLocaleString()}</div>
                     <div className="small c-muted">Donado en dinero</div>
                   </div>
                 </div>

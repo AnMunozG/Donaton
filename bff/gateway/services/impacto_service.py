@@ -19,6 +19,7 @@ async def get_impacto(rut: str) -> ImpactoOut:
     centros_set = set()
     por_tipo = {}
     por_mes = {}
+    por_mes_kg = {}
     centros_dict = {}
     ultima_donacion = None
 
@@ -59,6 +60,9 @@ async def get_impacto(rut: str) -> ImpactoOut:
                     total_items += 1
                     if centro_id in centros_dict:
                         centros_dict[centro_id]["total_kg"] += it_cantidad
+                    if fecha_str and len(fecha_str) >= 7:
+                        mes_key = fecha_str[:7]
+                        por_mes_kg[mes_key] = por_mes_kg.get(mes_key, 0) + it_cantidad
         else:
             cantidad = float(d.get("cantidad", 0) or 0)
             unidad = d.get("unidad", "")
@@ -72,6 +76,9 @@ async def get_impacto(rut: str) -> ImpactoOut:
                 total_items += 1
                 if centro_id in centros_dict:
                     centros_dict[centro_id]["total_kg"] += cantidad
+                if fecha_str and len(fecha_str) >= 7:
+                    mes_key = fecha_str[:7]
+                    por_mes_kg[mes_key] = por_mes_kg.get(mes_key, 0) + cantidad
 
     # Enrich centros with names and coordinates
     for c_id in list(centros_dict.keys()):
@@ -84,10 +91,10 @@ async def get_impacto(rut: str) -> ImpactoOut:
             centro = await logistica_client.obtener_centro(id_num)
             if centro:
                 centros_dict[c_id]["nombre"] = centro.get("nombre", c_id)
-                coords = centro.get("coordenadas", {})
-                if coords:
-                    centros_dict[c_id]["lat"] = float(coords.get("lat", 0))
-                    centros_dict[c_id]["lng"] = float(coords.get("lng", 0))
+                lat = centro.get("latitud") or (centro.get("coordenadas") or {}).get("lat", 0)
+                lng = centro.get("longitud") or (centro.get("coordenadas") or {}).get("lng", 0)
+                centros_dict[c_id]["lat"] = float(lat or 0)
+                centros_dict[c_id]["lng"] = float(lng or 0)
                 centros_dict[c_id]["region"] = centro.get("region", "")
         except Exception:
             centros_dict[c_id]["nombre"] = c_id
@@ -99,7 +106,7 @@ async def get_impacto(rut: str) -> ImpactoOut:
     ]
 
     meses_list = [
-        ImpactoPorMes(mes=m, cantidad=c, total_kg=0)
+        ImpactoPorMes(mes=m, cantidad=c, total_kg=round(por_mes_kg.get(m, 0), 2))
         for m, c in sorted(por_mes.items())
     ]
 

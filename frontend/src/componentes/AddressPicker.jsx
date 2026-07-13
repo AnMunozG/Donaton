@@ -77,7 +77,7 @@ export default function AddressPicker({ onLocationChange, initialLocation, label
 
   function handleLocation(lat, lng) {
     setSelected({ lat, lng });
-    if (onLocationChange) onLocationChange({ lat, lng });
+    if (onLocationChange) onLocationChange({ lat, lng, address: "" });
     setError("");
   }
 
@@ -90,6 +90,7 @@ export default function AddressPicker({ onLocationChange, initialLocation, label
       const data = await res.json();
       if (data.display_name) {
         setQuery(data.display_name);
+        if (onLocationChange) onLocationChange({ lat, lng, address: data.display_name });
       }
     } catch {
       // silently fail

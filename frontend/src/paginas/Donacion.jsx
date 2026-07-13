@@ -1,29 +1,36 @@
 import { useState, useEffect, useRef } from "react";
-import { useBlocker } from "react-router-dom";
+import { useBlocker, useSearchParams } from "react-router-dom";
 import { getTiposRecurso, getUnidadesPorTipo, getCamposPorTipo, getCentros, crearDonacionMultiItem } from "../api.js";
 import RichTextEditor from "../componentes/RichTextEditor";
-import { validarRut, validarRequerido, validarEnteroPositivo, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
+import { validarRut, validarRequerido, validarEnteroPositivo, validarEmail, validarTelefono, validarForm, formatearRut, limpiarRut, capacidadColor } from "../componentes/Validaciones.js";
 import donacionImg from "../assets/Donacion(6).jpg";
 
 const EMPTY_ITEM = { tipo: "", cantidad: "", unidad: "", detalles: {}, pagado: false };
 
 export default function Donacion() {
+  const [searchParams] = useSearchParams();
   const [tiposRecurso, setTiposRecurso] = useState([]);
   const [unidadesPorTipo, setUnidadesPorTipo] = useState({});
   const [camposPorTipo, setCamposPorTipo] = useState({});
   const [centros, setCentros] = useState([]);
 
-  const [form, setForm] = useState({
-    tipoOrigen: "persona", origen: "", centroId: "", notas: "",
+  const [form, setForm] = useState(() => ({
+    tipoOrigen: "persona", origen: "", centroId: searchParams.get("centroId") || "", notas: "",
     direccion: "", direccionDetalle: "", fechaRetiro: "",
     modoRetiro: "retiro", contactoEmail: "", contactoTel: "", enNombreDe: "",
+  }));
+  const [items, setItems] = useState(() => {
+    const recurso = searchParams.get("recurso");
+    if (recurso) {
+      return [{ tipo: recurso, cantidad: searchParams.get("cantidad") || "", unidad: searchParams.get("unidad") || "", detalles: {}, pagado: false }];
+    }
+    return [{ ...EMPTY_ITEM }];
   });
-  const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [enviado, setEnviado] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const enviadoTimer = useRef(null);
-  const removeConfirmIdx = useRef(null);
+  const [removeConfirmIdx, setRemoveConfirmIdx] = useState(null);
 
   const anyPagado = items.some((i) => i.pagado);
 
@@ -84,8 +91,8 @@ export default function Donacion() {
   };
 
   const handleRemoveClick = (idx) => {
-    if (removeConfirmIdx.current === idx) {
-      removeConfirmIdx.current = null;
+    if (removeConfirmIdx === idx) {
+      setRemoveConfirmIdx(null);
       setItems((prev) => {
         const next = prev.filter((_, i) => i !== idx);
         if (next.length === 0) next.push({ ...EMPTY_ITEM });
@@ -93,8 +100,8 @@ export default function Donacion() {
       });
       setActiveIdx((prev) => Math.min(prev, items.length - 2));
     } else {
-      removeConfirmIdx.current = idx;
-      setTimeout(() => { removeConfirmIdx.current = null; }, 3000);
+      setRemoveConfirmIdx(idx);
+      setTimeout(() => { setRemoveConfirmIdx(null); }, 3000);
     }
   };
 
@@ -103,18 +110,27 @@ export default function Donacion() {
       { campo: "origen", nombre: "RUT", validaciones: [validarRequerido, validarRut] },
       { campo: "centroId", nombre: "Centro de acopio", validaciones: [validarRequerido] },
     ];
+    if (form.contactoEmail) {
+      reglas.push({ campo: "contactoEmail", nombre: "Email contacto", validaciones: [validarEmail] });
+    }
+    if (form.contactoTel) {
+      reglas.push({ campo: "contactoTel", nombre: "Teléfono contacto", validaciones: [validarTelefono] });
+    }
     if (anyNoMonetario && form.modoRetiro === "retiro") {
       reglas.push(
         { campo: "direccion", nombre: "Dirección de retiro", validaciones: [validarRequerido] },
         { campo: "fechaRetiro", nombre: "Fecha de retiro", validaciones: [validarRequerido] },
       );
     }
-    items.forEach((item, i) => {
-      if (!item.tipo) reglas.push({ campo: `item_${i}_tipo`, nombre: `Item ${i + 1} - Tipo`, validaciones: [validarRequerido] });
-      if (!item.cantidad || item.cantidad <= 0) reglas.push({ campo: `item_${i}_cantidad`, nombre: `Item ${i + 1} - Cantidad`, validaciones: [validarRequerido] });
-      if (!item.unidad) reglas.push({ campo: `item_${i}_unidad`, nombre: `Item ${i + 1} - Unidad`, validaciones: [validarRequerido] });
-    });
     const errores = validarForm(form, reglas);
+    items.forEach((item, i) => {
+      if (!item.tipo) errores[`item_${i}_tipo`] = `Item ${i + 1} - Tipo requerido`;
+      if (!item.cantidad || item.cantidad <= 0) errores[`item_${i}_cantidad`] = `Item ${i + 1} - Cantidad requerida`;
+      if (!item.unidad) errores[`item_${i}_unidad`] = `Item ${i + 1} - Unidad requerida`;
+      if (item.tipo === "Otros" && !item.detalles?.tipoPersonalizado?.trim()) {
+        errores[`item_${i}_tipo`] = `Item ${i + 1} - Describe el tipo de recurso`;
+      }
+    });
     setFormErrors(errores);
     return Object.keys(errores).length === 0;
   };
@@ -130,14 +146,14 @@ export default function Donacion() {
       if (form.contactoTel) detalles.contactoTel = form.contactoTel;
       if (form.enNombreDe) detalles.enNombreDe = form.enNombreDe;
 
-      await crearDonacionMultiItem({
+        await crearDonacionMultiItem({
         items: items.map((item) => {
           const tipoFinal = item.tipo === "Otros" && item.detalles?.tipoPersonalizado
             ? `Otros - ${item.detalles.tipoPersonalizado}`
             : item.tipo;
           return {
             tipo: tipoFinal,
-            cantidad: item.cantidad,
+            cantidad: Number(item.cantidad),
             unidad: item.unidad,
             detalles: item.detalles,
           };
@@ -208,7 +224,7 @@ export default function Donacion() {
                     </select>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label fw-semibold small">RUT (sin puntos ni guion)</label>
+                    <label className="form-label fw-semibold small">RUT (sin puntos ni gui&oacute;n)</label>
                     <input type="text" name="origen" className={`form-control${formErrors.origen ? " is-invalid" : ""}`}
                       placeholder="12.345.678-K" value={formatearRut(form.origen)}
                       onChange={(e) => { const raw = limpiarRut(e.target.value); setForm({ ...form, origen: raw }); if (formErrors.origen) setFormErrors({ ...formErrors, origen: "" }); }} />
@@ -216,13 +232,19 @@ export default function Donacion() {
                   </div>
                   <div className="col-md-6">
                     <label className="form-label fw-semibold small">Email de contacto</label>
-                    <input type="email" name="contactoEmail" className="form-control"
-                      placeholder="correo@ejemplo.cl" value={form.contactoEmail} onChange={handleChange} />
+                    <input type="email" name="contactoEmail"
+                      className={`form-control${formErrors.contactoEmail ? " is-invalid" : ""}`}
+                      placeholder="correo@ejemplo.cl" maxLength={254}
+                      value={form.contactoEmail} onChange={handleChange} />
+                    {formErrors.contactoEmail && <div className="invalid-feedback d-block">{formErrors.contactoEmail}</div>}
                   </div>
                   <div className="col-md-6">
                     <label className="form-label fw-semibold small">Teléfono de contacto</label>
-                    <input type="tel" name="contactoTel" className="form-control"
-                      placeholder="+56 9 1234 5678" value={form.contactoTel} onChange={handleChange} />
+                    <input type="tel" name="contactoTel"
+                      className={`form-control${formErrors.contactoTel ? " is-invalid" : ""}`}
+                      placeholder="+56 9 1234 5678" maxLength={15}
+                      value={form.contactoTel} onChange={handleChange} />
+                    {formErrors.contactoTel && <div className="invalid-feedback d-block">{formErrors.contactoTel}</div>}
                   </div>
                 </div>
 
@@ -238,12 +260,12 @@ export default function Donacion() {
                         Artículo {activeIdx + 1}
                       </h3>
                       {items.length > 1 && (
-                        removeConfirmIdx.current === activeIdx
+                        removeConfirmIdx === activeIdx
                           ? (
                             <span className="small text-danger fw-semibold">
                               <i className="bi bi-exclamation-triangle me-1"></i>
                               ¿Eliminar? <button type="button" className="btn btn-sm btn-outline-danger py-0 px-2 ms-1" onClick={() => handleRemoveClick(activeIdx)}>Sí</button>
-                              <button type="button" className="btn btn-sm btn-outline-secondary py-0 px-2 ms-1" onClick={() => { removeConfirmIdx.current = null; }}>No</button>
+                              <button type="button" className="btn btn-sm btn-outline-secondary py-0 px-2 ms-1" onClick={() => { setRemoveConfirmIdx(null); }}>No</button>
                             </span>
                           )
                           : (
@@ -359,8 +381,8 @@ export default function Donacion() {
                       {items.map((_, i) => (
                         <button key={i} type="button"
                           className={`btn btn-sm rounded-circle flex-shrink-0 p-0 d-flex align-items-center justify-content-center w-32 h-32
-                            ${i === activeIdx ? "btn-primary" : i === removeConfirmIdx.current ? "btn-danger" : "btn-outline-secondary"}`}
-                          onClick={() => { removeConfirmIdx.current = null; setActiveIdx(i); }}>
+                            ${i === activeIdx ? "btn-primary" : i === removeConfirmIdx ? "btn-danger" : "btn-outline-secondary"}`}
+                          onClick={() => { setRemoveConfirmIdx(null); setActiveIdx(i); }}>
                           {i + 1}
                         </button>
                       ))}
@@ -403,17 +425,20 @@ export default function Donacion() {
                     <div className="col-md-8">
                       <label className="form-label fw-semibold small">Dirección de retiro</label>
                       <input type="text" name="direccion" className={`form-control${formErrors.direccion ? " is-invalid" : ""}`}
-                        placeholder="Calle, número, comuna" value={form.direccion} onChange={handleChange} />
+                        placeholder="Calle, número, comuna" maxLength={300}
+                        value={form.direccion} onChange={handleChange} />
                       {formErrors.direccion && <div className="invalid-feedback d-block">{formErrors.direccion}</div>}
                     </div>
                     <div className="col-md-4">
                       <label className="form-label fw-semibold small">Detalle</label>
                       <input type="text" name="direccionDetalle" className="form-control"
-                        placeholder="Depto, villa, block..." value={form.direccionDetalle} onChange={handleChange} />
+                        placeholder="Depto, villa, block..." maxLength={200}
+                        value={form.direccionDetalle} onChange={handleChange} />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label fw-semibold small">Fecha de retiro</label>
                       <input type="date" name="fechaRetiro" className={`form-control${formErrors.fechaRetiro ? " is-invalid" : ""}`}
+                        min={new Date().toISOString().split("T")[0]}
                         value={form.fechaRetiro} onChange={handleChange} />
                       {formErrors.fechaRetiro && <div className="invalid-feedback d-block">{formErrors.fechaRetiro}</div>}
                     </div>
@@ -459,7 +484,8 @@ export default function Donacion() {
                 <div className="mt-3">
                   <label className="form-label fw-semibold small">Donación en nombre de <span className="c-muted fw-normal">(opcional)</span></label>
                   <input type="text" name="enNombreDe" className="form-control"
-                    placeholder="Ej: En memoria de un ser querido, homenaje a..." value={form.enNombreDe} onChange={handleChange} />
+                    placeholder="Ej: En memoria de un ser querido, homenaje a..." maxLength={200}
+                    value={form.enNombreDe} onChange={handleChange} />
                 </div>
 
                 {/* ── Notas ── */}
@@ -480,7 +506,7 @@ export default function Donacion() {
                       <div className="modal-content">
                         <div className="modal-header">
                           <h5 className="modal-title">
-                            <i className="bi bi-exclamation-triangle-fill me-2 c-warning"></i>
+                            <i className="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
                             ¿Salir sin confirmar?
                           </h5>
                         </div>

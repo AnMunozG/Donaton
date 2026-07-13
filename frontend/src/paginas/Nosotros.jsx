@@ -64,7 +64,7 @@ export default function Nosotros() {
         <div className="nos-timeline">
           {hitos.map((h, i) => (
             <div key={i} className="nos-milestone">
-              <div className="nos-dot">{h.year.slice(-2)}</div>
+              <div className="nos-dot">{String(h.year).slice(-2)}</div>
               <div className="fw-bold c-heading">{h.titulo}</div>
               <div className="small c-muted">{h.descripcion}</div>
             </div>

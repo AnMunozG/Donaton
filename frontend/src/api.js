@@ -126,7 +126,7 @@ export async function actualizarEstadoDonacion(id, estado) {
 }
 
 export async function actualizarDonacion(id, data) {
-  return actualizarEstadoDonacion(id, data.estado);
+  return donacionesService.update(id, data);
 }
 
 export async function eliminarDonacion(id) {
@@ -189,7 +189,7 @@ export async function crearCuenta(rut, data) {
   return api.post("/auth/register", { rut, ...data });
 }
 
-export async function actualizarCuenta(rut, data) {
+export async function actualizarCuenta(data) {
   return api.put("/auth/profile", data);
 }
 
@@ -289,7 +289,7 @@ export async function crearVoluntario(data) {
 }
 
 export async function actualizarVoluntario(id, data) {
-  return api.put(`/voluntarios/${id}`, data);
+  return api.patch(`/voluntarios/${id}`, data);
 }
 
 export async function eliminarVoluntario(id) {

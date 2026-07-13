@@ -78,11 +78,15 @@ async def login(data: LoginIn) -> dict:
 
 
 async def register(data: RegisterIn) -> dict:
+    nombre_parts = (data.nombre or "").split(" ", 1)
+    first_name = nombre_parts[0]
+    last_name = nombre_parts[1] if len(nombre_parts) > 1 else ""
+
     resp = await usuarios_client.registrar(
         rut=data.rut,
         email=data.email,
-        first_name=data.nombre,
-        last_name="",
+        first_name=first_name,
+        last_name=last_name,
         password=data.password,
     )
     if "error" in resp:
@@ -133,6 +137,10 @@ async def update_profile(rut: str, data: UserUpdateIn, uat: str = None) -> dict:
         payload["first_name"] = data.nombre
     if data.email is not None:
         payload["email"] = data.email
+    if data.telefono is not None:
+        payload["telefono"] = data.telefono
+    if data.direccion is not None:
+        payload["direccion"] = data.direccion
 
     if payload:
         updated = await usuarios_client.actualizar_usuario(user["id"], payload, token=uat)
@@ -169,6 +177,10 @@ async def admin_update_user(rut: str, data: dict, uat: str = None) -> dict:
         payload["centro_acopio_id"] = data["centro_acopio_id"] or None
     if "is_staff" in data:
         payload["is_staff"] = data["is_staff"]
+    if "telefono" in data:
+        payload["telefono"] = data["telefono"]
+    if "direccion" in data:
+        payload["direccion"] = data["direccion"]
     if payload:
         updated = await usuarios_client.actualizar_usuario(user["id"], payload, token=uat)
         return _user_from_usuarios(updated)
@@ -184,8 +196,8 @@ def _user_from_usuarios(user: dict) -> dict:
         "email": user.get("email", ""),
         "rol": _rol_from_user(user),
         "centro_acopio_id": user.get("centro_acopio_id"),
-        "telefono": "",
-        "direccion": "",
+        "telefono": user.get("telefono", ""),
+        "direccion": user.get("direccion", ""),
         "activo": user.get("is_active", True),
         "created_at": date_joined,
         "updated_at": date_joined,

@@ -16,15 +16,17 @@ export default function RichTextEditor({ content, onChange, placeholder }) {
   });
 
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (editor && content != null && content !== editor.getHTML()) {
+      const pos = editor.state.selection.anchor;
       editor.commands.setContent(content || "", false);
+      editor.commands.setTextSelection(Math.min(pos, editor.state.doc.content.size));
     }
   }, [content, editor]);
 
   if (!editor) return null;
 
   const isActive = (name, attrs) => editor.isActive(name, attrs);
-  const toggle = (fn) => editor.chain().focus()[fn]().run();
+  const toggle = (fn, attrs) => editor.chain().focus()[fn](attrs).run();
 
   const Button = ({ active, onClick, title, children, disabled }) => (
     <button

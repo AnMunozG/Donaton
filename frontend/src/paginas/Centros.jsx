@@ -47,7 +47,7 @@ export default function Centros() {
     ? centros
     : centros.filter((c) => c.region === filtroRegion);
 
-  const needsActivas = necesidades.filter((n) => n.estado !== "Pendiente");
+  const needsActivas = necesidades.filter((n) => n.estado === "Activa");
   const necesidadesDelCentro = seleccionado
     ? needsActivas.filter((n) => n.centroId === seleccionado.id)
     : [];
@@ -129,7 +129,7 @@ export default function Centros() {
       <div className="banner-centros" style={{ backgroundImage: `url(${banner2Img})` }}>
         <div className="banner-content-wrapper">
           <span className="banner-pill banner-pill-small mb-2">
-            {centros.length} CENTROS ACTIVOS
+            {centros.filter((c) => c.estado === "Activo" || c.estado === "Normal").length} CENTROS ACTIVOS
           </span>
           <h1 className="h1-banner">Centros de Acopio</h1>
           <p className="banner-text">
@@ -155,7 +155,7 @@ export default function Centros() {
         <div className="col-12 col-lg-4 d-flex flex-column">
           <div className="card-surface rounded-4 p-3 d-flex flex-column gap-3 lista-centros">
             {centrosFiltrados.map((c) => {
-              const pct = Math.round((c.capacidadUsada / c.capacidadTotal) * 100);
+              const pct = c.capacidadTotal > 0 ? Math.round((c.capacidadUsada / c.capacidadTotal) * 100) : 0;
               const barColor = capacidadColor(pct);
               const necesidadesCount = needsActivas.filter((n) => n.centroId === c.id).length;
 
@@ -187,7 +187,7 @@ export default function Centros() {
 
                   <div className="small d-flex justify-content-between mb-1">
                     <span className="c-muted">Capacidad usada</span>
-                    <span className="center-capacity-text">{c.capacidadUsada.toLocaleString()} / {c.capacidadTotal.toLocaleString()} kg</span>
+                    <span className="center-capacity-text">{(c.capacidadUsada || 0).toLocaleString()} / {(c.capacidadTotal || 0).toLocaleString()}</span>
                   </div>
 
                   <div className="progress progress-height-6">
@@ -218,7 +218,7 @@ export default function Centros() {
                   <h2 className="fw-bold fs-5 mb-0 c-heading">{seleccionado.nombre}</h2>
                 </div>
                 <div className="d-flex align-items-center gap-2">
-                  <span className={`badge ${seleccionado.estado === "Activo" ? "bg-success" : "bg-danger"}`}>{seleccionado.estado}</span>
+                  <span className={`badge ${seleccionado.estado === "Activo" || seleccionado.estado === "Normal" ? "bg-success" : seleccionado.estado === "Capacidad moderada" ? "bg-warning text-dark" : "bg-danger"}`}>{seleccionado.estado}</span>
                   {isAuth && (
                     <button className={`btn btn-sm ${seguido ? "btn-danger" : "btn-outline-danger"}`}
                       onClick={(e) => {
@@ -335,7 +335,7 @@ export default function Centros() {
                         <div className="small c-muted"><i className="bi bi-person me-1"></i>{n.reportadoPor}</div>
                       </div>
                       <div className="d-flex gap-1 flex-wrap">
-                        <span className={`badge bg-${urgenciaColorMap[n.urgencia]}`}>{n.urgencia}</span>
+                        <span className={`badge bg-${urgenciaColorMap[n.urgencia] || "secondary"}`}>{n.urgencia}</span>
                         <span className={`badge bg-${estadoNecColorMap[n.estado]}`}>{n.estado}</span>
                       </div>
                     </div>

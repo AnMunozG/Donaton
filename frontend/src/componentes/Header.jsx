@@ -43,7 +43,7 @@ export default function Header() {
           type="button"
           aria-controls="navbarContent"
           aria-expanded={menuOpen}
-          aria-label="Toggle navigation"
+          aria-label="Alternar navegación"
           onClick={() => setMenuOpen((prev) => !prev)}
         >
           <span className="navbar-toggler-icon"></span>
@@ -121,7 +121,7 @@ export default function Header() {
                     </li>
                     <li><hr className="dropdown-divider" /></li>
                     <li>
-                      <button className="dropdown-item" onClick={handleLogout}>
+                      <button type="button" className="dropdown-item" onClick={handleLogout}>
                         <i className="bi bi-box-arrow-right me-2"></i>Cerrar sesión
                       </button>
                     </li>

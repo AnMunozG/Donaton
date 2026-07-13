@@ -35,6 +35,12 @@ export function validarEmail(email) {
   return "";
 }
 
+export function validarTelefono(tel) {
+  if (!tel) return "";
+  if (!/^\+?[\d\s\-()]{7,15}$/.test(tel)) return "Teléfono inválido";
+  return "";
+}
+
 export function validarPassword(password) {
   if (!password) return "Contraseña requerida";
   if (password.length < 8) return "La contraseña debe tener al menos 8 caracteres";

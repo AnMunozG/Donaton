@@ -35,12 +35,13 @@ const tabs = [
   { id: "usuarios", label: "Usuarios", icon: "bi-people-fill" },
 ];
 
+const modalEntityLabels = { donacion: "donación", necesidad: "necesidad", centro: "centro de acopio" };
 const estadosDonacion = ["Donación Registrada", "En Recolección", "En transporte", "Recibida"];
 const urgencias = ["Alta", "Media", "Baja"];
 
 function emptyForm(entity) {
   if (entity === "donacion") return { tipo: "", cantidad: "", unidad: "", origen: "", centroId: "", estado: "Donación Registrada", tipoPersonalizado: "" };
-  if (entity === "necesidad") return { recurso: "", cantidad: "", unidad: "", urgencia: "Media", estado: "Pendiente", centroId: "", reportadoPor: "", descripcion: "" };
+  if (entity === "necesidad") return { recurso: "", cantidad: "", unidad: "", urgencia: "Media", estado: "Pendiente", centroId: "", reportadoPor: "", descripcion: "", categoria: "OTROS" };
   return { nombre: "", region: "", direccion: "", telefono: "", encargado: "", latitud: "", longitud: "", capacidadTotal: "", capacidadUsada: "", estado: "Activo" };
 }
 
@@ -52,7 +53,7 @@ export default function BackOffice() {
   const [donaciones, setDonaciones] = useState([]);
   const [necesidades, setNecesidades] = useState([]);
   const [centros, setCentros] = useState([]);
-  const [activeTab, setActiveTab] = useState(esEncargado ? "dashboard" : "dashboard");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [filtroEstado, setFiltroEstado] = useState("Todas");
   const [centroSeleccionado, setCentroSeleccionado] = useState(null);
 
@@ -123,13 +124,16 @@ export default function BackOffice() {
 
   const donacionesPorTipo = useMemo(() => {
     const counts = {};
-    donaciones.forEach((d) => { counts[d.tipo] = (counts[d.tipo] || 0) + 1; });
+    donaciones.forEach((d) => {
+      const tipo = d.tipo || (d.items?.length > 0 ? "Multi-artículo" : "Sin tipo");
+      counts[tipo] = (counts[tipo] || 0) + 1;
+    });
     return Object.entries(counts).map(([name, cantidad]) => ({ name, cantidad }));
   }, [donaciones]);
 
   const necesidadesPendientes = necesidades.filter((n) => n.estado !== "Cubierta").length;
-  const totalCapacidad = centros.reduce((a, c) => a + c.capacidadTotal, 0);
-  const capacidadUsada = centros.reduce((a, c) => a + c.capacidadUsada, 0);
+  const totalCapacidad = centros.reduce((a, c) => a + (Number(c.capacidadTotal) || 0), 0);
+  const capacidadUsada = centros.reduce((a, c) => a + (Number(c.capacidadUsada) || 0), 0);
 
   const necesidadesPorCentro = useMemo(() => {
     const counts = {};
@@ -188,10 +192,11 @@ export default function BackOffice() {
       { campo: "cantidad", nombre: "Cantidad", validaciones: [validarRequerido, validarEnteroPositivo] },
       { campo: "unidad", nombre: "Unidad", validaciones: [validarRequerido] },
       { campo: "centroId", nombre: "Centro destino", validaciones: [validarRequerido] },
-      { campo: "reportadoPor", nombre: "Reportado por", validaciones: [validarRequerido] },
+      { campo: "reportadoPor", nombre: "Reportado por", validaciones: [validarRequerido, validarRut] },
     ] : entity === "centro" ? [
       { campo: "nombre", nombre: "Nombre", validaciones: [validarRequerido] },
       { campo: "region", nombre: "Región", validaciones: [validarRequerido] },
+      { campo: "encargado", nombre: "Encargado", validaciones: [validarRequerido] },
       { campo: "capacidadTotal", nombre: "Capacidad total", validaciones: [validarRequerido, validarEnteroPositivo] },
     ] : [];
     const errores = validarForm(form, reglas);
@@ -211,7 +216,7 @@ export default function BackOffice() {
           : form.tipo;
         await crearDonacion({
           tipo: tipoFinal,
-          cantidad: form.cantidad,
+          cantidad: Number(form.cantidad),
           unidad: form.unidad,
           origen: form.origen,
           centroId: form.centroId,
@@ -222,21 +227,23 @@ export default function BackOffice() {
     } else if (entity === "necesidad") {
       if (editItem) {
         await actualizarNecesidad(editItem.id, {
-          cantidad: form.cantidad,
+          cantidad: Number(form.cantidad),
           urgencia: form.urgencia,
           estado: form.estado,
           descripcion: form.descripcion,
           reportadoPor: form.reportadoPor,
+          categoria: form.categoria || "OTROS",
         });
       } else {
         await crearNecesidad({
-          centroId: form.centroId,
+          centroId: Number(form.centroId),
           recurso: form.recurso,
-          cantidad: form.cantidad,
+          cantidad: Number(form.cantidad),
           unidad: form.unidad,
           descripcion: form.descripcion || "",
           urgencia: form.urgencia || "Media",
           reportadoPor: form.reportadoPor || "",
+          categoria: form.categoria || "OTROS",
         });
       }
       getNecesidades().then(setNecesidades);
@@ -320,7 +327,7 @@ export default function BackOffice() {
           <nav className="bo-nav">
             {tabsDisponibles.map((tab) => {
               const pendientes = tab.id === "voluntarios"
-                ? voluntarios.filter((v) => v.estado === "pendiente").length
+                ? voluntariosPendientes
                 : 0;
               return (
                 <button key={tab.id}
@@ -363,7 +370,7 @@ export default function BackOffice() {
                   { icon: "bi-gift-fill", label: "Donaciones totales", value: donaciones.length, color: "#DD4444", bg: "rgba(221,68,68,0.1)" },
                   { icon: "bi-exclamation-triangle-fill", label: "Necesidades activas", value: necesidadesPendientes, color: "#FFC107", bg: "rgba(255,193,7,0.1)" },
                   { icon: "bi-building-fill", label: "Centros de acopio", value: centros.length, color: "#3AB795", bg: "rgba(58,183,149,0.1)" },
-                  { icon: "bi-box-seam-fill", label: "Capacidad utilizada", value: `${Math.round((capacidadUsada / totalCapacidad) * 100)}%`, color: "#0dcaf0", bg: "rgba(13,202,240,0.1)" },
+                  { icon: "bi-box-seam-fill", label: "Capacidad utilizada", value: totalCapacidad > 0 ? `${Math.round((capacidadUsada / totalCapacidad) * 100)}%` : "0%", color: "#0dcaf0", bg: "rgba(13,202,240,0.1)" },
                 ].map((card, i) => (
                   <div key={i} className="col-sm-6 col-xl-3">
                     <div className="bo-card card-accent-left" style={{ '--accent-color': card.color }}>
@@ -477,7 +484,7 @@ export default function BackOffice() {
                         <td className="fw-medium">{d.tipo}</td>
                         <td>{d.cantidad} {d.unidad}</td>
                         <td>{d.origen}</td>
-                        <td>{d.centro}</td>
+                        <td>{centros.find((c) => String(c.id) === String(d.centroId))?.nombre || d.centro || d.centroId || "—"}</td>
                         <td>{d.fecha}</td>
                         <td><BadgeEstado estado={d.estado} /></td>
                         <td>
@@ -603,7 +610,7 @@ export default function BackOffice() {
                       </tr>
                     </thead>
                     <tbody>
-                      {necesidades.filter((n) => n.estado !== "Pendiente").map((n) => {
+                      {necesidades.filter((n) => n.estado === "Activa").map((n) => {
                         const centroNec = centros.find((c) => c.id === n.centroId);
                         return (
                           <tr key={n.id}>
@@ -676,7 +683,7 @@ export default function BackOffice() {
                   </thead>
                   <tbody>
                     {centros.map((c) => {
-                      const pct = Math.round((c.capacidadUsada / c.capacidadTotal) * 100);
+                      const pct = c.capacidadTotal > 0 ? Math.round((c.capacidadUsada / c.capacidadTotal) * 100) : 0;
                       const isSelected = centroSeleccionado?.id === c.id;
                       const handleSelect = async () => {
                         if (isSelected) { setCentroSeleccionado(null); return; }
@@ -975,13 +982,13 @@ export default function BackOffice() {
                         </div>
                         <div className="mb-2">
                           <label className="form-label">Horas</label>
-                          <input type="number" className="form-control" min="1" max="24"
+                          <input type="number" className="form-control" min="1" max="24" step="1"
                             value={horasForm.horas}
                             onChange={(e) => setHorasForm({ ...horasForm, horas: e.target.value })} />
                         </div>
                         <div className="mb-2">
                           <label className="form-label">Descripción</label>
-                          <textarea className="form-control" rows="2"
+                          <textarea className="form-control" rows="2" maxLength={500}
                             value={horasForm.descripcion}
                             onChange={(e) => setHorasForm({ ...horasForm, descripcion: e.target.value })} />
                         </div>
@@ -1146,7 +1153,7 @@ export default function BackOffice() {
               <div className="modal-header">
                 <h5 className="modal-title">
                   <i className={`bi ${editItem ? "bi-pencil" : "bi-plus-lg"} me-2 c-primary`}></i>
-                  {editItem ? `Editar ${modalEntity}` : `Crear ${modalEntity}`}
+                  {editItem ? `Editar ${modalEntityLabels[modalEntity] || modalEntity}` : `Crear ${modalEntityLabels[modalEntity] || modalEntity}`}
                 </h5>
                 <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
@@ -1166,7 +1173,7 @@ export default function BackOffice() {
                             </select>
                           )}
                           {form.tipo === "Otros" && !editItem && (
-                            <input name="tipoPersonalizado" className="form-control mt-2" placeholder="Describe el tipo..." value={form.tipoPersonalizado || ""} onChange={handleFormChange} />
+                            <input name="tipoPersonalizado" className="form-control mt-2" placeholder="Describe el tipo..." maxLength={200} value={form.tipoPersonalizado || ""} onChange={handleFormChange} />
                           )}
                           {formErrors.tipo && <div className="invalid-feedback d-block">{formErrors.tipo}</div>}
                         </div>
@@ -1205,7 +1212,7 @@ export default function BackOffice() {
                       <>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Recurso</label>
-                          <input name="recurso" className={`form-control${formErrors.recurso ? " is-invalid" : ""}`} value={form.recurso || ""} onChange={handleFormChange} />
+                          <input name="recurso" className={`form-control${formErrors.recurso ? " is-invalid" : ""}`} value={form.recurso || ""} onChange={handleFormChange} maxLength={200} />
                           {formErrors.recurso && <div className="invalid-feedback d-block">{formErrors.recurso}</div>}
                         </div>
                         <div className="col-md-3">
@@ -1233,6 +1240,18 @@ export default function BackOffice() {
                           </select>
                         </div>
                         <div className="col-md-3">
+                          <label className="form-label small fw-semibold">Categoría</label>
+                          <select name="categoria" className="form-select" value={form.categoria || "OTROS"} onChange={handleFormChange}>
+                            <option value="ALIMENTOS">Alimentos</option>
+                            <option value="ROPA">Ropa</option>
+                            <option value="DINERO">Dinero</option>
+                            <option value="SALUD">Salud</option>
+                            <option value="UTILES">Útiles</option>
+                            <option value="VOLUNTARIADO">Voluntariado</option>
+                            <option value="OTROS">Otros</option>
+                          </select>
+                        </div>
+                        <div className="col-md-3">
                           <label className="form-label small fw-semibold">Estado</label>
                           <select name="estado" className="form-select" value={form.estado || "Pendiente"} onChange={handleFormChange}>
                             <option value="Pendiente">Pendiente</option>
@@ -1242,7 +1261,7 @@ export default function BackOffice() {
                         </div>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Reportado por</label>
-                          <input name="reportadoPor" className={`form-control${formErrors.reportadoPor ? " is-invalid" : ""}`} value={form.reportadoPor || ""} onChange={handleFormChange} />
+                          <input name="reportadoPor" className={`form-control${formErrors.reportadoPor ? " is-invalid" : ""}`} value={form.reportadoPor || ""} onChange={handleFormChange} maxLength={12} placeholder="12.345.678-K" />
                           {formErrors.reportadoPor && <div className="invalid-feedback d-block">{formErrors.reportadoPor}</div>}
                         </div>
                         <div className="col-12">
@@ -1255,7 +1274,7 @@ export default function BackOffice() {
                       <>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Nombre</label>
-                          <input name="nombre" className={`form-control${formErrors.nombre ? " is-invalid" : ""}`} value={form.nombre || ""} onChange={handleFormChange} />
+                          <input name="nombre" className={`form-control${formErrors.nombre ? " is-invalid" : ""}`} value={form.nombre || ""} onChange={handleFormChange} maxLength={200} />
                           {formErrors.nombre && <div className="invalid-feedback d-block">{formErrors.nombre}</div>}
                         </div>
                         <div className="col-md-6">
@@ -1263,7 +1282,7 @@ export default function BackOffice() {
                         </div>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Teléfono</label>
-                          <input name="telefono" className="form-control" value={form.telefono || ""} onChange={handleFormChange} placeholder="+56 9 XXXX XXXX" />
+                          <input name="telefono" className="form-control" value={form.telefono || ""} onChange={handleFormChange} placeholder="+56 9 XXXX XXXX" maxLength={15} />
                         </div>
                         <div className="col-md-6">
                           <label className="form-label small fw-semibold">Encargado</label>
@@ -1274,7 +1293,7 @@ export default function BackOffice() {
                           <AddressPicker
                             label="Dirección (búsqueda + mapa)"
                             initialLocation={form.latitud && form.longitud ? { lat: parseFloat(form.latitud), lng: parseFloat(form.longitud) } : null}
-                            onLocationChange={({ lat, lng }) => setForm({ ...form, latitud: lat.toString(), longitud: lng.toString() })}
+                            onLocationChange={({ lat, lng, address }) => setForm({ ...form, latitud: lat.toString(), longitud: lng.toString(), direccion: address || form.direccion })}
                           />
                         </div>
                         <div className="col-md-3">
@@ -1284,7 +1303,7 @@ export default function BackOffice() {
                         </div>
                         <div className="col-md-3">
                           <label className="form-label small fw-semibold">Capacidad usada</label>
-                          <input name="capacidadUsada" type="number" className={`form-control${formErrors.capacidadUsada ? " is-invalid" : ""}`} value={form.capacidadUsada ?? ""} onChange={handleFormChange} />
+                          <input name="capacidadUsada" type="number" min="0" className={`form-control${formErrors.capacidadUsada ? " is-invalid" : ""}`} value={form.capacidadUsada ?? ""} onChange={handleFormChange} />
                           {formErrors.capacidadUsada && <div className="invalid-feedback d-block">{formErrors.capacidadUsada}</div>}
                         </div>
                         <div className="col-md-6">

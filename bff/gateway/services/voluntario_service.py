@@ -3,11 +3,7 @@ from ..schemas.voluntarios import (
     RegistroHorasOut, VoluntarioCentroOut, NotificacionOut,
 )
 from ..exceptions import NotFoundError, ValidationError, AuthError
-from ..clients.voluntarios_client import VoluntariosClient
-from ..clients.usuarios_client import UsuariosClient
-
-voluntarios_client = VoluntariosClient()
-usuarios_client = UsuariosClient()
+from ..clients import voluntarios_client, usuarios_client, logistica_client
 
 
 def _estado_desde_voluntario(v: dict) -> str:
@@ -54,21 +50,6 @@ async def _enrich(voluntario: dict, uat: str = None) -> dict:
         "nombre": datos_usuario["nombre"],
         "email": datos_usuario["email"],
         "telefono": datos_usuario["telefono"],
-        "disponibilidad": voluntario.get("disponibilidad", "emergencia"),
-        "habilidades": voluntario.get("habilidades", []),
-        "fecha_registro": str(voluntario.get("fecha_registro", "")),
-        "horas_acumuladas": int(voluntario.get("horas_acumuladas", 0)),
-        "centros": centros_out,
-    }
-
-
-def _list_to_out(voluntario: dict) -> dict:
-    centros_raw = voluntario.get("centros", [])
-    centros_out = [_centro_to_out(c) for c in centros_raw]
-    return {
-        "id": str(voluntario.get("id", "")),
-        "rut": voluntario.get("rut", ""),
-        "nombre": "",
         "disponibilidad": voluntario.get("disponibilidad", "emergencia"),
         "habilidades": voluntario.get("habilidades", []),
         "fecha_registro": str(voluntario.get("fecha_registro", "")),
@@ -156,6 +137,17 @@ async def create(body, rut: str, uat: str = None) -> VoluntarioOut:
         raise ValidationError(created.get("error", "Error al crear voluntario"))
 
     if body.centro_id:
+        try:
+            centro = await logistica_client.obtener_centro(int(body.centro_id))
+            if not centro or "error" in centro:
+                raise ValidationError(f"El centro {body.centro_id} no existe en logística")
+        except (ValueError, TypeError):
+            raise ValidationError(f"El ID del centro '{body.centro_id}' no es válido")
+        except ValidationError:
+            raise
+        except Exception:
+            pass
+
         vc_data = {
             "voluntario": int(created.get("id", 0)),
             "centro_id": body.centro_id,
@@ -193,11 +185,16 @@ async def cambiar_estado(code: str, nuevo_estado: str, user: dict, uat: str = No
     if nuevo_estado not in ("activo", "inactivo"):
         raise ValidationError("Estado inválido. Valores permitidos: activo, inactivo")
 
-    data = {"estado": nuevo_estado}
-    updated = await voluntarios_client.actualizar_voluntario(code, data)
-    if "error" in updated:
-        raise ValidationError(updated.get("error", "Error al cambiar estado"))
-    enriched = await _enrich_with_centros(updated, uat=uat)
+    voluntario = await voluntarios_client.obtener_voluntario(code)
+    if not voluntario or "error" in voluntario:
+        raise NotFoundError("Voluntario no encontrado")
+
+    centros = voluntario.get("centros", [])
+    for vc in centros:
+        if vc.get("id"):
+            await voluntarios_client.actualizar_voluntario_centro(str(vc["id"]), {"estado": nuevo_estado})
+
+    enriched = await _enrich_with_centros(voluntario, uat=uat)
     return VoluntarioOut(**enriched)
 
 
@@ -255,6 +252,17 @@ async def listar_centros(code: str, user: dict, uat: str = None) -> list[Volunta
 
 
 async def solicitar_centro(voluntario_id: str, centro_id: str, user: dict) -> VoluntarioCentroOut:
+    try:
+        centro = await logistica_client.obtener_centro(int(centro_id))
+        if not centro or "error" in centro:
+            raise ValidationError(f"El centro {centro_id} no existe en logística")
+    except (ValueError, TypeError):
+        raise ValidationError(f"El ID del centro '{centro_id}' no es válido")
+    except ValidationError:
+        raise
+    except Exception:
+        pass
+
     data = {
         "voluntario": int(voluntario_id),
         "centro_id": centro_id,
