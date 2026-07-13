@@ -179,6 +179,12 @@ async def update_centro(request, code: str, body: CentroUpdate):
         raise HttpError(403, "No tienes permiso para editar este centro")
     return await centro_service.update(code, body)
 
+@api.delete("/centros/{code}", response={204: None})
+async def delete_centro(request, code: str):
+    await centro_service.delete(code)
+    return 204, None
+
+
 @api.get("/centros/{code}/stats", auth=None, response=CentroStatsOut)
 async def get_centro_stats(request, code: str):
     return await centro_service.get_stats(code)
